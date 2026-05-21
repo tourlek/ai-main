@@ -1,0 +1,10 @@
+@{{HOME}}/.claude/RTK.md
+@{{HOME}}/.claude/shared/profile.md
+@{{HOME}}/.claude/shared/style.md
+@{{HOME}}/.claude/shared/workflow.md
+
+## Shared AI Skills
+
+For GitLab merge request description work, use {{HOME}}/.ai-skills/gitlab-mr-description/SKILL.md.
+
+Trigger it when the user sends a GitLab MR link or asks to draft, improve, standardize, or fill an MR description. Read the paired template at {{HOME}}/.ai-skills/gitlab-mr-description/template.md before drafting. Use `glab` first for MR metadata, diff, notes, and API details when available.

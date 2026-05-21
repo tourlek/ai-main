@@ -1,0 +1,10 @@
+---
+name: gitlab-mr-description
+description: Create GitLab merge request descriptions from MR links, branch diffs, commits, issue context, or pasted notes. Use when the user asks Claude to draft, improve, standardize, or fill a GitLab MR description.
+---
+
+# GitLab MR Description
+
+Use the shared skill at {{HOME}}/.ai-skills/gitlab-mr-description/SKILL.md.
+
+When triggered, read that file and {{HOME}}/.ai-skills/gitlab-mr-description/template.md, then use `glab` first (`glab mr view`, `glab mr diff`, `glab mr note list`, and `glab api` when needed) to draft a paste-ready GitLab MR description from verified MR, diff, commit, issue, and local code context.

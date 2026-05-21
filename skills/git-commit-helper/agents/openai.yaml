@@ -1,0 +1,4 @@
+interface:
+  display_name: "Git Commit Helper"
+  short_description: "Inspect local changes and craft commits"
+  default_prompt: "Use $git-commit-helper to inspect my local changes, decide commit grouping, and create clear commit messages."
