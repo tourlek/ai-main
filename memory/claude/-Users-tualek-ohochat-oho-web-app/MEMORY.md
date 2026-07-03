@@ -1,0 +1,3 @@
+- [Nuxt 3 migration in progress](project_nuxt3_migration.md) — parity with Nuxt 2 is the bar; watch for plugin-ordering and Nuxt-context hazards
+- [Smartchat refetch $skip race (TK-4241)](project_smartchat_refetch_skip_race.md) — race between wrapper and loadMoreRooms made retry send skip=N; fixed via explicit skip override
+- [No Co-Authored-By in commits](feedback_commit_no_coauthor.md) — ไม่ใส่ Claude trailer ใน commit message

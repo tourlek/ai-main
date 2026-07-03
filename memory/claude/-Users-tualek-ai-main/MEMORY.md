@@ -1,0 +1,8 @@
+- [User role & stack](user_role.md) — Engineer across web/backend/mobile, daily multi-tool AI driver; primary repos under `/Users/tualek/ohochat/`.
+- [Thai response style](feedback_thai_style.md) — Continuous prose, `1 ประเด็น = 1 ประโยค`, no AI/marketing tone; canonical at `ai-main/config/style.md`.
+- [Commit authorization](feedback_commits.md) — Never commit without explicit instruction; split commits by logical scope when authorized.
+- [Scope discipline](feedback_scope.md) — Stay in the named repo; preserve QA-passed UI/function during refactors; don't touch tests unless asked.
+- [GitLab `glab` workflow](feedback_glab.md) — Always `glab` first; on this machine the JSON flag is `-F json`.
+- [ai-main architecture](project_ai_main.md) — Central config + skills repo; edit here, all tools auto-pick up via `install.sh`.
+- [oho-web-app Nuxt 2→3 migration](project_oho_migration.md) — Biggest active project; preserve QA-passed behavior, compare perf across branches.
+- [Codex memory summary](reference_codex_memory.md) — `~/.codex/memories/memory_summary.md` carries detailed OHO/JERA/Smartchat conventions worth consulting.

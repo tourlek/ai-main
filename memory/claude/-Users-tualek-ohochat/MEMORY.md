@@ -1,0 +1,9 @@
+- [GTM UAT shares prod container](project_gtm_uat_prod_container.md) — oho-web-app/plugins/gtm.js intentionally loads prod GTM in UAT; analytics filters by domain
+- [ClickUp subtask creation](reference_clickup_subtask.md) — parent field + list_id; time_estimate is milliseconds despite tool docs saying minutes
+- [Ask when spec inaccessible](feedback_ask_when_spec_inaccessible.md) — ถ้าเข้า ClickUp/spec ไม่ได้ ให้บอกก่อน อย่าเดา body format หรือ URL path
+- [Realtime transport split](project_realtime_transport_split.md) — chat list/notif=oho socket.io(websocket--production), in-room=GetStream ตรง, ส่งรับ=HTTP core-api; อาการชี้ช่องที่ล่ม
+- [No Co-Authored-By in commits](feedback_no_coauthored.md) — ห้ามใส่ Co-Authored-By: Claude ใน commit message ทุก repo
+- [Release process](reference_release_process.md) — version bump + release branch + UAT/staging env branch + production git-flow finish + tag push
+- [Never push master](feedback_never_push_master.md) — ห้าม push/commit ลง master branch ทุก repo ใน ohochat โดยเด็ดขาด ตรวจ branch ก่อน commit เสมอ
+- [React migration embed pilot](project_react_migration_pilot.md) — MFE embed ก่อน; worktree oho-web-app-react-embed (branch test/react-embed-pilot) + oho-web-app-react-v2
+- [Stay on named cause](feedback_stay_on_named_cause.md) — incident หลายสาเหตุ ทำเฉพาะสาเหตุที่ user ระบุ เจอบั๊กอื่นให้บันทึกไม่ลงมือแก้
