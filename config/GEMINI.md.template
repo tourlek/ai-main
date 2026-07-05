@@ -2,6 +2,16 @@
 @{{HOME}}/.gemini/shared/profile.md
 @{{HOME}}/.gemini/shared/style.md
 @{{HOME}}/.gemini/shared/workflow.md
+@{{HOME}}/.ai-memory/SHARED.md
+@{{HOME}}/.ai-memory/lessons/LESSONS.md
+
+## Self-Learning
+
+When the user corrects you, pushes back, or you discover a mistake you made, follow {{HOME}}/.ai-skills/self-learning/SKILL.md: append a lesson to {{HOME}}/.ai-memory/lessons/LESSONS.md so every AI tool stops repeating it.
+
+## Work Log
+
+When the user says `/worklog` or `log งาน`, or a substantial work session ends, follow {{HOME}}/.ai-skills/worklog/SKILL.md: append a one-line entry to {{AI_MAIN}}/logs/<YYYY-MM>.md.
 
 ## Shared AI Skills
 

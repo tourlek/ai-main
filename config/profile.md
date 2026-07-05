@@ -31,18 +31,15 @@ Software engineer working across web frontend, backend APIs, and mobile. Heavy G
 
 ## Domain vocabulary
 
-- **JERA** — feature/integration domain (JERA Cloud, JERA Dent). Custom Integration display names exist; do not invent alias rules like mapping `jera` → `jera-cloud` unless the product contract says so.
-- **partner-connection** — member-facing route. Backoffice path is `/backoffice/partner-connection/jera`. Developer API has its own routes — keep contracts separate.
-- **Smartchat** — messaging surface. Unread detection and mark-read are separate mechanics.
-- **contact_links** — source of truth for JERA retry/again and pending-verification UI. Don't switch to `partner_link_tokens.used_at` unless the contract changes.
-- **Sender IDs** — JERA message fallback uses `@jera-cloud` / `@jera-dent` rather than text/html heuristics.
+Per-repo and OHO domain knowledge lives in each workspace's root `AGENTS.md`/`CLAUDE.md`/`GEMINI.md` (deployed from `ai-main/knowledge/`). Read it there — it is not duplicated here.
 
 ## Tool environment
 
 - macOS, zsh, Homebrew available at `/opt/homebrew/`.
 - `rtk` (Rust Token Killer) installed via brew — shell commands get auto-rewritten via Claude Code hook; manual `rtk <cmd>` prefix for Codex / Gemini.
 - `glab` CLI for GitLab; the working JSON flag is `-F json`.
-- AI configs centralized in `~/ai-main/`, synced into `~/.claude/`, `~/.codex/`, `~/.gemini/`, `~/.cursor/` by `install.sh`.
+- AI configs centralized in `~/ai-main/`, synced into `~/.claude/`, `~/.codex/`, `~/.gemini/`, `~/.cursor/`, `~/.agents/` (Antigravity/agy) by `install.sh`. Antigravity reads global rules from `~/.gemini/GEMINI.md` and workspace `AGENTS.md` — both ai-main-managed.
+- CodeGraph indexed in every primary repo (`.codegraph/`) — use `codegraph explore` / MCP for "who calls this" questions before grep.
 - `~/.claude/projects/`, `~/.codex/sessions/` carry past transcripts for analysis when relevant.
 
 ## Cross-cutting facts

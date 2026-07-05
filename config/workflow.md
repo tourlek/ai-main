@@ -51,6 +51,13 @@
 - `glab` is the GitLab CLI of choice.
 - Use `find . -name 'pattern'` from a specific path, not from `/`.
 
+## Code search (pick by question, cheapest first)
+
+- Exact string/regex → `rg` (ripgrep).
+- Code-shape patterns (calls with specific args, structural rewrites, avoid comment/string false positives) → `ast-grep run -p '<pattern>' --lang <js|ts|vue|dart>`.
+- Relationship questions ("who calls this", "what breaks if I change this") → `codegraph explore` / codegraph MCP; every primary repo has a `.codegraph/` index.
+- Don't answer relationship questions with grep + reading many whole files — that is the expensive path.
+
 ## When the user pushes back
 
 - `Why you revert code ???` / `i don't want change` / `style is broken` → stop, audit what changed, restore the user's original behavior, then explain the deviation.

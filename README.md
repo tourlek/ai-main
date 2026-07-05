@@ -1,12 +1,17 @@
 # 🤖 AI-Main: Centralized AI Configurations & Shared Skills
 
-A single source of truth for global AI configurations, shared skills, slash commands, and external skill packs — synced across **Claude Code**, **Gemini CLI**, **Cursor**, and **Codex**.
+A single source of truth for global AI configurations, per-repo knowledge, shared memory, lessons, work logs, skills, slash commands, and external skill packs — synced across **Claude Code**, **Gemini CLI**, **Cursor**, and **Codex**, and across machines/accounts via git.
 
 ---
 
 ## 🌟 Key Features
 
-1. **Single source of truth for style, workflow, and profile** — `config/style.md`, `config/workflow.md`, `config/profile.md` are symlinked into every tool's `~/.<tool>/shared/` dir and `@`-imported by each tool's entry file. Edit once, every AI agent sees the change immediately.
+1. **Single source of truth for style, workflow, and profile** — `config/style.md`, `config/workflow.md`, `config/profile.md` are symlinked into every tool's `~/.<tool>/shared/` dir and compiled into each tool's entry file. Edit once, every AI agent sees the change on the next sync.
+1b. **Per-repo knowledge** — `knowledge/<repo>.md` deploys to each workspace root as `AGENTS.md` (+ `CLAUDE.md`/`GEMINI.md` symlinks), so every tool loads repo-specific facts only inside that repo. Deployed files are globally gitignored and never overwrite a file the workspace's own git tracks.
+1c. **Shared memory in git** — `memory/` holds Claude project memories, Codex memories, cross-tool facts (`memory/SHARED.md`), and lessons (`memory/lessons/LESSONS.md`); tool locations are symlinked into it. Clone on a new machine and every tool remembers everything.
+1d. **Self-learning** — the `self-learning` skill appends mistakes/corrections to `LESSONS.md`, which is compiled into every tool's entry file: one tool's mistake becomes every tool's rule.
+1e. **Auto-sync** — `scripts/sync.sh` pulls, redeploys, and auto-commits/pushes `memory/` + `logs/` (only those paths). Wired to a Claude Code SessionStart hook (pull-only) and a launchd job every 6 h.
+1f. **Central worklog** — the `worklog` skill / `/worklog` command appends one-line entries to `logs/YYYY-MM.md`, synced across machines.
 2. **Git-Portable Design** — Templates use `{{HOME}}` placeholders that the installer rewrites to the active user's `$HOME`. No hard-coded paths in version control.
 3. **Centralized Skills** — One canonical copy in `skills/`. Modify it once; every assistant sees the change.
 4. **External Skill Packs** — Curated/verified third-party skill repos are pulled in as git submodules under `external/`, version-pinned by commit (currently [thananon/9arm-skills](https://github.com/thananon/9arm-skills) and [vercel-labs/agent-skills](https://github.com/vercel-labs/agent-skills)).
@@ -44,8 +49,20 @@ ai-main/
 │   ├── style.md                  # ⇄ symlinked into each tool's shared/  — response style
 │   ├── workflow.md               # ⇄ symlinked into each tool's shared/  — working rules
 │   └── profile.md                # ⇄ symlinked into each tool's shared/  — user profile + tech stack
+├── knowledge/                    # per-repo knowledge → deployed to each workspace root
+│   ├── _ohochat-shared.md        # OHO domain vocab, imported by every oho-* file
+│   └── <repo>.md                 # one per primary workspace (filename = dir basename)
+├── memory/                       # canonical cross-machine memory (auto-committed by sync.sh)
+│   ├── SHARED.md                 # distilled cross-tool facts — compiled into every entry file
+│   ├── lessons/LESSONS.md        # self-learning: mistakes → permanent rules, loaded everywhere
+│   ├── claude/<project-slug>/    # ⇄ ~/.claude/projects/<slug>/memory
+│   └── codex/                    # ⇄ ~/.codex/memories
+├── logs/                         # central worklog, YYYY-MM.md (auto-committed by sync.sh)
+├── scripts/
+│   ├── sync.sh                   # pull + redeploy + auto-commit memory/ logs/ + push
+│   └── verify.sh                 # deep verification
 ├── skills/
-│   └── gitlab-mr-description/    # canonical shared skill
+│   └── gitlab-mr-description/    # canonical shared skill (+ self-learning, worklog, ...)
 ├── commands/                     # slash commands → ~/.claude/commands, ~/.cursor/commands
 ├── redirects/                    # in-tree SKILL.md redirects for Claude & Gemini
 │   ├── claude/
@@ -69,6 +86,8 @@ Every skill below is symlinked into `~/.claude/skills/`, `~/.codex/skills/`, `~/
 | `gitlab-mr-comment-reply` | Draft concise Thai/English replies to GitLab MR review comments, anchored to actual code, with reply category (accept / push-back / explain / defer). |
 | `git-commit-helper` | Inspect local diff, decide commit grouping, pick conventional prefix, write subject + body. Ported from Codex. |
 | `branch-perf-compare` | Standardize RAM/startup/bundle comparisons across git branches (e.g. `uat` vs `nuxt3` vs `perf/*`) and produce a paste-ready perf report. |
+| `self-learning` | Capture mistakes and user corrections as permanent lessons in `memory/lessons/LESSONS.md`, loaded by every tool at session start. |
+| `worklog` | Append one-line work log entries to `logs/YYYY-MM.md`; read back when asked "what did I work on". |
 
 ### From [`thananon/9arm-skills`](https://github.com/thananon/9arm-skills) — `external/9arm-skills/`
 
@@ -113,7 +132,29 @@ Every skill below is symlinked into `~/.claude/skills/`, `~/.codex/skills/`, `~/
 | 9b | **Direct-symlink every other owned skill** in `ai-main/skills/*` into all four tools |
 | 10 | Symlink **every shippable skill** in each `external/<pack>/skills/` into all four tools (excludes `deprecated/`, `in-progress/`, `personal/`, `node_modules/`) |
 | 11 | Symlink files from `commands/` into `~/.claude/commands/` & `~/.cursor/commands/` |
-| 12 | Verify every link resolves |
+| 12 | Link canonical memory: `~/.ai-memory → memory/`, `~/.codex/memories → memory/codex/`, Claude project memories ⇄ `memory/claude/<slug>/` (adopts any new local memory dirs into the repo) |
+| 13 | Deploy per-repo knowledge: compile `knowledge/<repo>.md` → `<workspace>/AGENTS.md` + `CLAUDE.md`/`GEMINI.md` symlinks (skips anything the workspace's git tracks) |
+| 14 | Add `CLAUDE.md`/`AGENTS.md`/`GEMINI.md`/`CLAUDE.local.md` to the global gitignore |
+| 15 | Wire Claude Code `SessionStart` hook (`sync.sh --pull-only --quiet`) and load the launchd job (`com.tualek.ai-main-sync`, every 6 h) |
+| 16 | Verify every link resolves |
+
+`./install.sh --sync` is the fast path used by `sync.sh`: it skips brew/submodules/backups/Claude-Desktop/hook/launchd and only redeploys configs, memory links, and knowledge.
+
+---
+
+## 🔄 Sync & New Device
+
+```bash
+# any machine, any account:
+git clone --recurse-submodules git@github.com:tourlek/ai-main.git ~/ai-main
+cd ~/ai-main && ./install.sh
+```
+
+That restores configs, skills, commands, per-repo knowledge, **and all memory/lessons/logs**.
+
+Ongoing sync is automatic: Claude Code pulls at session start; launchd runs a full sync (pull → redeploy → auto-commit `memory/` + `logs/` → push) every 6 hours. Manual: `./scripts/sync.sh`. Auto-commit is scoped to `memory/` and `logs/` only — config/skill changes are always committed by hand.
+
+⚠️ `memory/` contains personal data — this repo must stay **private**.
 
 ---
 
