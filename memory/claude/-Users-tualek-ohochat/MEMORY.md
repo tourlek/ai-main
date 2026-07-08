@@ -8,3 +8,4 @@
 - [React migration embed pilot](project_react_migration_pilot.md) — MFE embed ก่อน; worktree oho-web-app-react-embed (branch test/react-embed-pilot) + oho-web-app-react-v2
 - [Stay on named cause](feedback_stay_on_named_cause.md) — incident หลายสาเหตุ ทำเฉพาะสาเหตุที่ user ระบุ เจอบั๊กอื่นให้บันทึกไม่ลงมือแก้
 - [GCP Logging console](reference_gcp_logging_console.md) — project=oho-platform, service name `<SERVICE_NAME>--<env>` e.g. core-api--production; deep-link URL template
+- [Confirm before editing on question phrasing](feedback_confirm_before_editing_on_question_phrasing.md) — "แก้...ได้ไหม" is a question not go-ahead; wait for explicit "แก้เลย"/"go"
