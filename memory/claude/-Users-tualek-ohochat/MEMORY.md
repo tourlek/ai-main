@@ -9,3 +9,4 @@
 - [Stay on named cause](feedback_stay_on_named_cause.md) — incident หลายสาเหตุ ทำเฉพาะสาเหตุที่ user ระบุ เจอบั๊กอื่นให้บันทึกไม่ลงมือแก้
 - [GCP Logging console](reference_gcp_logging_console.md) — project=oho-platform, service name `<SERVICE_NAME>--<env>` e.g. core-api--production; deep-link URL template
 - [Confirm before editing on question phrasing](feedback_confirm_before_editing_on_question_phrasing.md) — "แก้...ได้ไหม" is a question not go-ahead; wait for explicit "แก้เลย"/"go"
+- [Unread incident + unread_by refactor](project_unread_by_refactor.md) — oho-api read_by→unread_by state, flag off, plan.md; never $nin on array hot path
