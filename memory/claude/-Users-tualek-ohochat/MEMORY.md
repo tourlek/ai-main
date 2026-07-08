@@ -7,3 +7,4 @@
 - [Never push master](feedback_never_push_master.md) — ห้าม push/commit ลง master branch ทุก repo ใน ohochat โดยเด็ดขาด ตรวจ branch ก่อน commit เสมอ
 - [React migration embed pilot](project_react_migration_pilot.md) — MFE embed ก่อน; worktree oho-web-app-react-embed (branch test/react-embed-pilot) + oho-web-app-react-v2
 - [Stay on named cause](feedback_stay_on_named_cause.md) — incident หลายสาเหตุ ทำเฉพาะสาเหตุที่ user ระบุ เจอบั๊กอื่นให้บันทึกไม่ลงมือแก้
+- [GCP Logging console](reference_gcp_logging_console.md) — project=oho-platform, service name `<SERVICE_NAME>--<env>` e.g. core-api--production; deep-link URL template
