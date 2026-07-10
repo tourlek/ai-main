@@ -85,3 +85,15 @@ explicit no-bash rule but this writes prod data, same caution applies). `reports
 `analyze-business-size-*.json`, `export-sales-order/`, `loadtest/`,
 `migrate-line-webhook-endpoint/` were already dirty/untracked in script-oho before this session
 touched anything — not mine, left alone.
+
+**Wayfinder audit map (2026-07-10)**: charted at `oho-api/unread-unresponded-audit/map.md`
+(local-markdown tracker, tickets in the sibling `tickets/` dir) — destination is a go/no-go
+readiness verdict before commit/deploy/canary-relaunch, scoped to `oho-api` + `script-oho` +
+`oho-web-app` + `oho-websocket` (not `oho-backoffice`), explicitly including T5 (poll frequency,
+not yet started) and T7 (9 `TODO: DELETE` indexes in `contact.model.js`). Branches: `oho-api`/
+`oho-web-app` → `feature/tk-sprint-2613/oho-1018-unrespone`, `oho-websocket` →
+`hotfix/incident-unread-query`. New fact surfaced while charting: `oho-websocket` has its own
+independent Stream `message.read` handler (commit `63f234b`) that also `$pull`s `unread_by`,
+mirroring `oho-api`'s hotfix (`edd6de95f`) — whether Stream dual-delivers the same webhook to
+both services is an open ticket. 10 tickets created, all open/unclaimed; ticket 10 (synthesis)
+is blocked by the other 9. Next session: run `/wayfinder` against this map to work a ticket.
