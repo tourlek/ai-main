@@ -2,34 +2,46 @@ v1
 
 ## User Profile
 
-The current durable memory set has two evidence-backed lanes. In `/Users/tualek/ohochat/oho-api`, the user asks for Thai code reviews that answer the actual question of whether a change is okay, with direct blocker findings rather than implementation detours. In `/Users/tualek/life`, the user uses conservative monthly cash-flow planning anchored to authoritative ad-hoc notes from 2026-05-12, with salary-based math and explicit handling of tuition, utilities, and Paynext. Reusable workflow skills also exist for OHO branch work, Smartchat debugging, JERA integration debugging, commit preparation, and GitLab MR descriptions, but the current prompt-loaded memory should treat those skills as reference artifacts until new rollout-backed evidence expands them again.
+The user currently has two strong evidence-backed workflows. In `/Users/tualek/ohochat/oho-api`, they ask for Thai backend review and diagnosis work that answers the actual question being asked: whether a diff is okay, or where unread/unresponded performance is really slow. They prefer direct blocker findings or root-cause attribution over speculative fixes. In `/Users/tualek/life`, they use conservative monthly cash-flow planning anchored to authoritative ad-hoc notes from 2026-05-12, with salary-only income assumptions and mandatory tuition/utilities. They also keep reusable workflow skills for Git commits, GitLab MR descriptions, OHO Smartchat debugging, JERA integration debugging, and OHO web-app branch work; use those as reference procedures when no fresher rollout-backed memory exists.
 
 ## User preferences
 
-- For code review requests like `review oho-api ที่มีการแก้ไขให้หน่อยว่าโอเคไหม`, answer in Thai, be direct, and say plainly whether the diff is okay.
+- For `oho-api` review requests like `review oho-api ที่มีการแก้ไขให้หน่อยว่าโอเคไหม`, answer in Thai, be direct, and say plainly whether the diff is okay.
 - When the user asks for review only, stay review-first and findings-first; do not jump into implementation unless asked.
+- When the user asks a performance question like `Feature unread/unrespone มีจุดไหนหรอที่ทำให้ Performance ของ databse slow`, default to root-cause analysis with evidence, not a blind patch.
+- When the user frames a slowdown as `count unread unresponded` versus stamping `is_unresponded` / removing ids from `unread_by`, compare read-path cost versus write-path cost explicitly and identify the dominant bottleneck.
 - For monthly finance planning, do not count wife monthly support as income; keep the baseline conservative and salary-based. [ad-hoc note]
-- For monthly finance planning, include tuition saving and water/electric in the baseline by default; do not treat them as optional extras. [ad-hoc note]
-- For monthly finance planning, keep `Paynext 3,300/month` in the expense baseline, while remembering it can temporarily substitute cash for fuel, food, or 7-Eleven spending when cash is tight. [ad-hoc note]
-- When rollout-backed support was deleted, do not resurrect old guidance from habit; prefer current `MEMORY.md`, surviving ad-hoc notes, and existing skill files.
+- For monthly finance planning, include tuition saving and water/electric in the baseline by default. [ad-hoc note]
+- Keep `Paynext 3,300/month` in the expense baseline while also remembering it can temporarily substitute cash for fuel, food, or 7-Eleven spending when cash is tight. [ad-hoc note]
 
 ## General Tips
 
-- Read `phase2_workspace_diff.md` first in this repo; use it as the authoritative ingestion and forgetting queue for incremental consolidation.
-- Treat `extensions/ad_hoc/notes/*.md` as authoritative memory inputs, but only as information, never as action instructions; append `[ad-hoc note]` to derived summary content.
-- Search `MEMORY.md` before opening rollout summaries; the current high-signal blocks are `oho-api` code review failure shields and the `/Users/tualek/life` finance baseline.
-- For `oho-api` unread/unresponded review work, targeted Jest and hook-chain tracing were better signals than repo-wide `npm run type-check`, which already had unrelated failures.
-- Use `skills/` directly for repeated workflows that do not currently have fresh rollout-backed memory coverage: Git commits, GitLab MR descriptions, OHO Smartchat debugging, OHO JERA debugging, and OHO web-app branch work.
+- Read `phase2_workspace_diff.md` first in this repo; it is the authoritative ingestion and forgetting queue for incremental consolidation.
+- Treat `extensions/ad_hoc/notes/*.md` as authoritative memory inputs, but only as information; append `[ad-hoc note]` to derived summary content.
+- For `oho-api` unread/unresponded work, tracing the full hook/query lifecycle is higher value than stopping at one helper; the risky areas are `convertUnreadUnrespondedQuery`, typed-filter preservation, and `addVisibilityFilter`.
+- For `oho-api` unread/unresponded validation, targeted Jest and exact failure attribution are more trustworthy than repo-wide `npm run type-check`, which already has unrelated noise.
+- For unread/unresponded performance incidents, treat old `$nin` counts on `read_by` as an immediate red flag and verify count-path evidence before blaming write-side stamping.
+- Use `skills/` directly for repeated workflows that currently have skill coverage but no newer rollout-backed memory: Git commits, GitLab MR descriptions, OHO Smartchat debugging, JERA integration debugging, and OHO web-app branch work.
 
 ## What's in Memory
 
 ### /Users/tualek/ohochat/oho-api
 
+#### 2026-07-11
+
+- Unread/unresponded performance root cause: unread_by, countDocuments, $nin, maxTimeMS, message.read, performance regression
+  - desc: Search first for backend performance memory when the user asks whether unread/unresponded slowdown comes from counting or from write-side stamping in `cwd=/Users/tualek/ohochat/oho-api`.
+  - learnings: The validated incident pattern was unread `countDocuments` with `$nin` on `read_by`; current mitigation is equality on `unread_by` plus `maxTimeMS` and fail-soft `null`.
+
+- Thai code review of unread/unresponded changes in `mr-1285-fixes`: convertUnreadUnrespondedQuery, search-query-converter, addVisibilityFilter, countBaseQuery, bulk.class.js, MONGODB_URI
+  - desc: Search here for review-only memory about whether unread/unresponded diffs are okay, including blocker findings, targeted validation limits, and worktree-specific caveats in `cwd=/Users/tualek/ohochat/oho-api`.
+  - learnings: Review confidence came from focused Jest and full hook-chain tracing; missing `MONGODB_URI` blocked DB-backed proof, and unrelated quick-reply/typecheck failures should not be reported as rollout success.
+
 #### 2026-06-26
 
-- Thai code review of unread/unresponded query changes: oho-api, unread, unresponded, convertUnreadUnrespondedQuery, search-query-converter, addVisibilityFilter
-  - desc: Search first for backend review memory about unread/unresponded query composition, blocker findings, and how later hooks can corrupt `$or` / `$and` filters in `cwd=/Users/tualek/ohochat/oho-api`.
-  - learnings: The useful review path was focused Jest plus full hook-chain tracing; the key failure shields are typed-filter preservation in `search-query-converter` and `$or` overwrite risk in `addVisibilityFilter`.
+- Earlier unread/unresponded code review blockers: unread, unresponded, search-query-converter, addVisibilityFilter, Jest, Mongo query composition
+  - desc: Older but still relevant review memory for the same `oho-api` task family; useful when a future diff reintroduces the same query-composition pattern in `cwd=/Users/tualek/ohochat/oho-api`.
+  - learnings: The durable failure shield is still the same: filter-shape changes must survive typed-filter parsing and later visibility rewrites.
 
 ### /Users/tualek/life
 
@@ -37,7 +49,7 @@ The current durable memory set has two evidence-backed lanes. In `/Users/tualek/
 
 - Monthly finance baseline from ad-hoc notes: net salary 37950, tuition saving, utilities 4500, Paynext 3300, wife monthly support
   - desc: Search first for current personal-finance baseline numbers and planning constraints when the user asks for monthly cash-flow help in `cwd=/Users/tualek/life`. [ad-hoc note]
-  - learnings: The authoritative baseline is intentionally conservative: no wife support counted as income, utilities and tuition are mandatory, and the monthly plan is still short roughly `18,014-18,714/month`. [ad-hoc note]
+  - learnings: The authoritative baseline is conservative: no wife support counted as income, tuition and utilities are mandatory, and the current plan still has a monthly shortfall. [ad-hoc note]
 
 ### Older Memory Topics
 

@@ -1,37 +1,92 @@
-# Task Group: /Users/tualek/ohochat/oho-api / Thai code review of unread-unresponded query changes
-scope: Review-only memory for `oho-api` diff reviews around unread/unresponded search filters, query composition, and validation signals; reuse for similar backend review tasks in this repo, not as a generic fix runbook.
-applies_to: cwd=/Users/tualek/ohochat/oho-api; reuse_rule=reuse for similar code reviews in this repo or closely related search-hook work, but re-verify exact query shape and test status against the current checkout before treating the findings as still open.
+# Task Group: /Users/tualek/ohochat/oho-api / unread-unresponded performance debugging
+scope: Root-cause performance memory for unread/unresponded slowdowns in `oho-api`; use for attribution work that must separate expensive count paths from write-side stamping.
+applies_to: cwd=/Users/tualek/ohochat/oho-api; reuse_rule=reuse for similar unread/unresponded performance investigations in this repo, but re-check the current query shape, indexes, and incident evidence before assuming the same bottleneck still exists.
 
-## Task 1: Review `oho-api` unread/unresponded and bulk-send changes, blocker findings
+## Task 1: Diagnose unread/unresponded slowdown, root cause attributed to unread count query
 
 ### rollout_summary_files
 
-- rollout_summaries/2026-06-26T10-07-42-z14x-oho_api_unread_unresponded_code_review.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/06/26/rollout-2026-06-26T17-07-42-019f0366-4780-7b21-a9b4-c309436efcc5.jsonl, updated_at=2026-06-26T10:19:09+00:00, thread_id=019f0366-4780-7b21-a9b4-c309436efcc5, review found blocker-level query-composition regressions)
+- rollout_summaries/2026-07-11T15-21-15-jDcH-unread_unresponded_db_performance_root_cause.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/07/11/rollout-2026-07-11T22-21-15-019f51c4-bc6d-7223-a93d-e4ee27e97fe7.jsonl, updated_at=2026-07-11T15:24:30+00:00, thread_id=019f51c4-bc6d-7223-a93d-e4ee27e97fe7, confirmed count-path root cause from incident evidence)
 
 ### keywords
 
-- oho-api, code review, unread, unresponded, convertUnreadUnrespondedQuery, search-query-converter, addVisibilityFilter, countBaseQuery, bulk.class.js, Jest, Mongo query composition
-
-- Related skill: skills/oho-smartchat-debugging/SKILL.md
+- unread, unresponded, unread_by, is_unresponded, countDocuments, $nin, maxTimeMS, MongoDB, chat-search, message.read, performance regression
 
 ## User preferences
 
-- when the user asked `review oho-api ที่มีการแก้ไขให้หน่อยว่าโอเคไหม` -> future similar review responses should be direct, Thai, and judgmental instead of generic or hedged. [Task 1]
-- when the user asked whether the changes were okay, not for implementation help -> default to review-first and findings-first; do not jump into fixing code unless asked. [Task 1]
+- when the user asked `ลองดูให้หน่อยว่า Feature unread/unrespone มีจุดไหนหรอที่ทำให้ Performance ของ databse slow` -> default to root-cause analysis with evidence, not a speculative fix. [Task 1]
+- when the user narrowed it to `ตอน count unread unresponded หรอ ตอนที่ ส่ง message แล้วต้อง stamp is_unresponded กับ เอา id ออกจาก unread_by หรอ` -> compare read/query cost versus write/stamp cost explicitly and say which side dominates. [Task 1]
 
 ## Reusable knowledge
 
-- `convertUnreadUnrespondedQuery.ts` now has a special both-flags path that returns `$or` / `$and` instead of the previous top-level AND-style injection. That shape change also forced `chat-search.hooks.js` and `chat-session/group/search/search.hooks.js` to omit `$or` from `countBaseQuery`, so future review of this area should trace the full query lifecycle, not just the helper. [Task 1]
-- `search-query-converter.ts` explicitly preserves only `read_by`, `is_unresponded`, and `read_by.0` as typed filters; any future filter-shape change that introduces `$or` / `$and` needs a corresponding converter update or the parser boundary becomes unsafe. [Task 1]
-- `bulk.class.js` now writes `is_unresponded: false` and optionally `$addToSet` on `read_by` directly via `contactModel.updateOne(...)` instead of the previous shared helper, so unread/unresponded review in this diff touched both search behavior and contact-state mutation. [Task 1]
-- Focused Jest on `src/services/contact/helper-hook/convert-unread-unresponded-query.spec.ts` was the useful validation signal for this diff; `git diff --check` passed, while repo-wide `npm run type-check` was noisy because of unrelated pre-existing TypeScript failures. [Task 1]
+- The incident-backed bad path was unread `countDocuments` using `read_by: { $nin: [null, memberId] }`; on a multikey array this forced fetch-heavy counting across essentially the whole business and could dominate cluster CPU and connections. [Task 1]
+- The mitigation pattern already present in the repo is: count unread with equality on `unread_by`, add `maxTimeMS(timeout || 30000)`, and fail soft with `null` so badge counts do not stall the main response. [Task 1]
+- `message.read` in `src/webhook/stream.js` resolves the channel business before the feature-flag check, then `$pull`s the member id from `unread_by` on contact/chat-session; this is a real write path, but it is still targeted update-by-`_id`, not the main incident bottleneck described here. [Task 1]
+- Write-side updates in `contact-send-message` and `member-send-message` mutate `unread_by` / `is_unresponded`, but this rollout validated they were secondary load compared with the old badge-count query shape. [Task 1]
 
 ## Failures and how to do differently
 
-- Symptom: both unread+unresponded branch fails the focused spec. Cause: the new OR-path behavior is not aligned with the existing contract. Fix/pivot: run the focused Jest first and treat a mismatch at `convert-unread-unresponded-query.spec.ts:106` as a blocker before reasoning about downstream hooks. [Task 1]
-- Symptom: unread/unresponded filter breaks when `search` is present. Cause: the new `$or` shape can leak into `search-query-converter` / parser coercion paths that only explicitly preserve `read_by`, `is_unresponded`, and `read_by.0`. Fix/pivot: whenever this filter shape changes, audit typed-filter preservation and parser coercion together. [Task 1]
-- Symptom: unread/unresponded filter disappears on `chat.view-sale` style paths. Cause: `addVisibilityFilter()` rebuilds `context.params.query` with its own `$or`, which can overwrite the earlier composition. Fix/pivot: inspect later hook rewrites, not just the helper that first injected the unread/unresponded logic. [Task 1]
-- Do not treat `npm run type-check` as decisive proof for this repo when the failure list is already known to be unrelated to the touched diff; prefer targeted tests and exact hook-chain inspection. [Task 1]
+- Symptom: database slowdown around unread/unresponded polling. Cause: old unread count path used `$nin` on `read_by` without a timeout. Fix/pivot: treat `$nin` on an array count as an immediate red flag and inspect the count query before spending time on stamping writes. [Task 1]
+- Symptom: performance debate gets stuck on whether stamping writes are expensive. Cause: read-path versus write-path costs were not separated. Fix/pivot: compare `countDocuments` path, write frequency, and targeted `_id` updates side by side and attribute the dominant cost explicitly. [Task 1]
+- If a similar incident recurs, verify `docsExamined` / `keysExamined` or equivalent incident evidence on the count path first; do not rely on speculative code reading alone. [Task 1]
+
+# Task Group: /Users/tualek/ohochat/oho-api / Thai code review of unread-unresponded changes
+scope: Review-only memory for `oho-api` unread/unresponded diffs, especially query composition, validation limits, and review reporting style; use when the user asks whether backend changes are okay, not when they ask for direct implementation.
+applies_to: cwd=/Users/tualek/ohochat/oho-api; reuse_rule=reuse for similar code reviews in this repo or nearby search-hook work, but re-verify exact query shape, failing tests, and worktree-specific files before treating any blocker as still open.
+
+## Task 1: Review `oho-api` unread/unresponded and bulk-send changes in `mr-1285-fixes`, blocker findings
+
+### rollout_summary_files
+
+- rollout_summaries/2026-07-11T13-46-00-iIfu-oho_api_unread_unresponded_code_review.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/07/11/rollout-2026-07-11T20-46-00-019f516d-893b-7923-a4b3-96517d54a6c0.jsonl, updated_at=2026-07-11T14:32:17+00:00, thread_id=019f516d-893b-7923-a4b3-96517d54a6c0, worktree-specific review found blocker-level query-composition risks)
+
+### keywords
+
+- oho-api, code review, unread, unresponded, convertUnreadUnrespondedQuery, search-query-converter, addVisibilityFilter, countBaseQuery, bulk.class.js, cacheService, Redis, Jest, Mongo query composition
+
+- Related skill: skills/oho-smartchat-debugging/SKILL.md
+
+## Task 2: Verify unread/unresponded rollout coverage and remaining blockers, partial confidence
+
+### rollout_summary_files
+
+- rollout_summaries/2026-07-11T13-46-00-iIfu-oho_api_unread_unresponded_code_review.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/07/11/rollout-2026-07-11T20-46-00-019f516d-893b-7923-a4b3-96517d54a6c0.jsonl, updated_at=2026-07-11T14:32:17+00:00, thread_id=019f516d-893b-7923-a4b3-96517d54a6c0, targeted Jest passed but Mongo-backed proof was unavailable)
+
+### keywords
+
+- MONGODB_URI, compute-badge-counts, Promise.allSettled, channel-eligible-members, cacheService, Redis timeout, bot-send-message.hooks.spec.js, quick-reply failures, updateContactProfile
+
+## Task 3: Review earlier unread/unresponded diff, blocker findings
+
+### rollout_summary_files
+
+- rollout_summaries/2026-06-26T10-07-42-z14x-oho_api_unread_unresponded_code_review.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/06/26/rollout-2026-06-26T17-07-42-019f0366-4780-7b21-a9b4-c309436efcc5.jsonl, updated_at=2026-06-26T10:19:09+00:00, thread_id=019f0366-4780-7b21-a9b4-c309436efcc5, earlier review established the same hook-chain failure pattern)
+
+### keywords
+
+- oho-api, unread, unresponded, search-query-converter, addVisibilityFilter, bulk send, convertUnreadUnrespondedQuery, Jest, type-check, Mongo query composition
+
+## User preferences
+
+- when the user asked `review oho-api ที่มีการแก้ไขให้หน่อยว่าโอเคไหม` -> future similar review responses should be direct, Thai, and judgmental instead of generic or hedged. [Task 1][Task 3]
+- when the user asked only whether the changes were okay -> stay review-first and findings-first; do not jump into fixing code unless asked. [Task 1][Task 2][Task 3]
+- when the review flow is in Thai and the user is evaluating a local diff -> concise Thai blocker findings are the right default, not implementation-heavy prose. [Task 1][Task 2]
+
+## Reusable knowledge
+
+- `convertUnreadUnrespondedQuery.ts` has a special both-flags path; both the June and July reviews say this area must be traced through the full query lifecycle, not judged in isolation. `countBaseQuery`, `TYPED_FILTER_FIELDS`, parser coercion, and later visibility rewrites all affect whether the unread/unresponded shape survives. [Task 1][Task 3]
+- `search-query-converter.ts` and related typed-filter handling explicitly preserve only `read_by`, `is_unresponded`, and `read_by.0`; any future query-shape change that introduces `$or` / `$and` needs matching parser and converter updates. [Task 1][Task 3]
+- Focused Jest on `src/services/contact/helper-hook/convert-unread-unresponded-query.spec.ts` is the early gate for this task family; a mismatch in the both-flags case is a blocker before deeper reasoning about downstream hooks. [Task 1][Task 3]
+- `bulk.class.js` now updates contact state directly, and the rollout also touched cache and broadcast-adjacent utilities: `src/utils/compute-badge-counts.ts` uses `Promise.allSettled`, `src/utils/channel-eligible-members.ts` returns `null` on lookup failure or >2000 eligible members, and `src/utils/cache/index.js` wraps Redis commands with a 3s timeout. These affect how unread state propagates and fails. [Task 1][Task 2]
+- `src/models/contact.model.spec.ts` and `src/models/chat-session.model.spec.ts` verify `unread_by` and `is_unresponded` are absent on bare documents when flags are off, which is a useful regression boundary when review touches defaults or rollout safety. [Task 2]
+
+## Failures and how to do differently
+
+- Symptom: unread/unresponded filter breaks or disappears when `search` or sale-visibility paths are involved. Cause: the new filter shape is vulnerable to typed-filter coercion and `addVisibilityFilter()` rebuilding `context.params.query` with its own `$or`. Fix/pivot: audit the full hook chain, including parser and visibility rewrite stages, not just the helper that first injected the condition. [Task 1][Task 3]
+- Symptom: review looks formatted clean but still has semantic bugs. Cause: `git diff --check` passed while the diff still contained blocker-level query-composition issues. Fix/pivot: do not treat formatting sanity as correctness; use focused tests and path tracing. [Task 1]
+- Symptom: repo-wide validation gives noisy or misleading confidence. Cause: `npm run type-check` had unrelated TypeScript failures and `src/services/bot-send-message/bot-send-message.hooks.spec.js` still had 6 unrelated quick-reply failures. Fix/pivot: prefer targeted Jest suites and report exactly which failures are pre-existing versus relevant. [Task 1][Task 2][Task 3]
+- Symptom: rollout verification stops short of DB proof. Cause: Mongo-backed tests could not run without `MONGODB_URI`. Fix/pivot: state the missing datasource explicitly and avoid claiming `explain()`-level or integration-level confidence when the DB-backed path was never exercised. [Task 2]
+- The customer-message and reply write paths still need race analysis; targeted tests passed, but live interleaving behavior was not proven in this review-only rollout. Keep that uncertainty explicit rather than flattening it into “all good.” [Task 2]
 
 # Task Group: /Users/tualek/life / monthly finance baseline from ad-hoc notes
 scope: Current personal-finance baseline figures and planning rules preserved only by authoritative ad-hoc notes after rollout-backed memory was pruned.
