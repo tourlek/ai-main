@@ -1,8 +1,159 @@
-# Task Group: /Users/tualek/ohochat/script-oho / migrate-unread.ts correctness review
-scope: Read-only correctness-review memory for `unread-unresponded/migrate-unread.ts`, especially checkpoint semantics, cleanup-vs-backfill invariants, crash/resume safety, and refactor sanity checks that must be proven from code lines rather than comments.
-applies_to: cwd=/Users/tualek/ohochat/script-oho; reuse_rule=reuse for similar correctness reviews in this checkout when the user wants evidence-first analysis of `migrate-unread.ts` or nearby migration-state logic, but re-check the live file because line numbers and safety guarantees can drift.
+# Task Group: /Users/tualek/ohochat/oho-api / Thai code review of unread-unresponded changes
+scope: Review-only memory for `oho-api` unread/unresponded diffs, especially query composition, flag-off contract checks, validation limits, and review reporting style; use when the user asks whether backend changes are okay, not when they ask for direct implementation.
+applies_to: cwd=/Users/tualek/ohochat/oho-api; reuse_rule=reuse for similar code reviews in this repo or nearby search-hook work, but re-verify exact query shape, failing tests, and worktree-specific files before treating any blocker as still open.
 
-## Task 1: Review checkpoint semantics versus cleanup-read-by assumptions, cleanup can trust incomplete proof
+## Task 1: Review unread/unresponded flag-gated changes in `mr-1285-fixes`, flag-off contract regressions found
+
+### rollout_summary_files
+
+- rollout_summaries/2026-07-14T10-49-31-cVgx-thai_unread_unresponded_flag_off_review_mr_1285_fixes.md (cwd=/Users/tualek/ohochat/oho-api, rollout_path=/Users/tualek/.codex/sessions/2026/07/14/rollout-2026-07-14T17-49-31-019f603f-0763-7a32-9125-816c9dd5f2b5.jsonl, updated_at=2026-07-14T11:40:37+00:00, thread_id=019f603f-0763-7a32-9125-816c9dd5f2b5, corrected to the real `.claude/worktrees/mr-1285-fixes` diff and found flag-off contract / emitter-audience blockers)
+
+### keywords
+
+- unread, unresponded, flag-off, mr-1285-fixes, emitChatSessionStatusUpdatedEvent, emitContactUnrespondedStatusUpdatedEvent, buildClearUnreadUnrespondedPayload, convertUnreadUnrespondedQuery, channel-eligible-members, worktree verification, Thai review
+
+## Task 2: Review `oho-api` unread/unresponded and bulk-send changes in `mr-1285-fixes`, blocker findings
+
+### rollout_summary_files
+
+- rollout_summaries/2026-07-11T13-46-00-iIfu-oho_api_unread_unresponded_code_review.md (cwd=/Users/tualek/ohochat/oho-api, rollout_path=/Users/tualek/.codex/sessions/2026/07/11/rollout-2026-07-11T20-46-00-019f516d-893b-7923-a4b3-96517d54a6c0.jsonl, updated_at=2026-07-11T14:32:17+00:00, thread_id=019f516d-893b-7923-a4b3-96517d54a6c0, worktree-specific review found blocker-level query-composition risks)
+
+### keywords
+
+- oho-api, code review, unread, unresponded, convertUnreadUnrespondedQuery, search-query-converter, addVisibilityFilter, countBaseQuery, bulk.class.js, cacheService, Redis, Jest, Mongo query composition
+
+- Related skill: skills/oho-smartchat-debugging/SKILL.md
+
+## Task 3: Verify unread/unresponded rollout coverage and remaining blockers, partial confidence
+
+### rollout_summary_files
+
+- rollout_summaries/2026-07-11T13-46-00-iIfu-oho_api_unread_unresponded_code_review.md (cwd=/Users/tualek/ohochat/oho-api, rollout_path=/Users/tualek/.codex/sessions/2026/07/11/rollout-2026-07-11T20-46-00-019f516d-893b-7923-a4b3-96517d54a6c0.jsonl, updated_at=2026-07-11T14:32:17+00:00, thread_id=019f516d-893b-7923-a4b3-96517d54a6c0, targeted Jest passed but Mongo-backed proof was unavailable)
+
+### keywords
+
+- MONGODB_URI, compute-badge-counts, Promise.allSettled, channel-eligible-members, cacheService, Redis timeout, bot-send-message.hooks.spec.js, quick-reply failures, updateContactProfile
+
+## Task 4: Review earlier unread/unresponded diff, blocker findings
+
+### rollout_summary_files
+
+- rollout_summaries/2026-06-26T10-07-42-z14x-oho_api_unread_unresponded_code_review.md (cwd=/Users/tualek/ohochat/oho-api, rollout_path=/Users/tualek/.codex/sessions/2026/06/26/rollout-2026-06-26T17-07-42-019f0366-4780-7b21-a9b4-c309436efcc5.jsonl, updated_at=2026-06-26T10:19:09+00:00, thread_id=019f0366-4780-7b21-a9b4-c309436efcc5, earlier review established the same hook-chain failure pattern)
+
+### keywords
+
+- oho-api, unread, unresponded, search-query-converter, addVisibilityFilter, bulk send, convertUnreadUnrespondedQuery, Jest, type-check, Mongo query composition
+
+## User preferences
+
+- when the user asked `review oho-api ที่มีการแก้ไขให้หน่อยว่าโอเคไหม` -> future similar review responses should be direct, Thai, and judgmental instead of generic or hedged. [Task 1][Task 2][Task 4]
+- when the user asked only whether the changes were okay -> stay review-first and findings-first; do not jump into fixing code unless asked. [Task 1][Task 2][Task 3][Task 4]
+- when the user asked `ถ้าปิด flag แล้วต้องหมายความว่า feature นี้ต้องไม่ทำงานแต่ feature อื่นๆ ก็ไม่กระทบด้วยเช่นกันต้องใช้งานได้เหมือนเดิม` -> review against the contract `feature off = no behavior + no collateral impact`, not just whether the flag is referenced somewhere. [Task 1]
+- when multiple worktrees exist, verify the real review target before making claims; the 2026-07-14 rollout had to discard an earlier wrong-worktree pass and re-anchor to `.claude/worktrees/mr-1285-fixes`. [Task 1]
+- when the review flow is in Thai and the user is evaluating a local diff -> concise Thai blocker findings are the right default, not implementation-heavy prose. [Task 1][Task 2][Task 3]
+
+## Reusable knowledge
+
+- `convertUnreadUnrespondedQuery.ts` has a special both-flags path; the June and July reviews say this area must be traced through the full query lifecycle, not judged in isolation. `countBaseQuery`, `TYPED_FILTER_FIELDS`, parser coercion, and later visibility rewrites all affect whether the unread/unresponded shape survives. [Task 2][Task 4]
+- `search-query-converter.ts` and related typed-filter handling explicitly preserve only `read_by`, `is_unresponded`, and `read_by.0`; any future query-shape change that introduces `$or` / `$and` needs matching parser and converter updates. [Task 2][Task 4]
+- `buildClearUnreadUnrespondedPayload` is intentionally unconditional on the clear-write side and is used by multiple runtime paths; when flags toggle off and back on, unconditional clear logic prevents stuck `is_unresponded` / unread state. [Task 1]
+- `convertUnreadUnrespondedQuery` plus its spec are the early gate for unread/unresponded query semantics, while `emit-chat-session-event.spec.ts` is the best focused proof for broadcast behavior including flag-off fan-out. [Task 1]
+- `bulk.class.js` now updates contact state directly, and the rollout also touched cache and broadcast-adjacent utilities: `src/utils/compute-badge-counts.ts` uses `Promise.allSettled`, `src/utils/channel-eligible-members.ts` returns `null` on lookup failure or >2000 eligible members, and `src/utils/cache/index.js` wraps Redis commands with a 3s timeout. These affect how unread state propagates and fails. [Task 2][Task 3]
+- `src/models/contact.model.spec.ts` and `src/models/chat-session.model.spec.ts` verify `unread_by` and `is_unresponded` are absent on bare documents when flags are off, which is a useful regression boundary when review touches defaults or rollout safety. [Task 3]
+
+## Failures and how to do differently
+
+- Symptom: unread/unresponded filter breaks or disappears when `search` or sale-visibility paths are involved. Cause: the new filter shape is vulnerable to typed-filter coercion and `addVisibilityFilter()` rebuilding `context.params.query` with its own `$or`. Fix/pivot: audit the full hook chain, including parser and visibility rewrite stages, not just the helper that first injected the condition. [Task 2][Task 4]
+- Symptom: flag-off behavior still does work or leaks visibility. Cause: some hot paths still read/evaluate before deciding not to emit, and the new emitter audience follows channel eligibility rather than the stricter sale-owner/assignee/team visibility rules. Fix/pivot: review both zero-work and zero-side-effect expectations, then compare emitter audience to chat-search visibility semantics. [Task 1]
+- Symptom: contact and group realtime behavior diverge across send paths. Cause: the new contact unresponded emitter was wired into `member-send-message` and `bot-send-message`, while `contact-send-message` still used the older emitter path. Fix/pivot: trace every send entrypoint before concluding the realtime contract is uniformly implemented. [Task 1]
+- Symptom: review looks formatted clean but still has semantic bugs. Cause: `git diff --check` passed while the diff still contained blocker-level query-composition issues. Fix/pivot: do not treat formatting sanity as correctness; use focused tests and path tracing. [Task 2]
+- Symptom: repo-wide validation gives noisy or misleading confidence. Cause: `npm run type-check` had unrelated TypeScript failures and `src/services/bot-send-message/bot-send-message.hooks.spec.js` still had 6 unrelated quick-reply failures. Fix/pivot: prefer targeted Jest suites and report exactly which failures are pre-existing versus relevant. [Task 2][Task 3][Task 4]
+- Symptom: rollout verification stops short of DB proof. Cause: Mongo-backed tests could not run without `MONGODB_URI`. Fix/pivot: state the missing datasource explicitly and avoid claiming `explain()`-level or integration-level confidence when the DB-backed path was never exercised. [Task 3]
+
+# Task Group: /Users/tualek/ohochat/oho-web-app / realtime unread-unresponded badge review
+scope: Read-only review memory for frontend unread/unresponded badge diffs in `oho-web-app`, especially contract checks against `oho-websocket`, Vue 2 reactivity boundaries, and merge-safety of optimistic/realtime counter updates.
+applies_to: cwd=/Users/tualek/ohochat/oho-web-app; reuse_rule=reuse for similar review-only work in this checkout when a frontend badge/count diff depends on sibling backend event payloads, but re-read the current frontend diff and backend commit before reusing any conclusion.
+
+## Task 1: Review frontend increment/decrement badge logic for realtime unread/unresponded updates, not merge-safe
+
+### rollout_summary_files
+
+- rollout_summaries/2026-07-14T08-22-37-rN8j-oho_web_app_unread_unresponded_realtime_badge_review.md (cwd=/Users/tualek/ohochat/oho-web-app, rollout_path=/Users/tualek/.codex/sessions/2026/07/14/rollout-2026-07-14T15-22-37-019f5fb8-8b4a-73e3-b83a-8ce3e0fba9df.jsonl, updated_at=2026-07-14T08:33:02+00:00, thread_id=019f5fb8-8b4a-73e3-b83a-8ce3e0fba9df, review-only diff check against `oho-websocket@9141805` found sender-role and unread-state blockers)
+
+### keywords
+
+- code-review, smartchat, groupchat, unread_count, unresponded_count, is_read_by_me, is_unresponded, Vuex, realtime, websocket, oho-websocket@9141805, stale-event-guard, optimistic decrement, Vue 2 reactivity
+
+- Related skill: skills/oho-smartchat-debugging/SKILL.md
+
+## User preferences
+
+- when the user says `This is a review-only request. Do not fix anything, do not edit any files. Only report findings.` -> stay read-only and avoid proposing or applying patches unless explicitly asked. [Task 1]
+- when the user says `Ground every claim in the actual diff content and the actual oho-websocket commit 9141805 content that you read yourself` -> cite exact file/line/field evidence and separate verified facts from inference. [Task 1]
+- when the user wants findings grouped by severity and a one-line merge verdict -> preserve that compact review shape instead of drifting into a generic essay. [Task 1]
+
+## Reusable knowledge
+
+- Backend commit `9141805` in `oho-websocket` emits `is_read_by_me:false` and `is_unresponded:true` on customer message events when the stale-event guard passes; `message.read` only `$pull`s `unread_by` and does not emit `is_read_by_me:true`. [Task 1]
+- `store/modules/groupchat.js` already defines `unread_count` and `unresponded_count` in initial state, but `store/modules/smartchat.js` `contact_list` initial/reset shapes do not include those fields, so creating them later can hit a Vue 2 reactivity gap during reset/load windows. [Task 1]
+- `components/Smartchat/Conversation.vue` already sets `room.is_unresponded = false` before decrementing in the optimistic unresponded flow, which is why that path avoids a duplicate decrement when the realtime event lands. [Task 1]
+- `components/Smartchat/RoomList.vue` treats missing or legacy `is_read_by_me` as read in the list fallback, which explains the reviewed diff's asymmetry (`is_unresponded === true` vs `is_read_by_me !== false`) for already-known rows. [Task 1]
+
+## Failures and how to do differently
+
+- Symptom: the frontend diff looks symmetric but is not merge-safe. Cause: the backend `message.new` emission path in `oho-websocket@9141805` did not prove any sender-role guard, so the frontend cannot assume every emitted payload represents a customer-message increment case. Fix/pivot: verify producer-side contract fields before approving consumer-side counter logic. [Task 1]
+- Symptom: unread counters still drift after local mark-read plus realtime updates. Cause: `markRoomRead()` decrements unread locally but does not synchronize `room.is_read_by_me`, so the later realtime transition logic can miss or double-handle unread state. Fix/pivot: trace optimistic local state and websocket transition state together, not as separate concerns. [Task 1]
+- Symptom: counters are wrong when a room is not currently loaded. Cause: the increment path treats missing prior row state as already represented in the aggregate. Fix/pivot: require proof of previous aggregate membership before incrementing or skipping an adjustment. [Task 1]
+
+# Task Group: /Users/tualek/ohochat/oho-backoffice / external-message admin UI review
+scope: Read-only UI/UX review memory for `oho-backoffice` external-message whitelist and app-catalog screens, especially Element UI behavior, repo-convention checks, and mock-data safety edges in the admin model.
+applies_to: cwd=/Users/tualek/ohochat/oho-backoffice; reuse_rule=reuse for similar review-only admin UI checks in this checkout, but re-check the exact worktree and framework version because line numbers and component behavior assumptions can drift.
+
+## Task 1: Read-only UI/UX review of external-message whitelist/app catalog screens, root cause and data-safety findings
+
+### rollout_summary_files
+
+- rollout_summaries/2026-07-14T07-38-59-v0i2-oho_backoffice_external_message_ui_review.md (cwd=/Users/tualek/ohochat/oho-backoffice, rollout_path=/Users/tualek/.codex/sessions/2026/07/14/rollout-2026-07-14T14-38-59-019f5f90-99ef-79c1-9da8-c8468ab76236.jsonl, updated_at=2026-07-14T07:43:25+00:00, thread_id=019f5f90-99ef-79c1-9da8-c8468ab76236, line-cited review established Element UI arrow behavior and mock cascade/orphan risks)
+
+### keywords
+
+- vue2, nuxt2, element-ui, el-select, remote filterable, dropdown arrow, cascade delete, whitelist, app catalog, mock API, line-cited review
+
+## User preferences
+
+- when the user says `Do NOT edit any files -- this is review only` -> default to strictly read-only inspection for similar review tasks. [Task 1]
+- when the user says `Every finding must cite a concrete file path and line number` -> gather exact line evidence first and avoid uncited judgments. [Task 1]
+- when the user specifies `root-cause first` and then High/Medium/Low findings with concrete suggested fixes -> preserve that severity ordering and actionable output shape. [Task 1]
+- when the user asks to grep the wider repo for other `filterable remote` usages -> check wider repo usage before claiming a pattern or divergence. [Task 1]
+
+## Reusable knowledge
+
+- Element UI `el-select` with `remote && filterable` intentionally omits the default arrow; the missing dropdown indicator was component behavior, not a repo CSS override, in the checked worktree. [Task 1]
+- No CSS override suppressing the caret was found in the reviewed repo slice; the only related global selector was an unrelated dropdown-item hover tweak. [Task 1]
+- The mock backend models two tables, `external_message_apps` and `business_external_app_whitelist`; deleting an app cascades into all whitelist rows. [Task 1]
+- Editing `app_id` in the catalog does not propagate to existing whitelist rows, so existing whitelists can be orphaned if `app_id` stays mutable. [Task 1]
+
+## Failures and how to do differently
+
+- Symptom: a missing dropdown arrow looks like a CSS bug. Cause: Element UI hides the suffix icon for `remote && filterable`, and repo-wide CSS did not override it. Fix/pivot: inspect the component source directly before blaming local styling. [Task 1]
+- Symptom: a review overstates a house convention. Cause: grep found only one `filterable remote` select instance in the repo. Fix/pivot: say explicitly when there is no comparable repo usage and compare against nearby search/select patterns instead. [Task 1]
+- Symptom: whitelist/admin mockups appear safe because the UI has warning text. Cause: the data model still allows cascade delete and `app_id` rename orphaning. Fix/pivot: inspect the mock service or data layer, not just the page copy, when the user asks for admin-screen risk review. [Task 1]
+
+# Task Group: /Users/tualek/ohochat/script-oho / migrate-unread.ts correctness review
+scope: Read-only correctness-review memory for `unread-unresponded/migrate-unread.ts`, especially checkpoint semantics, cleanup-vs-backfill invariants, crash/resume safety, and operational cleanup guidance that must be proven from code lines rather than comments.
+applies_to: cwd=/Users/tualek/ohochat/script-oho; reuse_rule=reuse for similar correctness reviews or operational questions in this checkout when the user wants evidence-first analysis of `migrate-unread.ts` or nearby migration-state logic, but re-check the live file because line numbers and safety guarantees can drift.
+
+## Task 1: Explain how to remove legacy `read_by` after unread migration, cleanup is a separate gated mode
+
+### rollout_summary_files
+
+- rollout_summaries/2026-07-14T04-57-08-S8ep-script_oho_unread_migration_read_by_cleanup_mode.md (cwd=/Users/tualek/ohochat/script-oho, rollout_path=/Users/tualek/.codex/sessions/2026/07/14/rollout-2026-07-14T11-57-08-019f5efc-691c-7000-8729-9eceb1cc207d.jsonl, updated_at=2026-07-14T06:43:07+00:00, thread_id=019f5efc-691c-7000-8729-9eceb1cc207d, operational question answered by tracing the existing cleanup mode and its guards)
+
+### keywords
+
+- script-oho, migrate-unread.ts, cleanup-read-by, read_by, unread_by, checkpoint, MongoDB, $unset, migration, confirm-cleanup-read-by
+
+## Task 2: Review checkpoint semantics versus cleanup-read-by assumptions, cleanup can trust incomplete proof
 
 ### rollout_summary_files
 
@@ -12,7 +163,7 @@ applies_to: cwd=/Users/tualek/ohochat/script-oho; reuse_rule=reuse for similar c
 
 - migrate-unread.ts, cleanup-read-by, CHECKPOINT_FILE, INCLUDE_PARTIAL, runLegacyReadByReconcilePass, skippedNoChannel, partial, completed, loadCheckpoint, backfillCompleted, verified, checkpoint safety
 
-## Task 2: Review cleanup cutoff parity, cleanup lacks the 90-day bound used elsewhere
+## Task 3: Review cleanup cutoff parity, cleanup lacks the 90-day bound used elsewhere
 
 ### rollout_summary_files
 
@@ -22,7 +173,7 @@ applies_to: cwd=/Users/tualek/ohochat/script-oho; reuse_rule=reuse for similar c
 
 - readByCutoffDate, DAYS, last_active_at, cleanup-read-by, runReadByToUnreadByPass, runLegacyReadByReconcilePass, resolveBusinessIds, MAX_DOCS_PER_BIZ, filter parity, HAS_LEGACY_READ_BY
 
-## Task 3: Review crash/resume safety and totals refactor, buildTotals wiring confirmed with checkpoint caveats
+## Task 4: Review crash/resume safety and totals refactor, buildTotals wiring confirmed with checkpoint caveats
 
 ### rollout_summary_files
 
@@ -34,28 +185,34 @@ applies_to: cwd=/Users/tualek/ohochat/script-oho; reuse_rule=reuse for similar c
 
 ## User preferences
 
-- when the user says `Trace the actual filter/gating logic, not the comments` and asks for line citations -> treat comments as non-binding, ground every behavioral claim in source lines/snippets, and do not smooth over gaps with intent-based reasoning. [Task 1][Task 2]
-- when the user asks for `CONFIRMED / REFUTED / PARTIALLY-CONFIRMED` per item -> keep the review tightly structured and map each verdict to exact code lines. [Task 1]
-- when the user asks whether one pass uses the `same DAYS/readByCutoffDate bound` as another -> compare the exact query objects across all relevant passes and surrounding guards, not just the obvious function or comment. [Task 2]
-- when the user asks about shared `CHECKPOINT_FILE` / `STATUS_FILE` semantics or refactor sanity -> explicitly trace mode dispatch, suffix logic, write paths, and whether any hand-built state objects remain. [Task 3]
+- when the user says `ขอสรุปสั้นๆ` and then narrows to `ถ้างั้นถ้า run migration script ที่ script-oho แล้ว จะลบ read_byยังไง` -> switch to short, direct operational instructions once the concept is already established. [Task 1]
+- when the user asks whether removing `read_by` closes the blockers -> separate `migrate unread_by` from `unset read_by` explicitly and state the safety boundary instead of answering as if they are the same step. [Task 1]
+- when the user says `Trace the actual filter/gating logic, not the comments` and asks for line citations -> treat comments as non-binding, ground every behavioral claim in source lines/snippets, and do not smooth over gaps with intent-based reasoning. [Task 2][Task 3]
+- when the user asks for `CONFIRMED / REFUTED / PARTIALLY-CONFIRMED` per item -> keep the review tightly structured and map each verdict to exact code lines. [Task 2]
+- when the user asks whether one pass uses the `same DAYS/readByCutoffDate bound` as another -> compare the exact query objects across all relevant passes and surrounding guards, not just the obvious function or comment. [Task 3]
+- when the user asks about shared `CHECKPOINT_FILE` / `STATUS_FILE` semantics or refactor sanity -> explicitly trace mode dispatch, suffix logic, write paths, and whether any hand-built state objects remain. [Task 4]
 
 ## Reusable knowledge
 
-- `INCLUDE_PARTIAL` is opt-in only (`INCLUDE_STREAM && process.env.INCLUDE_PARTIAL === "true"`), and `runLegacyReadByReconcilePass()` only runs inside that branch. A business can still become checkpoint-complete without legacy Stream verification because `partial` means budget exhaustion only and checkpointing checks only `!isDryRun && !result.partial`. [Task 1][Task 3]
-- Cleanup trusts checkpoint membership directly via `loadCheckpoint()` and `backfillCompleted.has(id.toString())`; the checkpoint file stores only `{ completed: [...] }`, with no durable proof about reconcile coverage, skipped unresolved channels, or whether a business was verified under the current semantic config. [Task 1][Task 3]
-- Step 0a/0b and legacy reconcile both apply `last_active_at: { $gte: readByCutoffDate }` when a cutoff exists, but cleanup does not carry any date window. It filters only by business, current complete channel IDs, and `HAS_LEGACY_READ_BY`. [Task 2]
-- `resolveBusinessIds()` only narrows the business/channel universe; it does not encode doc freshness or backfill coverage. `MAX_DOCS_PER_BIZ` is `null`, so partial/budget limiting is not a protective invariant here. [Task 2]
-- Cleanup mode reads checkpoint membership only and does not itself write checkpoint/status files, so it cannot overwrite backfill state by itself. `CHECKPOINT_SUFFIX` isolates `-explicit-target`, `-gate-${GATE_FILTER}`, and default runs, but not cutoff/stream/partial semantics. [Task 3]
-- `saveStatus()` uses a temp-file rename, but `saveCheckpoint()` writes directly to the checkpoint file. `loadCheckpoint()` swallows JSON parse/read errors and returns an empty set, so checkpoint corruption degrades into silent "start over" behavior. [Task 3]
-- The 2026-07-14 review also found that cleanup resolves the current `connection_status: "complete"` channel set at runtime, so a business gaining new complete channels after backfill can make cleanup target docs outside the original backfill snapshot. [Task 2][Task 3]
-- `buildTotals()` is the single totals builder now: both `saveStatus()` call sites use it, and no third hand-built totals literal remained. `processedCount++` happens before checkpoint eligibility is decided, so status can show business progress that has not been durably checkpointed. [Task 3]
+- `script-oho/unread-unresponded/migrate-unread.ts` already contains a dedicated cleanup path, `--mode=cleanup-read-by`; it is intentionally not auto-chained after backfill. [Task 1]
+- Cleanup writes only when both `--execute` and `--confirm-cleanup-read-by` are present, and it unsets `read_by` on both `contacts` and `chat-sessions`. [Task 1]
+- Cleanup is gated by the current checkpoint membership, so only businesses already marked complete in that env/gate checkpoint are eligible. The script comments describe `read_by` as the rollback path until `unread_by` has been spot-checked. [Task 1]
+- `INCLUDE_PARTIAL` is opt-in only (`INCLUDE_STREAM && process.env.INCLUDE_PARTIAL === "true"`), and `runLegacyReadByReconcilePass()` only runs inside that branch. A business can still become checkpoint-complete without legacy Stream verification because `partial` means budget exhaustion only and checkpointing checks only `!isDryRun && !result.partial`. [Task 2][Task 4]
+- Cleanup trusts checkpoint membership directly via `loadCheckpoint()` and `backfillCompleted.has(id.toString())`; the checkpoint file stores only `{ completed: [...] }`, with no durable proof about reconcile coverage, skipped unresolved channels, or whether a business was verified under the current semantic config. [Task 2][Task 4]
+- Step 0a/0b and legacy reconcile both apply `last_active_at: { $gte: readByCutoffDate }` when a cutoff exists, but cleanup does not carry any date window. It filters only by business, current complete channel IDs, and `HAS_LEGACY_READ_BY`. [Task 3]
+- `resolveBusinessIds()` only narrows the business/channel universe; it does not encode doc freshness or backfill coverage. `MAX_DOCS_PER_BIZ` is `null`, so partial/budget limiting is not a protective invariant here. [Task 3]
+- Cleanup mode reads checkpoint membership only and does not itself write checkpoint/status files, so it cannot overwrite backfill state by itself. `CHECKPOINT_SUFFIX` isolates `-explicit-target`, `-gate-${GATE_FILTER}`, and default runs, but not cutoff/stream/partial semantics. [Task 4]
+- `saveStatus()` uses a temp-file rename, but `saveCheckpoint()` writes directly to the checkpoint file. `loadCheckpoint()` swallows JSON parse/read errors and returns an empty set, so checkpoint corruption degrades into silent "start over" behavior. [Task 4]
+- The 2026-07-14 review also found that cleanup resolves the current `connection_status: "complete"` channel set at runtime, so a business gaining new complete channels after backfill can make cleanup target docs outside the original backfill snapshot. [Task 3][Task 4]
+- `buildTotals()` is the single totals builder now: both `saveStatus()` call sites use it, and no third hand-built totals literal remained. `processedCount++` happens before checkpoint eligibility is decided, so status can show business progress that has not been durably checkpointed. [Task 4]
 
 ## Failures and how to do differently
 
-- Symptom: comments say a business is "verified" or cleanup is "safe to drop". Cause: the code does not persist any proof beyond membership in `completed`. Fix/pivot: inspect what the code actually stores and what cleanup consumes before accepting safety claims. [Task 1]
-- Symptom: cleanup appears to mirror backfill/reconcile scope. Cause: the file comments suggest full-population behavior, but the actual queries diverge and cleanup omits the `last_active_at` cutoff. Fix/pivot: compare query objects and cutoff propagation across every related pass. [Task 2]
-- Symptom: future resume logic assumes checkpoint files are durable and config-specific. Cause: checkpoint writes are non-atomic and the suffix key omits semantic dimensions such as cutoff/stream/partial choices. Fix/pivot: treat checkpoint correctness and resume safety as separate review items, not as implied by shared file names alone. [Task 3]
-- Symptom: a review report sounds safe because the refactor is tidy. Cause: source-of-truth reasoning stopped at comments or naming instead of tracing state transitions and persisted artifacts. Fix/pivot: verify file-write paths, mode dispatch, and all remaining literal builders before concluding the refactor is safe. [Task 1][Task 3]
+- Symptom: `read_by` cleanup is described as if it naturally follows migration. Cause: the script intentionally splits backfill and cleanup for rollback safety. Fix/pivot: keep the sequence explicit, `backfill/spot-check unread_by` first and `cleanup-read-by` second. [Task 1]
+- Symptom: comments say a business is "verified" or cleanup is "safe to drop". Cause: the code does not persist any proof beyond membership in `completed`. Fix/pivot: inspect what the code actually stores and what cleanup consumes before accepting safety claims. [Task 2]
+- Symptom: cleanup appears to mirror backfill/reconcile scope. Cause: the file comments suggest full-population behavior, but the actual queries diverge and cleanup omits the `last_active_at` cutoff. Fix/pivot: compare query objects and cutoff propagation across every related pass. [Task 3]
+- Symptom: future resume logic assumes checkpoint files are durable and config-specific. Cause: checkpoint writes are non-atomic and the suffix key omits semantic dimensions such as cutoff/stream/partial choices. Fix/pivot: treat checkpoint correctness and resume safety as separate review items, not as implied by shared file names alone. [Task 4]
+- Symptom: a review report sounds safe because the refactor is tidy. Cause: source-of-truth reasoning stopped at comments or naming instead of tracing state transitions and persisted artifacts. Fix/pivot: verify file-write paths, mode dispatch, and all remaining literal builders before concluding the refactor is safe. [Task 2][Task 4]
 
 # Task Group: /Users/tualek/ohochat/oho-api / unread-unresponded performance debugging
 scope: Root-cause performance memory for unread/unresponded slowdowns in `oho-api`; use for attribution work that must separate expensive count paths from write-side stamping.
@@ -65,7 +222,7 @@ applies_to: cwd=/Users/tualek/ohochat/oho-api; reuse_rule=reuse for similar unre
 
 ### rollout_summary_files
 
-- rollout_summaries/2026-07-11T15-21-15-jDcH-unread_unresponded_db_performance_root_cause.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/07/11/rollout-2026-07-11T22-21-15-019f51c4-bc6d-7223-a93d-e4ee27e97fe7.jsonl, updated_at=2026-07-11T15:24:30+00:00, thread_id=019f51c4-bc6d-7223-a93d-e4ee27e97fe7, confirmed count-path root cause from incident evidence)
+- rollout_summaries/2026-07-11T15-21-15-jDcH-unread_unresponded_db_performance_root_cause.md (cwd=/Users/tualek/ohochat/oho-api, rollout_path=/Users/tualek/.codex/sessions/2026/07/11/rollout-2026-07-11T22-21-15-019f51c4-bc6d-7223-a93d-e4ee27e97fe7.jsonl, updated_at=2026-07-11T15:24:30+00:00, thread_id=019f51c4-bc6d-7223-a93d-e4ee27e97fe7, confirmed count-path root cause from incident evidence)
 
 ### keywords
 
@@ -88,64 +245,6 @@ applies_to: cwd=/Users/tualek/ohochat/oho-api; reuse_rule=reuse for similar unre
 - Symptom: database slowdown around unread/unresponded polling. Cause: old unread count path used `$nin` on `read_by` without a timeout. Fix/pivot: treat `$nin` on an array count as an immediate red flag and inspect the count query before spending time on stamping writes. [Task 1]
 - Symptom: performance debate gets stuck on whether stamping writes are expensive. Cause: read-path versus write-path costs were not separated. Fix/pivot: compare `countDocuments` path, write frequency, and targeted `_id` updates side by side and attribute the dominant cost explicitly. [Task 1]
 - If a similar incident recurs, verify `docsExamined` / `keysExamined` or equivalent incident evidence on the count path first; do not rely on speculative code reading alone. [Task 1]
-
-# Task Group: /Users/tualek/ohochat/oho-api / Thai code review of unread-unresponded changes
-scope: Review-only memory for `oho-api` unread/unresponded diffs, especially query composition, validation limits, and review reporting style; use when the user asks whether backend changes are okay, not when they ask for direct implementation.
-applies_to: cwd=/Users/tualek/ohochat/oho-api; reuse_rule=reuse for similar code reviews in this repo or nearby search-hook work, but re-verify exact query shape, failing tests, and worktree-specific files before treating any blocker as still open.
-
-## Task 1: Review `oho-api` unread/unresponded and bulk-send changes in `mr-1285-fixes`, blocker findings
-
-### rollout_summary_files
-
-- rollout_summaries/2026-07-11T13-46-00-iIfu-oho_api_unread_unresponded_code_review.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/07/11/rollout-2026-07-11T20-46-00-019f516d-893b-7923-a4b3-96517d54a6c0.jsonl, updated_at=2026-07-11T14:32:17+00:00, thread_id=019f516d-893b-7923-a4b3-96517d54a6c0, worktree-specific review found blocker-level query-composition risks)
-
-### keywords
-
-- oho-api, code review, unread, unresponded, convertUnreadUnrespondedQuery, search-query-converter, addVisibilityFilter, countBaseQuery, bulk.class.js, cacheService, Redis, Jest, Mongo query composition
-
-- Related skill: skills/oho-smartchat-debugging/SKILL.md
-
-## Task 2: Verify unread/unresponded rollout coverage and remaining blockers, partial confidence
-
-### rollout_summary_files
-
-- rollout_summaries/2026-07-11T13-46-00-iIfu-oho_api_unread_unresponded_code_review.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/07/11/rollout-2026-07-11T20-46-00-019f516d-893b-7923-a4b3-96517d54a6c0.jsonl, updated_at=2026-07-11T14:32:17+00:00, thread_id=019f516d-893b-7923-a4b3-96517d54a6c0, targeted Jest passed but Mongo-backed proof was unavailable)
-
-### keywords
-
-- MONGODB_URI, compute-badge-counts, Promise.allSettled, channel-eligible-members, cacheService, Redis timeout, bot-send-message.hooks.spec.js, quick-reply failures, updateContactProfile
-
-## Task 3: Review earlier unread/unresponded diff, blocker findings
-
-### rollout_summary_files
-
-- rollout_summaries/2026-06-26T10-07-42-z14x-oho_api_unread_unresponded_code_review.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/06/26/rollout-2026-06-26T17-07-42-019f0366-4780-7b21-a9b4-c309436efcc5.jsonl, updated_at=2026-06-26T10:19:09+00:00, thread_id=019f0366-4780-7b21-a9b4-c309436efcc5, earlier review established the same hook-chain failure pattern)
-
-### keywords
-
-- oho-api, unread, unresponded, search-query-converter, addVisibilityFilter, bulk send, convertUnreadUnrespondedQuery, Jest, type-check, Mongo query composition
-
-## User preferences
-
-- when the user asked `review oho-api ที่มีการแก้ไขให้หน่อยว่าโอเคไหม` -> future similar review responses should be direct, Thai, and judgmental instead of generic or hedged. [Task 1][Task 3]
-- when the user asked only whether the changes were okay -> stay review-first and findings-first; do not jump into fixing code unless asked. [Task 1][Task 2][Task 3]
-- when the review flow is in Thai and the user is evaluating a local diff -> concise Thai blocker findings are the right default, not implementation-heavy prose. [Task 1][Task 2]
-
-## Reusable knowledge
-
-- `convertUnreadUnrespondedQuery.ts` has a special both-flags path; both the June and July reviews say this area must be traced through the full query lifecycle, not judged in isolation. `countBaseQuery`, `TYPED_FILTER_FIELDS`, parser coercion, and later visibility rewrites all affect whether the unread/unresponded shape survives. [Task 1][Task 3]
-- `search-query-converter.ts` and related typed-filter handling explicitly preserve only `read_by`, `is_unresponded`, and `read_by.0`; any future query-shape change that introduces `$or` / `$and` needs matching parser and converter updates. [Task 1][Task 3]
-- Focused Jest on `src/services/contact/helper-hook/convert-unread-unresponded-query.spec.ts` is the early gate for this task family; a mismatch in the both-flags case is a blocker before deeper reasoning about downstream hooks. [Task 1][Task 3]
-- `bulk.class.js` now updates contact state directly, and the rollout also touched cache and broadcast-adjacent utilities: `src/utils/compute-badge-counts.ts` uses `Promise.allSettled`, `src/utils/channel-eligible-members.ts` returns `null` on lookup failure or >2000 eligible members, and `src/utils/cache/index.js` wraps Redis commands with a 3s timeout. These affect how unread state propagates and fails. [Task 1][Task 2]
-- `src/models/contact.model.spec.ts` and `src/models/chat-session.model.spec.ts` verify `unread_by` and `is_unresponded` are absent on bare documents when flags are off, which is a useful regression boundary when review touches defaults or rollout safety. [Task 2]
-
-## Failures and how to do differently
-
-- Symptom: unread/unresponded filter breaks or disappears when `search` or sale-visibility paths are involved. Cause: the new filter shape is vulnerable to typed-filter coercion and `addVisibilityFilter()` rebuilding `context.params.query` with its own `$or`. Fix/pivot: audit the full hook chain, including parser and visibility rewrite stages, not just the helper that first injected the condition. [Task 1][Task 3]
-- Symptom: review looks formatted clean but still has semantic bugs. Cause: `git diff --check` passed while the diff still contained blocker-level query-composition issues. Fix/pivot: do not treat formatting sanity as correctness; use focused tests and path tracing. [Task 1]
-- Symptom: repo-wide validation gives noisy or misleading confidence. Cause: `npm run type-check` had unrelated TypeScript failures and `src/services/bot-send-message/bot-send-message.hooks.spec.js` still had 6 unrelated quick-reply failures. Fix/pivot: prefer targeted Jest suites and report exactly which failures are pre-existing versus relevant. [Task 1][Task 2][Task 3]
-- Symptom: rollout verification stops short of DB proof. Cause: Mongo-backed tests could not run without `MONGODB_URI`. Fix/pivot: state the missing datasource explicitly and avoid claiming `explain()`-level or integration-level confidence when the DB-backed path was never exercised. [Task 2]
-- The customer-message and reply write paths still need race analysis; targeted tests passed, but live interleaving behavior was not proven in this review-only rollout. Keep that uncertainty explicit rather than flattening it into “all good.” [Task 2]
 
 # Task Group: /Users/tualek/life / monthly finance baseline from ad-hoc notes
 scope: Current personal-finance baseline figures and planning rules preserved only by authoritative ad-hoc notes after rollout-backed memory was pruned.

@@ -271,3 +271,182 @@ References:
 - `migrate-unread.ts:2153-2159`
 - `migrate-unread.ts:2317-2326`
 
+## Thread `019f5efc-691c-7000-8729-9eceb1cc207d`
+updated_at: 2026-07-14T06:43:07+00:00
+cwd: /Users/tualek/ohochat
+rollout_path: /Users/tualek/.codex/sessions/2026/07/14/rollout-2026-07-14T11-57-08-019f5efc-691c-7000-8729-9eceb1cc207d.jsonl
+rollout_summary_file: 2026-07-14T04-57-08-S8ep-script_oho_unread_migration_read_by_cleanup_mode.md
+
+---
+description: User asked how to delete legacy `read_by` after running unread migration; script-oho already has a dedicated cleanup mode gated by checkpoint + two flags.
+task: explain how to remove legacy read_by after migration
+task_group: /Users/tualek/ohochat/script-oho
+task_outcome: success
+cwd: /Users/tualek/ohochat/script-oho
+keywords: script-oho, migrate-unread.ts, cleanup-read-by, read_by, unread_by, checkpoint, MongoDB, $unset, migration
+---
+
+### Task 1: Remove legacy read_by after unread migration
+
+task: explain how to remove legacy read_by after migration
+task_group: script-oho unread-unresponded migration
+task_outcome: success
+
+Preference signals:
+- when the user asked `ขอสรุปสั้นๆ` and then `ถ้างั้นถ้า run migration script ที่ script-oho แล้ว จะลบ read_byยังไง` -> they want short, direct operational instructions once the workflow is understood, not a long conceptual recap.
+- when the user asked whether removing `read_by` would close the blockers -> they care about the exact safety boundary between backfill and cleanup, so future answers should explicitly separate `migrate unread_by` from `unset read_by`.
+
+Reusable knowledge:
+- `script-oho/unread-unresponded/migrate-unread.ts` already has a separate `--mode=cleanup-read-by` path; it is not auto-chained after backfill.
+- Cleanup writes only when both `--execute` and `--confirm-cleanup-read-by` are present.
+- Cleanup is gated by the current env/gate checkpoint: only businesses already marked complete in that checkpoint are eligible.
+- The cleanup mode unsets `read_by` on both `contacts` and `chat-sessions`.
+- The script comments say `read_by` is the rollback path until `unread_by` has been spot-checked.
+
+Failures and how to do differently:
+- Do not assume `read_by` can be dropped immediately after enabling `unread_by`; the script intentionally keeps a separate cleanup step for rollback safety.
+- Treat the cleanup script as mutable/uncommitted until rechecked in the current tree.
+
+References:
+- `package.json: "migrate:unread:cleanup-read-by": "node -r @swc-node/register unread-unresponded/migrate-unread.ts --mode=cleanup-read-by"`
+- `unread-unresponded/migrate-unread.ts` comments around `--mode=cleanup-read-by`
+- Guard text: `--execute alone is not enough — pass --confirm-cleanup-read-by too.`
+- Cleanup update: `{ $unset: { read_by: "" } }`
+- Collections touched: `contacts`, `chat-sessions`
+
+## Thread `019f5f90-99ef-79c1-9da8-c8468ab76236`
+updated_at: 2026-07-14T07:43:25+00:00
+cwd: /Users/tualek/ohochat/oho-backoffice
+rollout_path: /Users/tualek/.codex/sessions/2026/07/14/rollout-2026-07-14T14-38-59-019f5f90-99ef-79c1-9da8-c8468ab76236.jsonl
+rollout_summary_file: 2026-07-14T07-38-59-v0i2-oho_backoffice_external_message_ui_review.md
+
+---
+description: Read-only UI/UX review of external-message whitelist and app-catalog screens; key durable takeaway is that Element UI remote filterable selects intentionally hide the dropdown arrow, and this repo had no CSS override suppressing it. Also captured data-safety issues in the mock two-table model (cascade delete, app_id rename orphan risk).
+task: read-only ui/ux design review of external-message whitelist/admin screens with line-cited findings
+task_group: oho-backoffice vue2/nuxt2 admin ui review
+task_outcome: success
+cwd: /Users/tualek/ohochat/oho-backoffice
+keywords: vue2, nuxt2, element-ui, el-select, remote filterable, dropdown arrow, cascade delete, whitelist, app catalog, mock API, line-cited review
+---
+
+### Task 1: Read-only UI/UX review of external-message whitelist/app catalog screens
+
+task: read-only ui/ux design review of external-message whitelist/admin screens with line-cited findings
+task_group: oho-backoffice vue2/nuxt2 admin ui review
+task_outcome: success
+
+Preference signals:
+- when the user said "Do NOT edit any files -- this is review only" -> future similar tasks should default to strictly read-only inspection and avoid edits.
+- when the user said "Every finding must cite a concrete file path and line number" -> future similar reviews should gather exact line evidence first and avoid uncited judgments.
+- when the user specified the output shape/order (root-cause first, then High/Medium/Low) -> preserve severity ordering and actionable fix language in future review output.
+- when the user asked to grep the wider repo for other `filterable remote` usages -> check wider repo usage before claiming a pattern or divergence.
+
+Reusable knowledge:
+- Element UI `el-select` with `remote && filterable` intentionally omits the default arrow; the missing dropdown indicator is component behavior, not a repo CSS override, when no local CSS rule targets the suffix.
+- In the checked worktree, no CSS override was found that suppresses the caret; the only related global rule was an unrelated dropdown-item hover tweak.
+- The mock backend models two tables: `external_message_apps` and `business_external_app_whitelist`; deleting an app cascades into all whitelist rows.
+- Changing `app_id` in the catalog does not propagate to existing whitelist entries, so whitelists can become orphaned if `app_id` is mutable.
+
+Failures and how to do differently:
+- Do not overclaim a repo-wide convention when grep finds only a single `remote filterable` select; explicitly note when no comparable instance exists.
+- For framework-behavior questions, inspect the component source directly rather than inferring from screenshots or broad CSS searches.
+
+References:
+- `pages/external-message-whitelist.vue:14-34` — `el-select` with `filterable remote clearable` and no explicit icon.
+- `pages/external-message-whitelist.vue:37-55` — main checklist/save layout.
+- `pages/external-message-whitelist.vue:91-115` — remote business search and error handling.
+- `pages/external-message-apps.vue:55-85` — create/edit dialog.
+- `pages/external-message-apps.vue:162-183` — delete confirmation and cascade warning.
+- `components/ExternalMessage/WhitelistAppChecklist.vue:12-14` — empty state.
+- `api/mockExternalMessageApps.js:127-147` — delete cascade logic.
+- `api/mockExternalMessageApps.js:97-125` — app_id edit logic that can orphan existing whitelist data.
+- `node_modules/element-ui/packages/select/src/select.vue:196-198` — `iconClass()` returns `''` for `remote && filterable`.
+
+## Thread `019f5fb8-8b4a-73e3-b83a-8ce3e0fba9df`
+updated_at: 2026-07-14T08:33:02+00:00
+cwd: /Users/tualek/ohochat/oho-web-app
+rollout_path: /Users/tualek/.codex/sessions/2026/07/14/rollout-2026-07-14T15-22-37-019f5fb8-8b4a-73e3-b83a-8ce3e0fba9df.jsonl
+rollout_summary_file: 2026-07-14T08-22-37-rN8j-oho_web_app_unread_unresponded_realtime_badge_review.md
+
+---
+description: Read-only review of frontend badge-counter increment diff against oho-websocket backend commit 9141805; main takeaway is that the patch is not merge-safe because sender-role/producer assumptions are unverified and the unread path still risks missing or double-adjusting counters.
+task: review uncommitted realtime badge counter diff in oho-web-app against oho-websocket@9141805
+task_group: code-review / oho-web-app + oho-websocket
+task_outcome: fail
+cwd: /Users/tualek/ohochat/oho-web-app
+keywords: code-review, smartchat, groupchat, unread_count, unresponded_count, is_read_by_me, is_unresponded, Vuex, realtime, websocket, oho-websocket@9141805, stale-event-guard, optimistic decrement, Vue 2 reactivity
+---
+
+### Task 1: Review frontend increment/decrement badge logic for realtime unread/unresponded updates
+
+task: review uncommitted diff in `store/modules/smartchat.js` and `store/modules/groupchat.js` against backend commit `oho-websocket@9141805`
+task_group: code-review / frontend-realtime-badge
+task_outcome: fail
+
+Preference signals:
+- user explicitly required a **review-only** pass: "Do not fix anything, do not edit any files. Only report findings." -> future similar tasks should stay read-only unless the user asks for implementation.
+- user required grounded evidence: "Ground every claim in the actual diff content and the actual oho-websocket commit 9141805 content that you read yourself. Quote or reference specific line/field names. Do not speculate ... If something can't be verified ... say so explicitly." -> future similar reviews should cite exact file/line/field evidence and avoid assumptions.
+- user required a fixed response shape: findings grouped by severity and a one-line merge verdict -> preserve that structure on similar review asks.
+
+Reusable knowledge:
+- `oho-websocket@9141805` (`src/handlers/stream-webhook.handler.js`) emits `is_read_by_me:false` and `is_unresponded:true` on customer message events when the stale-event guard passes; `src/webhook/stream.js` handles `message.read` by `$pull`ing `unread_by` and does **not** emit `is_read_by_me:true`.
+- `store/modules/groupchat.js` already declares `unread_count` and `unresponded_count` in initial state, so its direct assignment counter mutations have existing reactive slots.
+- `store/modules/smartchat.js` `contact_list` initial/reset shapes do **not** include `unread_count` / `unresponded_count`; creating those properties during a reset/load window can be a Vue 2 reactivity gap.
+- `components/Smartchat/Conversation.vue` optimistic unresponded handling already sets `room.is_unresponded = false` before decrementing, which prevents a duplicate decrement on the later realtime transition.
+- `components/Smartchat/RoomList.vue` treats missing/legacy `is_read_by_me` as read in the list fallback, which is the rationale behind the asymmetry in the diff (`is_unresponded === true` vs `is_read_by_me !== false`) for known rows.
+
+Failures and how to do differently:
+- The reviewed diff is not merge-safe as-is. The review found a blocker that the backend commit does not show any sender-role guard in the `message.new` emission path, so the frontend cannot safely assume all such payloads are customer messages.
+- The unread counter flow remains broken because the optimistic `markRoomRead()` path updates the counter but does not synchronize `room.is_read_by_me`, so the new realtime transition logic can still miss or double-handle unread state changes depending on which producer fires.
+- The new increment path can still drift when the room is not already loaded in the list/current room, because it treats absent prior state as already-correct rather than proving whether the aggregate had previously been decremented.
+
+References:
+- [1] Frontend diff: `store/modules/smartchat.js` adds `incrementUnreadCount`, `incrementUnrespondedCount`, and a new `is_read_by_me` transition block; `store/modules/groupchat.js` adds `incrementGroupchatUnrespondedCount` and a symmetric `is_unresponded` transition branch.
+- [2] Backend commit `9141805`: `src/handlers/stream-webhook.handler.js:289-299` stale-event guard compares `oho_created_at` to `last_contact_date`; `:337-365` emits `is_read_by_me:false` and `is_unresponded:true`; `:407-422` emits only `is_unresponded:true` for group.
+- [3] `src/webhook/stream.js:142-160` on `message.read` only resolves the business and `$pull`s `unread_by`; it does not emit a `true` read flag.
+- [4] `components/Smartchat/Conversation.vue:1649-1680` decrements unread on mark-read; `:1975-1979` sets `room.is_unresponded = false` before decrementing.
+- [5] `components/Smartchat/RoomList.vue:170-176` fallback treats null/undefined `is_read_by_me` as read.
+
+## Thread `019f603f-0763-7a32-9125-816c9dd5f2b5`
+updated_at: 2026-07-14T11:40:37+00:00
+cwd: /Users/tualek/ohochat
+rollout_path: /Users/tualek/.codex/sessions/2026/07/14/rollout-2026-07-14T17-49-31-019f603f-0763-7a32-9125-816c9dd5f2b5.jsonl
+rollout_summary_file: 2026-07-14T10-49-31-cVgx-thai_unread_unresponded_flag_off_review_mr_1285_fixes.md
+
+---
+description: Thai review of unread/unresponded flag-off behavior in oho-api; found contract regressions, incomplete emitter wiring, and a zero-work/visibility mismatch across send paths
+subtask: code_review, flag_contract, worktree_verification
+outcome: fail
+cwd: /Users/tualek/ohochat/oho-api
+keywords: unread, unresponded, flag-off, code review, Thai, worktree, mr-1285-fixes, emitChatSessionStatusUpdatedEvent, emitContactUnrespondedStatusUpdatedEvent, buildClearUnreadUnrespondedPayload, convertUnreadUnrespondedQuery, chat-search, remote-config, jest, channel-eligible-members
+---
+
+### Task 1: Review unread/unresponded flag-gated changes in `mr-1285-fixes`
+
+task: Thai code review of unread/unresponded flag-off behavior in `oho-api` worktree `mr-1285-fixes`
+task_group: oho-api / code review
+task_outcome: fail
+
+Preference signals:
+- when the user asked `review เกี่ยวกับ unread&unresponded ให้หน่อยว่าถ้าปิด flag แล้วต้องหมายความว่า feature นี้ต้องไม่ทำงานแต่ feature อื่นๆ ก็ไม่กระทบด้วยเช่นกันต้องใช้งานได้เหมือนเดิม` -> default to Thai, findings-first, contract-focused review that explicitly checks zero-behavior / zero-side-effect when the flag is off.
+- when the user’s requirement was that the feature must not work with the flag off and other features must remain usable -> future reviews should verify both functional correctness and collateral impact on unrelated flows, not just presence/absence of the feature.
+- when multiple worktrees exist, the assistant had to correct the review target to the actual diff in `.claude/worktrees/mr-1285-fixes` -> future similar reviews should verify branch/worktree before judging the diff.
+
+Reusable knowledge:
+- `buildClearUnreadUnrespondedPayload` is intentionally unconditional for the clear-write side and is used by many runtime paths; it exists to avoid stuck `is_unresponded` / unread state when flags toggle off and back on.
+- `convertUnreadUnrespondedQuery` + its spec are the early gate for unread/unresponded query semantics; they are the right first place to validate query shape before tracing hooks.
+- `emit-chat-session-event.spec.ts` now covers both group-session and contact-unresponded broadcasts, including flag-off behavior and eligibility-scoped fan-out.
+- Focused Jest on the new helper/spec areas is the most useful validation signal for this change family; broad repo tests were less useful because unrelated quick-reply failures still existed elsewhere.
+
+Failures and how to do differently:
+- The new contact unresponded emitter was only wired into some send paths (`member-send-message`, `bot-send-message`) while `contact-send-message` still used the older emitter, so realtime `is_unresponded` updates were not handled uniformly across all transitions.
+- Some flag-off paths still performed DB reads and Remote Config evaluation before deciding whether to emit, which adds latency/work even when the feature is off.
+- The new emitter audience was based on channel eligibility only, while chat search visibility has stricter sale-owner/assignee/team rules; that can leak contact metadata to members who can open the channel but should not see the contact.
+- The earlier wrong-worktree review should be ignored; always re-check worktree/branch before making assertions in a multi-worktree repo.
+
+References:
+- [1] Correct worktree: `/Users/tualek/ohochat/oho-api/.claude/worktrees/mr-1285-fixes`.
+- [2] User wording: `ถ้าปิด flag แล้วต้องหมายความว่า feature นี้ต้องไม่ทำงานแต่ feature อื่นๆ ก็ไม่กระทบด้วยเช่นกันต้องใช้งานได้เหมือนเดิม`.
+- [3] Passing focused tests: `src/services/chat-session/hooks/emit-chat-session-event.spec.ts` passed 20/20; `src/services/contact/helper-hook/convert-unread-unresponded-query.spec.ts` and `src/utils/build-clear-unread-unresponded-payload.spec.ts` passed 24/24.
+- [4] Emitter wiring handles: `src/services/contact-send-message/contact-send-message.hooks.js:582`, `src/services/member-send-message/member-send-message.hooks.js:1338`, `src/services/bot-send-message/bot-send-message.hooks.js:929`, `src/services/chat-session/hooks/emit-chat-session-event.js:362`.
+
