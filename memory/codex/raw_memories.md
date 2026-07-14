@@ -165,3 +165,109 @@ References:
 - `src/webhook/stream.js:520-574` — Stream read event clears `unread_by` for contact/chat-session.
 - `src/models/contact.model.js` — unread/unresponded index definitions aligned to the new equality-based shape.
 
+## Thread `019f5ec7-6f0f-7e72-a7b6-720887ff0ac8`
+updated_at: 2026-07-14T04:02:56+00:00
+cwd: /Users/tualek/ohochat/script-oho
+rollout_path: /Users/tualek/.codex/sessions/2026/07/14/rollout-2026-07-14T10-59-16-019f5ec7-6f0f-7e72-a7b6-720887ff0ac8.jsonl
+rollout_summary_file: 2026-07-14T03-59-16-pwqA-migrate_unread_checkpoint_cleanup_correctness_review.md
+
+---
+description: Read-only correctness review of `unread-unresponded/migrate-unread.ts`; confirmed cleanup can trust checkpoint membership without Stream-verified legacy reconciliation, cleanup lacks the 90-day cutoff used by backfill/reconcile, and the new `buildTotals()` helper is wired into both status save paths.
+task: review /Users/tualek/ohochat/script-oho/unread-unresponded/migrate-unread.ts for checkpoint/cleanup safety and totals refactor sanity
+task_group: /Users/tualek/ohochat/script-oho / unread-unresponded correctness review
+task_outcome: success
+cwd: /Users/tualek/ohochat/script-oho
+keywords: migrate-unread.ts, cleanup-read-by, CHECKPOINT_FILE, STATUS_FILE, INCLUDE_PARTIAL, readByCutoffDate, runLegacyReadByReconcilePass, resolveBusinessIds, partial, MAX_DOCS_PER_BIZ, buildTotals, saveCheckpoint, saveStatus, checkpoint, resume, crash-safety
+---
+
+### Task 1: checkpoint semantics vs cleanup-read-by
+
+task: read-only correctness review of checkpoint gating and cleanup-read-by eligibility in migrate-unread.ts
+task_group: correctness review / checkpoint safety
+task_outcome: success
+
+Preference signals:
+- When the user says "Trace the actual filter/gating logic, not the comments" and requires line citations, use code-grounded analysis only; comments are not sufficient as evidence.
+- When the user asks for CONFIRMED / REFUTED / PARTIALLY-CONFIRMED per item, keep the report tightly structured and map each conclusion to exact lines.
+
+Reusable knowledge:
+- `INCLUDE_PARTIAL` is opt-in (`INCLUDE_STREAM && process.env.INCLUDE_PARTIAL === "true"`) and legacy reconcile only runs inside that branch.
+- `result.partial` is budget exhaustion only (`budget !== null && budget <= 0`); checkpointing uses `!isDryRun && !result.partial` and does not verify that legacy Stream reconciliation ran.
+- Cleanup mode trusts checkpoint membership directly via `loadCheckpoint()` and `backfillCompleted.has(id.toString())`; there is no persisted proof that a business was Stream-verified end-to-end.
+- `runLegacyReadByReconcilePass()` can skip unresolved channels (`skippedNoChannel`) and still return normally; that return value is not used to block checkpointing.
+
+Failures and how to do differently:
+- Do not infer safety from doc comments that say a business is "verified" or "safe to drop"; verify whether the code persists any proof and whether cleanup consumes that proof.
+- If a future run needs to prove cleanup safety, inspect whether unresolved Stream channels and omitted opt-in passes are tracked anywhere durable; in this file they are not.
+
+References:
+- `migrate-unread.ts:132-135`
+- `migrate-unread.ts:1335-1391`
+- `migrate-unread.ts:1398`
+- `migrate-unread.ts:2153-2159`
+- `migrate-unread.ts:1454-1458`
+- `migrate-unread.ts:1792-1798`
+- `migrate-unread.ts:890-896`, `migrate-unread.ts:965`
+
+### Task 2: cutoff mismatch in cleanup vs backfill/reconcile
+
+task: read-only correctness review of last_active_at cutoff handling in migrate-unread.ts cleanup and backfill paths
+task_group: correctness review / filter parity
+task_outcome: success
+
+Preference signals:
+- When the user asks whether one pass uses the "same DAYS/readByCutoffDate bound" as another, compare the exact query objects across all relevant passes rather than assuming symmetry from comments or function names.
+- The user explicitly asked to check for other invariants like business resolution, budget, and partial handling; future reviews should examine those surrounding guards, not just the obvious filter.
+
+Reusable knowledge:
+- Step 0a/0b and legacy reconcile both apply `last_active_at: { $gte: readByCutoffDate }` when the cutoff exists.
+- Cleanup does not apply any `last_active_at` cutoff; it only filters by business, complete channel IDs, and `HAS_LEGACY_READ_BY`.
+- `resolveBusinessIds()` only narrows the business/channel universe; it does not enforce doc freshness or backfill coverage.
+- `MAX_DOCS_PER_BIZ` is `null`, so partial/budget limiting is not a protective invariant here.
+
+Failures and how to do differently:
+- If cleanup is intended to remove only docs that were Stream-verified under the same window, the file currently does not enforce that. Checkpoint membership alone is too coarse.
+- The comment saying legacy reconcile scans the full `HAS_LEGACY_READ_BY` population does not match the actual cutoff-bearing query; do not rely on that comment for behavior.
+
+References:
+- `migrate-unread.ts:127-128`
+- `migrate-unread.ts:1920-1921`
+- `migrate-unread.ts:1219-1225`
+- `migrate-unread.ts:855-858`
+- `migrate-unread.ts:1820-1830`
+- `migrate-unread.ts:1853-1863`
+- `migrate-unread.ts:1714-1729`
+- `migrate-unread.ts:137`
+
+### Task 3: checkpoint/status crash safety and totals refactor
+
+task: read-only correctness review of checkpoint/status file interactions and totals consolidation in migrate-unread.ts
+task_group: correctness review / crash safety and refactor sanity
+task_outcome: success
+
+Preference signals:
+- When the user asks whether `CHECKPOINT_SUFFIX` can cause cross-contamination between explicit-target/gate runs, verify the actual suffix logic and whether the same file namespace is reused across modes/configs.
+- When the user asks for a totals-builder sanity check, confirm there are no remaining manual object literals instead of assuming the refactor was applied everywhere.
+
+Reusable knowledge:
+- Cleanup mode reads checkpoint state only and does not write checkpoint/status files, so it cannot overwrite backfill state by itself.
+- `CHECKPOINT_SUFFIX` isolates `-explicit-target`, `-gate-${GATE_FILTER}`, and default runs, but does not encode all semantics such as cutoff or stream/partial choices.
+- `saveCheckpoint()` writes directly to the checkpoint file, unlike `saveStatus()` which uses a temp-file rename; a crash during checkpoint write could corrupt the file and make `loadCheckpoint()` fall back to an empty set.
+- The new `buildTotals()` helper is used by both `saveStatus()` call sites, and no third manual totals literal remained.
+
+Failures and how to do differently:
+- If future work depends on durable checkpoint correctness, consider the asymmetry between atomic status writes and non-atomic checkpoint writes.
+- If config-specific resume safety matters, the checkpoint key may need to encode more than just gate/target identity.
+
+References:
+- `migrate-unread.ts:204-210`
+- `migrate-unread.ts:1751-1760`
+- `migrate-unread.ts:1792-1798`
+- `migrate-unread.ts:1454-1458`
+- `migrate-unread.ts:1665-1667`
+- `migrate-unread.ts:1985-2009`
+- `migrate-unread.ts:2028-2040`, `migrate-unread.ts:2162-2173`
+- `migrate-unread.ts:2075-2081`
+- `migrate-unread.ts:2153-2159`
+- `migrate-unread.ts:2317-2326`
+

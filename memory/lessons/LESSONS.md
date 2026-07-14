@@ -43,3 +43,7 @@ consolidate: merge duplicates, drop obsolete ones, keep the rule one line each.
 ## 2026-07 — Deleted backfill scripts, blanking every existing unread badge
 - **Mistake**: renamed `read_by`→`unread_by` (absent field = "not unread") and deleted the old `migrate-contact-read-by`/`backfill-contact-unread-30d`-style scripts, reasoning "no real data existed so no backfill needed" — but that assumption was already disproven the same day by a live incident showing `read_by` had real accumulated data in prod. Result: every pre-existing chat lost its unread state on deploy (badge silently went to zero for the whole install base) because nothing populated `unread_by` for history, only for messages arriving after deploy.
 - **Rule**: renaming/inverting a field that gates user-visible state (badges, counters) always needs a backfill for existing documents, even when told "no real data" — verify that claim against production directly (e.g. `countDocuments` on the old field) before deleting the migration tooling that would have covered it; a field being absent is not the same as it being safe to leave unpopulated.
+
+## 2026-07 — Reviewed the wrong branch worktree
+- **Mistake**: reviewed `hotfix/v2.24.1/oho-unread-unresponded-flag-gate` when the intended scope was `feature/tk-sprint-2613/oho-1018-unrespone`; user: `focus review ที่ brach feature/tk-sprint-2613/oho-1018-unrespone รึป่าว`.
+- **Rule**: before reviewing a multi-worktree repo, identify and confirm the target branch from the request and inspect only that branch's worktree.

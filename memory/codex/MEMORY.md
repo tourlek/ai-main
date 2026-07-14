@@ -1,3 +1,62 @@
+# Task Group: /Users/tualek/ohochat/script-oho / migrate-unread.ts correctness review
+scope: Read-only correctness-review memory for `unread-unresponded/migrate-unread.ts`, especially checkpoint semantics, cleanup-vs-backfill invariants, crash/resume safety, and refactor sanity checks that must be proven from code lines rather than comments.
+applies_to: cwd=/Users/tualek/ohochat/script-oho; reuse_rule=reuse for similar correctness reviews in this checkout when the user wants evidence-first analysis of `migrate-unread.ts` or nearby migration-state logic, but re-check the live file because line numbers and safety guarantees can drift.
+
+## Task 1: Review checkpoint semantics versus cleanup-read-by assumptions, cleanup can trust incomplete proof
+
+### rollout_summary_files
+
+- rollout_summaries/2026-07-14T03-59-16-pwqA-migrate_unread_checkpoint_cleanup_correctness_review.md (cwd=/Users/tualek/ohochat/script-oho, rollout_path=/Users/tualek/.codex/sessions/2026/07/14/rollout-2026-07-14T10-59-16-019f5ec7-6f0f-7e72-a7b6-720887ff0ac8.jsonl, updated_at=2026-07-14T04:02:56+00:00, thread_id=019f5ec7-6f0f-7e72-a7b6-720887ff0ac8, confirmed checkpoint membership is coarser than "Stream-verified" comments imply)
+
+### keywords
+
+- migrate-unread.ts, cleanup-read-by, CHECKPOINT_FILE, INCLUDE_PARTIAL, runLegacyReadByReconcilePass, skippedNoChannel, partial, completed, loadCheckpoint, backfillCompleted, verified, checkpoint safety
+
+## Task 2: Review cleanup cutoff parity, cleanup lacks the 90-day bound used elsewhere
+
+### rollout_summary_files
+
+- rollout_summaries/2026-07-14T03-59-16-pwqA-migrate_unread_checkpoint_cleanup_correctness_review.md (cwd=/Users/tualek/ohochat/script-oho, rollout_path=/Users/tualek/.codex/sessions/2026/07/14/rollout-2026-07-14T10-59-16-019f5ec7-6f0f-7e72-a7b6-720887ff0ac8.jsonl, updated_at=2026-07-14T04:02:56+00:00, thread_id=019f5ec7-6f0f-7e72-a7b6-720887ff0ac8, confirmed cleanup query omits `last_active_at` cutoff even though backfill/reconcile apply it)
+
+### keywords
+
+- readByCutoffDate, DAYS, last_active_at, cleanup-read-by, runReadByToUnreadByPass, runLegacyReadByReconcilePass, resolveBusinessIds, MAX_DOCS_PER_BIZ, filter parity, HAS_LEGACY_READ_BY
+
+## Task 3: Review crash/resume safety and totals refactor, buildTotals wiring confirmed with checkpoint caveats
+
+### rollout_summary_files
+
+- rollout_summaries/2026-07-14T03-59-16-pwqA-migrate_unread_checkpoint_cleanup_correctness_review.md (cwd=/Users/tualek/ohochat/script-oho, rollout_path=/Users/tualek/.codex/sessions/2026/07/14/rollout-2026-07-14T10-59-16-019f5ec7-6f0f-7e72-a7b6-720887ff0ac8.jsonl, updated_at=2026-07-14T04:02:56+00:00, thread_id=019f5ec7-6f0f-7e72-a7b6-720887ff0ac8, confirmed `buildTotals()` coverage and exposed non-atomic checkpoint writes)
+
+### keywords
+
+- CHECKPOINT_SUFFIX, STATUS_FILE, saveCheckpoint, saveStatus, buildTotals, temp-file rename, crash-safety, loadCheckpoint, processedCount, cleanup mode, resume
+
+## User preferences
+
+- when the user says `Trace the actual filter/gating logic, not the comments` and asks for line citations -> treat comments as non-binding, ground every behavioral claim in source lines/snippets, and do not smooth over gaps with intent-based reasoning. [Task 1][Task 2]
+- when the user asks for `CONFIRMED / REFUTED / PARTIALLY-CONFIRMED` per item -> keep the review tightly structured and map each verdict to exact code lines. [Task 1]
+- when the user asks whether one pass uses the `same DAYS/readByCutoffDate bound` as another -> compare the exact query objects across all relevant passes and surrounding guards, not just the obvious function or comment. [Task 2]
+- when the user asks about shared `CHECKPOINT_FILE` / `STATUS_FILE` semantics or refactor sanity -> explicitly trace mode dispatch, suffix logic, write paths, and whether any hand-built state objects remain. [Task 3]
+
+## Reusable knowledge
+
+- `INCLUDE_PARTIAL` is opt-in only (`INCLUDE_STREAM && process.env.INCLUDE_PARTIAL === "true"`), and `runLegacyReadByReconcilePass()` only runs inside that branch. A business can still become checkpoint-complete without legacy Stream verification because `partial` means budget exhaustion only and checkpointing checks only `!isDryRun && !result.partial`. [Task 1][Task 3]
+- Cleanup trusts checkpoint membership directly via `loadCheckpoint()` and `backfillCompleted.has(id.toString())`; the checkpoint file stores only `{ completed: [...] }`, with no durable proof about reconcile coverage, skipped unresolved channels, or whether a business was verified under the current semantic config. [Task 1][Task 3]
+- Step 0a/0b and legacy reconcile both apply `last_active_at: { $gte: readByCutoffDate }` when a cutoff exists, but cleanup does not carry any date window. It filters only by business, current complete channel IDs, and `HAS_LEGACY_READ_BY`. [Task 2]
+- `resolveBusinessIds()` only narrows the business/channel universe; it does not encode doc freshness or backfill coverage. `MAX_DOCS_PER_BIZ` is `null`, so partial/budget limiting is not a protective invariant here. [Task 2]
+- Cleanup mode reads checkpoint membership only and does not itself write checkpoint/status files, so it cannot overwrite backfill state by itself. `CHECKPOINT_SUFFIX` isolates `-explicit-target`, `-gate-${GATE_FILTER}`, and default runs, but not cutoff/stream/partial semantics. [Task 3]
+- `saveStatus()` uses a temp-file rename, but `saveCheckpoint()` writes directly to the checkpoint file. `loadCheckpoint()` swallows JSON parse/read errors and returns an empty set, so checkpoint corruption degrades into silent "start over" behavior. [Task 3]
+- The 2026-07-14 review also found that cleanup resolves the current `connection_status: "complete"` channel set at runtime, so a business gaining new complete channels after backfill can make cleanup target docs outside the original backfill snapshot. [Task 2][Task 3]
+- `buildTotals()` is the single totals builder now: both `saveStatus()` call sites use it, and no third hand-built totals literal remained. `processedCount++` happens before checkpoint eligibility is decided, so status can show business progress that has not been durably checkpointed. [Task 3]
+
+## Failures and how to do differently
+
+- Symptom: comments say a business is "verified" or cleanup is "safe to drop". Cause: the code does not persist any proof beyond membership in `completed`. Fix/pivot: inspect what the code actually stores and what cleanup consumes before accepting safety claims. [Task 1]
+- Symptom: cleanup appears to mirror backfill/reconcile scope. Cause: the file comments suggest full-population behavior, but the actual queries diverge and cleanup omits the `last_active_at` cutoff. Fix/pivot: compare query objects and cutoff propagation across every related pass. [Task 2]
+- Symptom: future resume logic assumes checkpoint files are durable and config-specific. Cause: checkpoint writes are non-atomic and the suffix key omits semantic dimensions such as cutoff/stream/partial choices. Fix/pivot: treat checkpoint correctness and resume safety as separate review items, not as implied by shared file names alone. [Task 3]
+- Symptom: a review report sounds safe because the refactor is tidy. Cause: source-of-truth reasoning stopped at comments or naming instead of tracing state transitions and persisted artifacts. Fix/pivot: verify file-write paths, mode dispatch, and all remaining literal builders before concluding the refactor is safe. [Task 1][Task 3]
+
 # Task Group: /Users/tualek/ohochat/oho-api / unread-unresponded performance debugging
 scope: Root-cause performance memory for unread/unresponded slowdowns in `oho-api`; use for attribution work that must separate expensive count paths from write-side stamping.
 applies_to: cwd=/Users/tualek/ohochat/oho-api; reuse_rule=reuse for similar unread/unresponded performance investigations in this repo, but re-check the current query shape, indexes, and incident evidence before assuming the same bottleneck still exists.
