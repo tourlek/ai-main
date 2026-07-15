@@ -1,3 +1,60 @@
+# Task Group: /Users/tualek/ohochat / cross-repo unread-unresponded deploy-gate reviews
+scope: Read-only cross-repo review memory for unread/unresponded fixes spanning `oho-api`, `oho-websocket`, and `oho-web-app`; use for deploy-gate audits, MR review follow-ups, or "is this actually fixed?" checks where write gates, realtime broadcasts, and frontend counters must align.
+applies_to: cwd=/Users/tualek/ohochat; reuse_rule=reuse for similar cross-repo review-only audits across these repos, but always re-check live `git status` / `git diff` in each repo and current commit semantics before treating any finding as still open.
+
+## Task 1: Cross-repo review of MR !1285 unread/unresponded changes, websocket blocker plus frontend/backend drift risks
+
+### rollout_summary_files
+
+- rollout_summaries/2026-07-14T15-18-52-8PEC-mr1285_cross_repo_unread_unresponded_review.md (cwd=/Users/tualek/ohochat/oho-api/.claude/worktrees/mr-1285-fixes, rollout_path=/Users/tualek/.codex/sessions/2026/07/14/rollout-2026-07-14T22-18-52-019f6135-9fb1-7b72-b968-52241fd501a2.jsonl, updated_at=2026-07-14T15:35:19+00:00, thread_id=019f6135-9fb1-7b72-b968-52241fd501a2, read-only review across `oho-api`, `oho-websocket`, and `oho-web-app` found a websocket `message.read` blocker and frontend Remote Config / optimistic-counter drift risks)
+
+### keywords
+
+- cross-repo review, unread, unresponded, mr-1285, message.read, buildCustomerMessageUnreadPayload, buildClearUnreadUnrespondedPayload, emitEligibilityScopedUnrespondedUpdate, businessChannel, Remote Config, optimistic-flag-count-tracker, groupchat
+
+- Related skill: skills/oho-cross-repo-unread-review/SKILL.md
+
+## Task 2: Cross-repo deploy-gate review of realtime badge fixes, improvements landed but security and rollback risks remained
+
+### rollout_summary_files
+
+- rollout_summaries/2026-07-14T18-31-25-OSyU-oho_unread_unresponded_cross_repo_deploy_gate_review.md (cwd=/Users/tualek/ohochat/oho-web-app, rollout_path=/Users/tualek/.codex/sessions/2026/07/15/rollout-2026-07-15T01-31-25-019f61e5-e958-75d1-ae40-e7dc4ffd3d5c.jsonl, updated_at=2026-07-14T18:42:39+00:00, thread_id=019f61e5-e958-75d1-ae40-e7dc4ffd3d5c, stricter deploy-gate pass verified real repo state first and found bulk-send timestamp, websocket cache, and frontend rollback/counter edge cases)
+
+### keywords
+
+- deploy gate, git diff, git status, unread, unresponded, modifiedCount, channel-eligible-members, Firebase Remote Config, feature_flags_api_keys, checked_channels, Conversation.vue, optimistic-flag-count-tracker, bulk.class.js, get-last-stream-message-timestamp
+
+- Related skill: skills/oho-cross-repo-unread-review/SKILL.md
+
+## User preferences
+
+- when the user says `Do NOT trust the summary below as fact — run git diff / git status yourself in each repo and verify every claim against the actual diff.` -> pin the real repo/worktree state first and treat summaries as suspect until the live diff matches them. [Task 2]
+- when the user says `read plan.md` / prior review docs first and `do not re-flag findings already documented as fixed there` -> rebase on prior review history and avoid duplicate findings. [Task 1]
+- when the user says `Do NOT edit, stage, commit, or run any command that mutates files or git state.` -> keep similar cross-repo reviews strictly read-only. [Task 1][Task 2]
+- when the user wants `structured findings report, ranked by severity` with exact `file:line` evidence and a one-line verdict -> stay compact, judgmental, and evidence-first instead of exploratory. [Task 1][Task 2]
+- when the user asks whether a websocket or frontend port is `actually faithful` -> compare semantics and state transitions, not just line similarity. [Task 2]
+- when the user asks for a complete flag/write/broadcast audit -> trace UI mutations from socket events and optimistic logic too, not just backend writes. [Task 1][Task 2]
+
+## Reusable knowledge
+
+- The durable contract across these reviews is: SET writes are flag-gated, CLEAR writes are unconditional, and realtime broadcasts are flag-gated. Use that split when auditing each repo so a correct write-path change does not hide an incorrect broadcast-path gate. [Task 1][Task 2]
+- For this task family, the high-value trace is end to end: payload source -> guard -> DB write result -> broadcast audience/result -> frontend merge/filter logic. The reviews repeatedly found partially correct fixes that only became visible when the whole chain was traced. [Task 1][Task 2]
+- In `oho-api`, `buildCustomerMessageUnreadPayload()` is the SET-side source of truth for `unread_by` and `is_unresponded:true`, while `buildClearUnreadUnrespondedPayload()` intentionally stays unconditional to avoid flag-toggle stuck state. [Task 1]
+- In `oho-websocket`, `message.read` is the websocket-side CLEAR site; newer code improved it by doing the `$pull` first and using `modifiedCount > 0` to suppress no-op broadcasts, but downstream consumers can still drop the emitted `updated_at` as stale. [Task 1][Task 2]
+- Group broadcast scoping moved from whole-business rooms toward eligible-member channels. The stricter deploy-gate review confirmed the new helper is fail-closed and skips broadcast when the eligible set is unknown or empty. [Task 2]
+- `src/utils/channel-eligible-members.js` in `oho-websocket` caches eligible IDs in memory for 60s with a 20k-entry cap and returns `null` on over-cap or lookup failure; treat that helper as part of the security boundary, not only a performance optimization. [Task 2]
+- The frontend guidance changed across the two rollouts: the earlier cross-repo review found browser Remote Config could overwrite API-authenticated flags, while the later deploy-gate review validated the fix via `feature_flags_api_keys` plus `plugins/firebase-remote-config.js:52-56` making browser updates non-authoritative for API-owned keys. [Task 1][Task 2]
+- `utils/optimistic-flag-count-tracker.js` now records every increment in its Set and deletes on every decrement; that fixed the documented offscreen repeat bug, but correctness still depends on whether those module-level Sets are ever seeded/reset from authoritative fetches. [Task 2]
+
+## Failures and how to do differently
+
+- Symptom: a review inherits wrong assumptions from a written summary. Cause: the claimed fix set and the live worktree diverge. Fix/pivot: always run `git status` and inspect the actual diff in every repo before trusting summary text or prior conclusions. [Task 2]
+- Symptom: a fix looks faithful because the ported code resembles another repo. Cause: semantic differences hide in guards, timestamps, or audience selection. Fix/pivot: compare behavior contracts, not line similarity, especially for websocket ports and frontend consumers. [Task 1][Task 2]
+- Symptom: websocket audience scoping looks safe after moving away from `businessChannel(..., 'member')`. Cause: the eligible-member cache is fail-closed but still time-based, so revoked permission can leak content until TTL expiry and concurrent cold lookups can stampede Mongo. Fix/pivot: treat cache TTL, revocation, and single-flight as security-review items. [Task 2]
+- Symptom: bulk-send clear logic looks fixed once it skips the all-fail case. Cause: the clear guard is correct only partially if `lastMessageTimestamp` still comes from merged payloads that include failed deliveries. Fix/pivot: trace the timestamp source as carefully as the boolean success guard. [Task 1][Task 2]
+- Symptom: unread badge rollback overstates counts after a failure in `Conversation.vue`. Cause: `markRoomRead()` wraps `addMembers()` and `markRead()` in one catch, so the rollback path assumes a decrement already happened even when `addMembers()` failed first. Fix/pivot: separate pre-`markRead()` and post-`markRead()` failure paths when reviewing optimistic rollback logic. [Task 2]
+- Symptom: validation sounds stronger than it is because syntax checks passed. Cause: `git diff --check`, `node --check`, or wiring-only tests do not prove behavior; sandboxed read-only runs can also block Jest temp writes. Fix/pivot: report those checks as shallow confidence only and say explicitly when deeper behavioral proof could not run. [Task 1][Task 2]
+
 # Task Group: /Users/tualek/ohochat/oho-api / Thai code review of unread-unresponded changes
 scope: Review-only memory for `oho-api` unread/unresponded diffs, especially query composition, flag-off contract checks, validation limits, and review reporting style; use when the user asks whether backend changes are okay, not when they ask for direct implementation.
 applies_to: cwd=/Users/tualek/ohochat/oho-api; reuse_rule=reuse for similar code reviews in this repo or nearby search-hook work, but re-verify exact query shape, failing tests, and worktree-specific files before treating any blocker as still open.

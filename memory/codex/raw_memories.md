@@ -450,3 +450,220 @@ References:
 - [3] Passing focused tests: `src/services/chat-session/hooks/emit-chat-session-event.spec.ts` passed 20/20; `src/services/contact/helper-hook/convert-unread-unresponded-query.spec.ts` and `src/utils/build-clear-unread-unresponded-payload.spec.ts` passed 24/24.
 - [4] Emitter wiring handles: `src/services/contact-send-message/contact-send-message.hooks.js:582`, `src/services/member-send-message/member-send-message.hooks.js:1338`, `src/services/bot-send-message/bot-send-message.hooks.js:929`, `src/services/chat-session/hooks/emit-chat-session-event.js:362`.
 
+## Thread `019f6135-9fb1-7b72-b968-52241fd501a2`
+updated_at: 2026-07-14T15:35:19+00:00
+cwd: /Users/tualek/ohochat/oho-api/.claude/worktrees/mr-1285-fixes
+rollout_path: /Users/tualek/.codex/sessions/2026/07/14/rollout-2026-07-14T22-18-52-019f6135-9fb1-7b72-b968-52241fd501a2.jsonl
+rollout_summary_file: 2026-07-14T15-18-52-8PEC-mr1285_cross_repo_unread_unresponded_review.md
+
+---
+description: Cross-repo code review of MR !1285 unread/unresponded feature; backend write gating mostly correct, but websocket `message.read` clear is incorrectly flag-gated and missing ordering guard, while frontend/client Remote Config and optimistic badge tracking can drift.
+task: review MR !1285 unread/unresponded feature across oho-api, oho-websocket, oho-web-app
+task_group: code-review / unread-unresponded
+task_outcome: partial
+cwd: /Users/tualek/ohochat/oho-api/.claude/worktrees/mr-1285-fixes
+keywords: mr-1285, unread_by, is_unresponded, emitEligibilityScopedUnrespondedUpdate, message.read, Remote Config, optimistic-flag-count-tracker, groupchat, socket.io, code review
+---
+
+### Task 1: Backend review in oho-api
+
+task: review MR !1285 unread/unresponded backend changes in oho-api
+task_group: code-review / backend
+task_outcome: partial
+
+Preference signals:
+- user said read `plan.md` and consolidated review docs first, and “do not re-flag findings already documented as fixed there” -> rebase on prior review history and avoid duplicate findings
+- user asked for “structured findings report, ranked by severity” and exact `file:line` citations -> keep review output line-precise and severity-ranked
+- user said “do not modify any files” -> keep the task read-only
+
+Reusable knowledge:
+- `buildCustomerMessageUnreadPayload()` is the SET-side source of truth for `unread_by` and `is_unresponded:true`
+- `buildClearUnreadUnrespondedPayload()` intentionally builds unconditional CLEAR payloads; that is the intended fix for flag-toggle stuck-state bugs
+- `emitEligibilityScopedUnrespondedUpdate()` is the actual gate for the four newly fixed contact clear broadcasts; notify/inform/broadcast/bulk all reach it
+
+Failures and how to do differently:
+- sale-visibility audience for contact status broadcasts is broader/narrower than channel-eligible broadcasting; that mismatch is an audience bug, not a flag-gate bug
+- bulk-send still needs success-aware handling because it can clear state even when platform delivery fails
+
+References:
+- `src/services/contact-send-message/contact-send-message.hooks.js:227-259`
+- `src/services/chat-session/group/contact-user/send-message/send-message.class.js:40-50`
+- `src/services/member-send-message/member-send-message.hooks.js:690-728`
+- `src/services/member-send-message/bulk/bulk.class.js:218-285`
+- `src/services/chat-session/hooks/emit-chat-session-event.js:271-372`
+
+### Task 2: websocket review in oho-websocket
+
+task: review Stream websocket unread/unresponded behavior and flag gating in oho-websocket
+task_group: code-review / websocket
+task_outcome: fail
+
+Preference signals:
+- user wanted a review that covers all 3 repos and separates general findings from flag-gate audit findings -> keep repo boundaries and audit tables explicit
+- user’s design rule said websocket broadcasts of these fields must be flag-gated, not the writes -> check websocket broadcasts separately from backend write behavior
+
+Reusable knowledge:
+- `src/webhook/stream.js` has a `message.read` branch that directly `$pull`s from `unread_by`; this is the websocket-side CLEAR site that should be scrutinized for unconditional behavior
+- Stream webhook customer-message broadcasts are split into single-chat and group-chat paths; group broadcasts use the broader `businessChannel(businessId, 'member')` audience
+
+Failures and how to do differently:
+- `message.read` is incorrectly flag-gated and lacks the timestamp ordering guard used by backend, so delayed reads can clear newer unread state
+- group customer-message broadcasts overreach within a business by sending to the whole business member room instead of a channel-eligibility-scoped audience
+
+References:
+- `src/webhook/stream.js:149-160`
+- `src/handlers/stream-webhook.handler.js:361-449`
+- `src/webhook/stream.spec.js:93-108`
+
+### Task 3: frontend review in oho-web-app
+
+task: review client-side unread/unresponded state handling, Remote Config, and socket badge updates in oho-web-app
+task_group: code-review / frontend
+
+task_outcome: partial
+
+Preference signals:
+- user wanted a careful senior review before rollout, not implementation suggestions -> remain judgmental and rollout-oriented
+- user asked for a complete flag/write/broadcast inventory -> validate how UI state mutates from sockets and optimistic logic, not just API calls
+
+Reusable knowledge:
+- `store/index.js` bootstraps feature flags from backend auth response, but `plugins/firebase-remote-config.js` later fetches client config and commits to the same state again
+- `store/modules/smartchat.js` and `store/modules/groupchat.js` both use the shared optimistic flag tracker; offscreen increment/decrement behavior must be validated, not just visible-room updates
+- Groupchat UI relies heavily on local state and watcher-triggered refetches, so overlapping requests and stale socket events can cause visible drift
+
+Failures and how to do differently:
+- browser Remote Config can overwrite backend-authenticated flag state
+- optimistic badge tracking can drift because it lacks a true per-contact baseline for unknown prior state
+- groupchat badge/list behavior is not fully aligned with socket reality and can leave stale rooms visible or mutate the wrong counter bucket
+
+References:
+- `plugins/firebase-remote-config.js:8-52,81-85`
+- `store/index.js:476-485`
+- `store/modules/smartchat.js:692-749`
+- `store/modules/groupchat.js:215-321`
+- `pages/business/_biz_id/groupchat/index.vue:26-31,449-567`
+- `utils/optimistic-flag-count-tracker.js:1-27`
+
+## Thread `019f61e5-e958-75d1-ae40-e7dc4ffd3d5c`
+updated_at: 2026-07-14T18:42:39+00:00
+cwd: /Users/tualek/ohochat/oho-web-app
+rollout_path: /Users/tualek/.codex/sessions/2026/07/15/rollout-2026-07-15T01-31-25-019f61e5-e958-75d1-ae40-e7dc4ffd3d5c.jsonl
+rollout_summary_file: 2026-07-14T18-31-25-OSyU-oho_unread_unresponded_cross_repo_deploy_gate_review.md
+
+---
+description: Cross-repo read-only deploy-gate review of unread/unresponded realtime badge fixes; key takeaway is to distrust summaries, verify actual worktree diffs/status first, and trace emit/write guards end-to-end because several fixes were partially correct but still left security and rollback bugs.
+task: read-only correctness review across oho-api, oho-websocket, and oho-web-app for unread/unresponded realtime badge fixes
+task_group: cross-repo review / deploy-gate
+task_outcome: partial
+cwd: /Users/tualek/ohochat/oho-web-app
+keywords: read-only review, git diff, git status, deploy gate, unread, unresponded, realtime badge, websocket, optimistic counters, checked_channels, single-flight, backoff, TTL cache, modifiedCount, last_contact_date, rollback, groupchat, smartchat, channel-eligible-members, Firebase Remote Config
+---
+
+### Task 1: oho-api unread/unresponded fix round
+
+task: read-only correctness review of oho-api unread/unresponded and bulk-send changes in mr-1285-fixes
+task_group: oho-api review
+task_outcome: partial
+
+Preference signals:
+- when the user said "Do NOT trust the summary below as fact — run git diff / git status yourself in each repo and verify every claim against the actual diff." -> future similar reviews should always pin the real worktree state first and treat summaries as suspect.
+- when the user said "Do NOT edit, stage, commit, or run any command that mutates files or git state." -> keep similar reviews strictly read-only.
+- when the user requested severity-ranked findings with file:line evidence and a one-line verdict -> stay compact, judgmental, and evidence-first instead of exploratory.
+
+Reusable knowledge:
+- `src/utils/get-last-stream-message-timestamp.js` returns the last distinct `oho_created_at` from the payload, so any guard that uses it must ensure the payload really represents a successful reply, not merely a batched attempt.
+- In `src/services/member-send-message/bulk/bulk.class.js`, the new `hasSuccessfulDelivery` guard protects `updateContactAfterBulkSend()`, but the timestamp fed into that function comes from the merged payload across all responses.
+- The `oho-api` model for `chatSession` has `unread_by` and `is_unresponded` explicitly absent by default, which supports the "flag off means field absent" contract.
+
+Failures and how to do differently:
+- The mixed-success bulk-send guard was only partly correct: the code now skips the clear when all deliveries fail, but still derives the timestamp from the entire merged payload, which can include failed deliveries.
+- Bulk-send test coverage was shallow in the active path; the serious LINE path regression tests existed, but the mixed-success guard was not exercised in a way that would fail if the new logic were reverted.
+
+References:
+- [1] `src/services/member-send-message/bulk/bulk.class.js:218-276`, `:300-377`, `:451-528`, `:615-676`
+- [2] `src/utils/get-last-stream-message-timestamp.js:3-8`
+- [3] `src/services/contact-send-message/contact-send-message.hooks.js:585-602`
+- [4] `src/services/chat-session/hooks/emit-chat-session-event.js:245-389`
+- [5] `src/models/chat-session.model.js:31-97`
+
+### Task 2: oho-websocket message.read and group broadcast changes
+
+task: read-only correctness review of oho-websocket read-path/broadcast/cache changes
+task_group: websocket review
+task_outcome: partial
+
+Preference signals:
+- when the user highlighted the new `message.read` realtime broadcast and independently reimplemented `channel-eligible-members.js` as counterexample targets -> future reviews should actively try to falsify the safe-by-design claims.
+- when the user asked whether the websocket port was “actually faithful” to the oho-api version -> compare semantics, not just line similarity.
+
+Reusable knowledge:
+- `src/webhook/stream.js:215-240` uses `modifiedCount` to decide whether to emit `chat-session/status updated` with `is_read_by_me: true`.
+- `src/handlers/stream-webhook.handler.js:447-483` scopes group chat broadcasts to eligible members via `getEligibleMemberIds()` and per-member channels; it skips the broadcast entirely when the eligible set is unknown or empty.
+- `src/utils/channel-eligible-members.js:4-39,58-92` caches eligible IDs in memory for 60s with a 20k-entry cap and returns `null` on over-cap or lookup failure.
+- `src/firebase-remote-config.js:25-68` implements single-flight and TTL backoff by holding `refreshPromise` and bumping `templateFetchedAt` on both success and failure.
+
+Failures and how to do differently:
+- The new group broadcast helper is fail-closed, but the in-memory TTL cache means revoked channel permission can still receive message content until cache expiry; future reviews should treat cached audience computation as a security boundary, not just a performance optimization.
+- The helper does not cache in-flight Promise state, so concurrent cold/expired lookups can stampede Mongo.
+- The `message.read` broadcast now depends on `modifiedCount > 0`, so it avoids double-broadcast on no-op writes, but the emitted `updated_at` comes from the Stream event time, which downstream frontend code can still treat as stale and drop.
+
+References:
+- [1] `src/webhook/stream.js:171-240`
+- [2] `src/handlers/stream-webhook.handler.js:447-483`
+- [3] `src/utils/channel-eligible-members.js:41-99`
+- [4] `src/utils/channel-eligible-members.spec.js:69-110`
+- [5] `src/firebase-remote-config.js:1-136` and `src/firebase-remote-config.spec.js:91-161`
+- [6] `src/handlers/stream-webhook.handler.spec.js:70-118`
+- [7] `src/webhook/stream.spec.js:82-239`
+
+### Task 3: oho-web-app optimistic counters, scoping, and conversation flow
+
+task: read-only correctness review of oho-web-app unread/unresponded optimistic counters and UI guards
+task_group: frontend review
+task_outcome: partial
+
+Preference signals:
+- when the user specifically questioned whether `checked_channels` semantics could now under-count when “no channels selected = show all” -> inspect empty-selection semantics carefully instead of assuming they are harmless.
+- when the user wanted both `Conversation.vue` try/catch rollback and the `optimistic-flag-count-tracker` semantics checked against doc comments/specs -> verify the helper against both the implementation and its callers.
+
+Reusable knowledge:
+- `utils/optimistic-flag-count-tracker.js` now does `set.add(id)` on every increment and `set.delete(id)` on every decrement; its doc comment says the Set must reflect “currently counted true” regardless of whether the item was loaded locally or not.
+- `store/modules/smartchat.js:694-767` and `store/modules/groupchat.js:217-254` now gate aggregate count commits behind `checked_channels`; empty `checked_channels` means no channel filter is active and all channels are in scope.
+- `components/Smartchat/RoomList.vue` now applies `filter_unresponded` to groupchat as well, while keeping `filter_unread` smartchat-only.
+- `plugins/firebase-remote-config.js:52-56` makes later browser-side remote config updates non-authoritative if the API already committed a flag key.
+- `store/index.js:103-129` tracks `feature_flags_api_keys` so the browser plugin does not silently overwrite API-authenticated values.
+
+Failures and how to do differently:
+- `markRoomRead()` wraps `addMembers()` and `markRead()` in one catch, but the rollback path still assumes an unread decrement already happened; if `addMembers()` fails before the decrement, the increment rollback can overstate the badge.
+- The optimistic counter helper fixes the documented offscreen repeat bug, but it still depends on module-level Sets that are never seeded/reset from authoritative API fetches; future reviews should check API refresh and filter-scope changes for stale Set drift.
+- `checked_channels=[]` is treated as “all channels in scope,” which matches the query helper semantics, so the real question is whether room channel IDs are always available on the event/local-state path.
+
+References:
+- [1] `utils/optimistic-flag-count-tracker.js:1-40` and `test/utils/optimistic-flag-count-tracker.spec.js:103-160`
+- [2] `store/modules/smartchat.js:694-767` and `test/store/modules/smartchat.spec.js:1002-1070`
+- [3] `store/modules/groupchat.js:217-254` and `test/store/modules/groupchat.spec.js:34-101`
+- [4] `components/Smartchat/Conversation.vue:1640-1717` and `test/components/Smartchat/Conversation.spec.js:216-333`
+- [5] `components/Smartchat/RoomList.vue` diff and `test/components/Smartchat/RoomList.spec.js:332-356`
+- [6] `store/index.js:103-129`, `test/store/index.spec.js:118-179`, and `plugins/firebase-remote-config.js:52-56`
+- [7] `pages/business/_biz_id/groupchat/index.vue:557-585`
+
+### Cross-task reusable lessons / deploy-gate signals
+
+- Always verify branch/status/diff in each repo before trusting a rollout summary.
+- For realtime badge fixes, trace the whole chain: event payload source, guard, write result, broadcast result, and frontend merge/filter logic.
+- `modifiedCount > 0` is a useful guard against double-broadcast/no-op writes, but it does not solve stale `updated_at` filtering downstream.
+- Caching audience resolution is dangerous when the payload contains content; fail-closed is safer than fallback, but TTL-based leakage can still be a blocker if permission revocation matters.
+- Regression tests are strongest when they would fail if the fix is reverted; wiring-only tests are useful but shallow, and they do not prove semantic correctness by themselves.
+
+References worth keeping verbatim:
+- `oho-websocket/src/handlers/stream-webhook.handler.js:447-483`
+- `oho-websocket/src/webhook/stream.js:215-240`
+- `oho-websocket/src/utils/channel-eligible-members.js:41-99`
+- `oho-web-app/components/Smartchat/Conversation.vue:1640-1717`
+- `oho-web-app/utils/optimistic-flag-count-tracker.js:1-40`
+- `oho-api/src/services/member-send-message/bulk/bulk.class.js:218-276`
+- `oho-api/src/services/chat-session/hooks/emit-chat-session-event.js:245-389`
+- `oho-api/src/models/chat-session.model.js:31-97`
+- `oho-web-app/plugins/firebase-remote-config.js:52-56`
+- `oho-web-app/store/index.js:103-129`
+
