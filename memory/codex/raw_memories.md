@@ -667,3 +667,119 @@ References worth keeping verbatim:
 - `oho-web-app/plugins/firebase-remote-config.js:52-56`
 - `oho-web-app/store/index.js:103-129`
 
+## Thread `019f6358-6a26-7531-ab13-b4360a1b5799`
+updated_at: 2026-07-15T01:29:28+00:00
+cwd: /Users/tualek/ohochat/oho-web-app
+rollout_path: /Users/tualek/.codex/sessions/2026/07/15/rollout-2026-07-15T08-16-06-019f6358-6a26-7531-ab13-b4360a1b5799.jsonl
+rollout_summary_file: 2026-07-15T01-16-06-ttm9-cross_repo_unread_unresponded_deploy_gate_review.md
+
+---
+description: cross-repo read-only deploy-gate review of unread/unresponded fixes; found websocket cleanup mostly sound, but frontend optimistic counter reconciliation and mark-read rollback drift remained risky, plus backend mixed-success timestamp collateral risk
+task: cross-repo unread/unresponded deploy-gate review across oho-api, oho-websocket, oho-web-app
+task_group: /Users/tualek/ohochat cross-repo unread-unresponded deploy-gate reviews
+task_outcome: partial
+cwd: /Users/tualek/ohochat
+keywords: unread, unresponded, deploy gate, code review, git diff, git status, bulk.class.js, channel-eligible-members, optimistic-flag-count-tracker, markRoomRead, findOneAndUpdate, updated_at, last_active_at, single-flight, pagination, Vue 2 reactivity
+---
+
+### Task 1: oho-api bulk-send round-2 fixes
+
+task: review latest round-2 bulk-send timestamp fix in oho-api worktree
+
+task_group: oho-api deploy-gate review
+
+task_outcome: partial
+
+Preference signals:
+- the user explicitly required read-only review and severity-ranked findings with file:line evidence -> future similar reviews should stay read-only and evidence-first
+- the user asked to check Instagram shape parity and mentally revert the new test -> future reviews should inspect both platform paths independently and judge test strength by reverting the fix in mind
+
+Reusable knowledge:
+- Instagram reply-message service returns `response.data` on success and throws `GeneralError` on failure, same contract shape as Facebook
+- `handleCallFacebook` was exported so the new Facebook regression test could call it directly; the `afterAll` spy restore was scoped so sibling describe blocks were not polluted
+- `getLastStreamMessageTimestamp()` is called twice in the mixed-success Facebook test: once on the full merged payload and once on the successful-only filtered payload
+
+Failures and how to do differently:
+- the clear-write now uses the last successful timestamp, but `lastMessageTimestamp` is still computed across all attempts and the helper still uses that timestamp concept for `$max last_active_at`, so mixed-success batches can still affect ordering semantics beyond the clear guard
+- the new Facebook regression test is strong, but there is no equivalent Instagram-specific regression test, so Instagram could regress without the suite catching it
+
+References:
+- `src/services/member-send-message/bulk/bulk.class.js:365-392` (Facebook successful-only clear guard)
+- `src/services/member-send-message/bulk/bulk.class.js:531-552` (Instagram successful-only clear guard)
+- `src/services/integration/instagram/reply-message/reply-message.class.js:20-50`
+- `src/services/integration/facebook/reply-message/reply-message.class.js:20-49`
+- `src/services/member-send-message/bulk/bulk.class.spec.js:363-505`
+
+### Task 2: oho-websocket eligibility scoping and message.read refresh
+
+task: review websocket round-2 eligibility scoping and message.read refresh
+
+task_group: oho-websocket deploy-gate review
+task_outcome: success
+
+Preference signals:
+- the user asked whether removing caching creates load problems and whether the refreshed broadcast payload still has the right fields -> future reviews should trace both call frequency and consumer payload contract
+
+Reusable knowledge:
+- `getEligibleMemberIds()` is fresh-query only with single-flight dedup; it intentionally does not cache results because group message content is broadcast directly to per-member socket channels
+- `message.read` is fail-closed on missing/unparseable timestamps and still carries `maxTimeMS`, `new:true`, `.select('business_id updated_at')`, and `.lean()`
+- the downstream broadcast only needs the fields it now supplies: `_id`, `type`, `business_id`, `is_read_by_me`, and `updated_at`
+
+Failures and how to do differently:
+- no new bug was found in the websocket round-2 changes; the main tradeoff is deliberate correctness over stale-cache risk
+- the code does not expose enough production telemetry to prove or disprove a QPS/load regression, so load concern remains unproven rather than established
+
+References:
+- `src/utils/channel-eligible-members.js:10-28,31-95`
+- `src/handlers/stream-webhook.handler.js:447-483`
+- `src/webhook/stream.js:193-233`
+
+### Task 3: oho-web-app optimistic badge and read rollback fixes
+
+task: review frontend realtime unread/unresponded badge fixes and optimistic rollback
+
+task_group: oho-web-app deploy-gate review
+task_outcome: fail
+
+Preference signals:
+- the user wanted a severity-ranked list with file:line citations and a one-line verdict -> future review responses should stay compact and judgmental
+- the user explicitly asked to check pagination wiring and performance of Set reconciliation -> future reviews should inspect append paths as carefully as full replacement paths
+
+Reusable knowledge:
+- `reconcileOptimisticFlagSet()` records every increment in its Set and deletes on every decrement; it only stays correct if every authoritative list replacement and pagination path seeds or reconciles the Set appropriately
+- `Conversation.vue` now uses a function-local `did_decrement_unread_count` flag, so the rollback path does not leak across rooms/calls
+- `RoomList.vue` sorts by `last_active_at` in the client fallback, and the smartchat/groupchat pages expose `unread_count` / `unresponded_count` directly from list state
+
+Failures and how to do differently:
+- reconciliation is only hooked to full list replacement mutations; pagination append mutations do not reconcile, so offscreen items can still double-count when they reappear through realtime events
+- `markRead()` rollback does not revert the optimistic `last_read` cursor, so a retry after failure can mis-detect the room as already read and skip the needed decrement
+
+References:
+- `utils/optimistic-flag-count-tracker.js:25-75`
+- `store/modules/smartchat.js:70-91,128-130`
+- `store/modules/groupchat.js:46-61,92-95`
+- `components/Smartchat/Conversation.vue:1640-1733`
+- `store/modules/smartchat.js:760-789`
+
+### Task 4: Cross-repo deploy-gate takeaways
+
+task: cross-repo deploy-gate review of unread/unresponded fixes
+
+task_group: cross-repo review workflow
+task_outcome: partial
+
+Reusable knowledge:
+- the durable contract across these reviews is: SET writes are flag-gated, CLEAR writes are unconditional, and realtime broadcasts are flag-gated
+- round-2 frontend fixes fixed one known double-count path, but correctness still depends on seeding/reconciling the optimistic Sets from authoritative fetches on every relevant list commit path
+- the websocket audience scoping change is fail-closed and fresh-query based; if group permissions are revoked, stale cached audience would be a security regression
+- sandboxed read-only Jest runs can fail before tests execute because Jest tries to write haste-map temp files; `git diff --check` may pass even when semantic bugs remain
+
+Failures and how to do differently:
+- do not trust prior rollout summaries or memory alone; always verify live `git status` / `git diff` in each repo before concluding anything about the current round
+- compare behavior contracts, not line similarity, especially for websocket ports and frontend consumers
+- treat cache TTL, revocation behavior, and single-flight as part of the security review surface, not just performance tuning
+
+References:
+- `git status` / `git diff --check` were run in all three repos; targeted Jest was blocked by sandbox `EPERM` haste-map writes
+- frontend and backend review context came from the actual branches/worktrees: `oho-api/.claude/worktrees/mr-1285-fixes`, `oho-websocket` feature branch, and `oho-web-app` `uat`
+

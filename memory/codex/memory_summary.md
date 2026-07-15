@@ -10,6 +10,7 @@ The user uses Codex heavily for read-only review, debugging, and deploy-gate wor
 - For cross-repo deploy-gate reviews, follow: `Do NOT trust the summary below as fact — run git diff / git status yourself in each repo...` and anchor conclusions to the live worktree.
 - If prior review docs are named, read them first and do not re-flag findings already documented as fixed.
 - Keep review output severity-ranked, compact, and grounded in exact `file:line` evidence, with a one-line merge/deploy verdict.
+- For regression-test review, check both platform paths independently and mentally revert the fix to see whether the new test would really catch the bug.
 - For `oho-api` asks like `review oho-api ที่มีการแก้ไขให้หน่อยว่าโอเคไหม`, answer in Thai, be direct, and say plainly whether the diff is okay.
 - In multi-worktree repos, verify the actual worktree/branch/diff before judging code.
 - For flag-gated unread/unresponded audits, preserve the contract `feature off = no behavior + no collateral impact`; also keep SET writes, CLEAR writes, and realtime broadcasts as separate review surfaces.
@@ -24,7 +25,7 @@ The user uses Codex heavily for read-only review, debugging, and deploy-gate wor
 - For cross-repo unread/unresponded review work, trace the whole chain: payload source, guard, DB write result, broadcast audience/result, then frontend merge/filter logic.
 - In that same workflow, high-signal files are usually `buildCustomerMessageUnreadPayload`, `buildClearUnreadUnrespondedPayload`, websocket `message.read`, `channel-eligible-members`, `optimistic-flag-count-tracker`, `Conversation.vue`, and Remote Config precedence wiring.
 - `modifiedCount > 0` is useful to suppress no-op realtime broadcasts, but it does not solve stale `updated_at` filtering downstream.
-- Treat eligible-member caching as part of the security boundary when payloads contain message content; TTL leakage and missing single-flight both matter.
+- Inspect the current `channel-eligible-members` shape before reasoning about risk; recent rounds changed from TTL-cache concerns to fresh-query single-flight, so revocation risk and load tradeoffs are diff-specific.
 - For `oho-api` unread/unresponded reviews, focused Jest on the touched helper/spec area is more trustworthy than repo-wide typecheck noise.
 - For `script-oho` correctness review, compare exact query/filter objects and persisted checkpoint/status state instead of trusting comments.
 - Use `skills/` directly for repeated workflows when they fit: commit prep, MR descriptions, Smartchat debugging, JERA debugging, web-app branch work, and cross-repo unread review.
@@ -33,11 +34,11 @@ The user uses Codex heavily for read-only review, debugging, and deploy-gate wor
 
 ### /Users/tualek/ohochat
 
-#### 2026-07-14
+#### 2026-07-15
 
-- Cross-repo unread/unresponded deploy-gate reviews: mr-1285, deploy gate, message.read, modifiedCount, channel-eligible-members, Firebase Remote Config, optimistic-flag-count-tracker
+- Cross-repo unread/unresponded deploy-gate reviews: deploy gate, git diff, bulk.class.js, getLastStreamMessageTimestamp, channel-eligible-members, optimistic-flag-count-tracker, markRoomRead, pagination
   - desc: Search first when the task spans `oho-api`, `oho-websocket`, and `oho-web-app` and the real question is whether unread/unresponded fixes are actually safe to merge or deploy from the live diffs.
-  - learnings: Verify `git status` / `git diff` in every repo first; durable risks were websocket audience/cache semantics, bulk-send timestamp source, frontend rollback assumptions, and counter drift despite otherwise-correct-looking fixes.
+  - learnings: Verify `git status` / `git diff` in every repo first; the newest round says websocket `message.read` and eligibility refresh looked sound, but frontend pagination reconciliation, `last_read` rollback drift, and mixed-success bulk-send timestamps still decide deploy readiness.
 
 ### /Users/tualek/ohochat/oho-api
 
