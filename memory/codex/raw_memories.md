@@ -783,3 +783,193 @@ References:
 - `git status` / `git diff --check` were run in all three repos; targeted Jest was blocked by sandbox `EPERM` haste-map writes
 - frontend and backend review context came from the actual branches/worktrees: `oho-api/.claude/worktrees/mr-1285-fixes`, `oho-websocket` feature branch, and `oho-web-app` `uat`
 
+## Thread `019f650a-4163-70e3-b3ce-6fa49d681272`
+updated_at: 2026-07-15T09:20:54+00:00
+cwd: /Users/tualek/ohochat/oho-api
+rollout_path: /Users/tualek/.codex/sessions/2026/07/15/rollout-2026-07-15T16-09-58-019f650a-4163-70e3-b3ce-6fa49d681272.jsonl
+rollout_summary_file: 2026-07-15T09-09-58-II02-oho_api_uncommitted_unresponded_review_boot_regression_and_c.md
+
+---
+description: Read-only review workflow for an uncommitted oho-api unread/unresponded diff; confirmed a Feathers boot regression caused by exporting a helper alongside hooks, while the business_id guard, paginate.max=50 change, and postback preview typing were safe; the largest remaining risk was deleted coverage not fully replaced.
+task: review uncommitted oho-api unread/unresponded diff for runtime regressions and coverage loss
+task_group: oho-api review workflows
+cwd: /Users/tualek/ohochat/oho-api
+keywords: unread, unresponded, Feathers hooks, service.hooks(hooks), hook export, computeBadgeCounts, business_id guard, paginate.max, getMessagePreviewText, qs.parse, deleted specs, coverage loss, read-only review
+---
+
+### Task 1: Live diff review of unread/unresponded changes
+
+task: review uncommitted unread/unresponded MR !1285 diff
+
+task_group: oho-api review workflows
+task_outcome: partial
+
+Preference signals:
+- The user explicitly said “This is a READ-ONLY REVIEW. Do not edit any code or files.” -> keep similar review tasks strictly read-only.
+- The user required “run git status/git diff to see them” and “verify with actual code inspection (not assumption)” -> always inspect the live repo state first, not summaries.
+- The user asked for a compact report in fixed sections (`CONFIRMED REGRESSIONS`, `RISKS / NEEDS-HUMAN-JUDGMENT`, `VERDICT ON QUALITY`, `CONCRETE SUGGESTIONS`) -> use a tight, findings-first format on similar reviews.
+- The user asked direct safety questions about runtime behavior, not implementation help -> default to judgmental review, not fix proposals.
+
+Reusable knowledge:
+- `computeBadgeCounts()` must be guarded by explicit `business_id`, not just truthiness, because `buildCountBaseQuery()` can return `{}` on api-key paths.
+- `config/default.json` has `paginate.max: 50`; the new dynamic max in group search resolves to the same value.
+- `getMessagePreviewText()` now treats non-string `data.label` as invalid; the real malformed shape comes from query-string parsing of postback data.
+- `service.hooks(hooks)` is only safe when the module exports exactly hook namespaces; any extra enumerable export becomes an invalid Feathers hook type.
+
+Failures and how to do differently:
+- `contact-send-message.service.js` still passed the whole hooks namespace while `contact-send-message.hooks.js` exported a helper, which caused a boot-time invalid hook type error.
+- In this sandbox, Jest is not reliable as a proving step because duplicate manual mocks under `.claude/worktrees` and haste-map write permission errors prevent clean runs; report those blockers explicitly instead of overstating validation.
+
+References:
+- `src/services/contact-send-message/contact-send-message.service.js:12`
+- `src/services/contact-send-message/contact-send-message.hooks.js:497`
+- `node_modules/@feathersjs/commons/src/hooks.ts:163-167`
+- `src/utils/compute-badge-counts.ts:96-102`
+- `src/services/contact/chat-search/chat-search.hooks.js:40-44, 78-80`
+- `src/services/chat-session/group/search/search.hooks.js:26-44, 111-157`
+- `config/default.json:6-9`
+- `src/utils/get-message-preview-text.ts:19-25`
+
+### Task 2: Coverage and regression judgment
+
+task: compare deleted specs against remaining coverage
+
+task_group: oho-api review workflows
+task_outcome: partial
+
+Preference signals:
+- The user asked whether deleted specs still had coverage elsewhere or whether “real test coverage was lost” -> compare deleted assertions against surviving tests, not just file names.
+- The user wanted “concrete improvements only where clearly warranted” -> only recommend restoring tests when there is a real gap.
+
+Reusable knowledge:
+- The deleted `contact.model.spec.ts` and `chat-session.model.spec.ts` were the only direct proof of the schema “absence contract” via `toObject()` on new documents.
+- Several deleted hook specs covered distinct branches that are not all recreated elsewhere: guarded clears, `$lte` ordering, fallback-message exclusion, and emitter wiring.
+- Shared-helper specs can validate payload shape, but they do not replace hook-registration or service-boot assertions for concrete services.
+
+Failures and how to do differently:
+- The review found that many deleted tests were not fully redundant; at least one exact write-shape or pipeline-level test per path is still warranted.
+- The duplicate-helper alias approach in `is-unresponded.spec.ts` does not prove that end-case and no-case pipelines actually register the helper in the service hook chain.
+
+References:
+- `src/models/contact.model.js:223-235`
+- `src/models/chat-session.model.js:78-90`
+- `src/services/contact/close-chat/is-unresponded.spec.ts:36-40, 62-112`
+- `src/services/bot-send-message/broadcast/broadcast.hooks.spec.js:502-508`
+- `src/services/bot-send-message/inform-message/inform-message.hooks.spec.js:291-297`
+- `src/services/member-send-message/bulk/bulk.class.spec.js:552-681`
+
+### Task 3: Final review verdict and suggestions
+
+task: judge net quality of cleanup and spec deletions
+task_group: oho-api review workflows
+task_outcome: partial
+
+Preference signals:
+- The user wanted an explicit verdict on whether the change set is a genuine improvement and whether the comment sweep / un-export / spec deletions are net-positive or net-negative -> provide an explicit quality judgment.
+
+Reusable knowledge:
+- The one confirmed runtime blocker was caused by `contact-send-message.service.js` booting Feathers with an extra exported helper in the hooks module.
+- `notify.service.js` is safe because its hooks module exports only `before`, `after`, and `error`.
+
+Failures and how to do differently:
+- The change set is not a clean net-positive until the deleted coverage is restored or replaced, because the cleanup removed direct tests for model default behavior and several hook write paths.
+
+References:
+- `src/services/contact-send-message/contact-send-message.service.js:12`
+- `src/services/contact-send-message/contact-send-message.hooks.js:497, 523-580`
+- `src/services/bot-send-message/notify/notify.service.js:15`
+- `src/services/bot-send-message/notify/notify.hooks.js:739-800`
+- `src/utils/build-clear-unread-unresponded-payload.spec.ts:36-63`
+
+## Thread `019f654e-423f-7483-bdd6-494aba0e6b12`
+updated_at: 2026-07-15T10:56:47+00:00
+cwd: /Users/tualek/ohochat
+rollout_path: /Users/tualek/.codex/sessions/2026/07/15/rollout-2026-07-15T17-24-15-019f654e-423f-7483-bdd6-494aba0e6b12.jsonl
+rollout_summary_file: 2026-07-15T10-24-15-fwAy-mr1285_unread_unresponded_cross_repo_review.md
+
+---
+description: Read-only cross-repo review of MR !1285 unread/unresponded changes; core backend path improved, but websocket/frontend drift risks and rollout/migration concerns remained.
+task: code-review MR !1285 unread/unresponded across oho-api, oho-websocket, oho-web-app
+task_group: /Users/tualek/ohochat
+task_outcome: partial
+cwd: /Users/tualek/ohochat/oho-api
+keywords: mr-1285, unread, unresponded, code-review, read-only, exact file:line, emitContactUnrespondedStatusUpdatedEvent, buildCustomerMessageUnreadPayload, buildClearUnreadUnrespondedPayload, message.read, Remote Config, optimistic-flag-count-tracker
+---
+
+### Task 1: Backend review in oho-api
+
+task: code-review MR !1285 unread/unresponded backend changes
+task_group: oho-api review
+task_outcome: partial
+
+Preference signals:
+- The user said to read prior review docs first and “do not re-flag findings already documented as fixed there” -> rebase on prior review history and avoid duplicate findings.
+- The user asked for “structured findings report, ranked by severity” and “every finding must cite an exact file:line” -> keep reviews line-precise, severity-ranked, and evidence-first.
+- The user said “do not modify any files” -> keep review flows read-only.
+
+Reusable knowledge:
+- `buildCustomerMessageUnreadPayload()` is the SET-side source of truth for both `unread_by` and `is_unresponded:true`.
+- `buildClearUnreadUnrespondedPayload()` intentionally builds unconditional CLEAR payloads to avoid flag-toggle stuck-state bugs.
+- `emitEligibilityScopedUnrespondedUpdate()` is the actual gate for the contact clear broadcasts; notify/inform/broadcast/bulk all reach it.
+
+Failures and how to do differently:
+- Contact-side scoped broadcast is correct for unresponded but only covers channel-eligible members; sale-visibility audience mismatches are a separate issue.
+- Bulk-send still needs success-aware review because it can clear state even when platform delivery fails.
+
+References:
+- `src/services/contact-send-message/contact-send-message.hooks.js:227-259`
+- `src/services/chat-session/group/contact-user/send-message/send-message.class.js:40-50`
+- `src/services/member-send-message/member-send-message.hooks.js:690-728`
+- `src/services/member-send-message/bulk/bulk.class.js:218-285`
+- `src/services/chat-session/hooks/emit-chat-session-event.js:271-372`
+
+### Task 2: oho-websocket review
+
+task: code-review websocket unread/unresponded behavior in MR !1285
+task_group: websocket review
+task_outcome: fail
+
+Preference signals:
+- The user wanted the review to “cover all 3 repos” and keep findings separated by repo/axis -> keep repo boundaries explicit.
+- The user called out the rule that realtime broadcasts of these fields must be flag-gated, not the writes.
+
+Reusable knowledge:
+- `src/webhook/stream.js` has a `message.read` branch that directly `$pull`s from `unread_by`; this is the websocket-side CLEAR site to scrutinize for unconditional behavior.
+- The Stream webhook handler’s customer-message broadcasts are split into single-chat and group-chat paths, with group broadcasts using the broader `businessChannel(businessId, 'member')` audience.
+
+Failures and how to do differently:
+- `message.read` clear is currently flag-gated and lacks the backend ordering guard.
+- Group customer-message broadcasts go to the whole business member room, not a channel-eligibility-scoped audience.
+
+References:
+- `src/webhook/stream.js:149-160`
+- `src/handlers/stream-webhook.handler.js:361-449`
+- `src/webhook/stream.spec.js:93-108`
+
+### Task 3: oho-web-app review
+
+task: code-review frontend unread/unresponded behavior in MR !1285
+task_group: frontend review
+task_outcome: partial
+
+Preference signals:
+- The user wanted a careful senior review before production rollout, not implementation suggestions.
+- The user explicitly asked for complete flag/write/broadcast inventory behavior in the audit -> include UI state mutation paths from sockets and optimistic logic.
+
+Reusable knowledge:
+- `store/index.js` bootstraps feature flags from backend auth, but `plugins/firebase-remote-config.js` later fetches client config and commits to the same state again.
+- `store/modules/smartchat.js` and `store/modules/groupchat.js` both use the shared optimistic flag tracker; validate offscreen increment/decrement behavior, not just visible-room updates.
+
+Failures and how to do differently:
+- Client Remote Config can race backend-authenticated flags.
+- Optimistic count tracking can drift without authoritative reconciliation.
+- Groupchat badge/list behavior is not fully aligned with Smartchat.
+
+References:
+- `plugins/firebase-remote-config.js:8-52,81-85`
+- `store/index.js:476-485`
+- `store/modules/smartchat.js:692-749`
+- `store/modules/groupchat.js:215-321`
+- `pages/business/_biz_id/groupchat/index.vue:26-31,449-567`
+- `utils/optimistic-flag-count-tracker.js:1-27`
+

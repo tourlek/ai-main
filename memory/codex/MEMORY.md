@@ -2,7 +2,19 @@
 scope: Read-only cross-repo review memory for unread/unresponded fixes spanning `oho-api`, `oho-websocket`, and `oho-web-app`; use for deploy-gate audits, MR review follow-ups, or "is this actually fixed?" checks where write gates, realtime broadcasts, and frontend counters must align.
 applies_to: cwd=/Users/tualek/ohochat; reuse_rule=reuse for similar cross-repo review-only audits across these repos, but always re-check live `git status` / `git diff` in each repo and current commit semantics before treating any finding as still open.
 
-## Task 1: Cross-repo deploy-gate review of round-2 unread/unresponded fixes, websocket looked clean but frontend and bulk-send risks remained
+## Task 1: Cross-repo review of MR !1285 unread/unresponded changes, exact MR head still had websocket blocker plus frontend/backend drift risks
+
+### rollout_summary_files
+
+- rollout_summaries/2026-07-15T10-24-15-fwAy-mr1285_unread_unresponded_cross_repo_review.md (cwd=/Users/tualek/ohochat/oho-api, rollout_path=/Users/tualek/.codex/sessions/2026/07/15/rollout-2026-07-15T17-24-15-019f654e-423f-7483-bdd6-494aba0e6b12.jsonl, updated_at=2026-07-15T10:56:47+00:00, thread_id=019f654e-423f-7483-bdd6-494aba0e6b12, exact-MR audit rebased on prior review docs; backend clear broadcasts looked improved but websocket `message.read` and frontend state sync were still not deploy-safe)
+
+### keywords
+
+- cross-repo review, unread, unresponded, mr-1285, buildCustomerMessageUnreadPayload, buildClearUnreadUnrespondedPayload, emitEligibilityScopedUnrespondedUpdate, message.read, businessChannel, Remote Config, optimistic-flag-count-tracker, exact file:line
+
+- Related skill: skills/oho-cross-repo-unread-review/SKILL.md
+
+## Task 2: Cross-repo deploy-gate review of round-2 unread/unresponded fixes, websocket looked clean but frontend and bulk-send risks remained
 
 ### rollout_summary_files
 
@@ -14,7 +26,7 @@ applies_to: cwd=/Users/tualek/ohochat; reuse_rule=reuse for similar cross-repo r
 
 - Related skill: skills/oho-cross-repo-unread-review/SKILL.md
 
-## Task 2: Cross-repo deploy-gate review of realtime badge fixes, improvements landed but security and rollback risks remained
+## Task 3: Cross-repo deploy-gate review of realtime badge fixes, improvements landed but security and rollback risks remained
 
 ### rollout_summary_files
 
@@ -26,7 +38,7 @@ applies_to: cwd=/Users/tualek/ohochat; reuse_rule=reuse for similar cross-repo r
 
 - Related skill: skills/oho-cross-repo-unread-review/SKILL.md
 
-## Task 3: Cross-repo review of MR !1285 unread/unresponded changes, websocket blocker plus frontend/backend drift risks
+## Task 4: Cross-repo review of MR !1285 unread/unresponded changes, websocket blocker plus frontend/backend drift risks
 
 ### rollout_summary_files
 
@@ -40,40 +52,52 @@ applies_to: cwd=/Users/tualek/ohochat; reuse_rule=reuse for similar cross-repo r
 
 ## User preferences
 
-- when the user says `Do NOT trust the summary below as fact — run git diff / git status yourself in each repo and verify every claim against the actual diff.` -> pin the real repo/worktree state first and treat summaries as suspect until the live diff matches them. [Task 1][Task 2]
-- when the user says `read plan.md` / prior review docs first and `do not re-flag findings already documented as fixed there` -> rebase on prior review history and avoid duplicate findings. [Task 3]
-- when the user says `Do NOT edit, stage, commit, or run any command that mutates files or git state.` -> keep similar cross-repo reviews strictly read-only. [Task 1][Task 2][Task 3]
-- when the user wants `structured findings report, ranked by severity` with exact `file:line` evidence and a one-line verdict -> stay compact, judgmental, and evidence-first instead of exploratory. [Task 1][Task 2][Task 3]
-- when the user asks to check Instagram shape parity or whether a new test would still fail if the fix were reverted -> inspect both platform paths independently and mentally revert the fix before trusting a new regression test. [Task 1]
-- when the user asks whether a websocket or frontend port is `actually faithful` -> compare semantics and state transitions, not just line similarity. [Task 1][Task 2]
-- when the user asks for a complete flag/write/broadcast audit or to check pagination/performance implications -> trace UI mutations from socket events, authoritative fetch reconciliation, and append paths too, not just backend writes. [Task 1][Task 2][Task 3]
+- when the user says `Do NOT trust the summary below as fact — run git diff / git status yourself in each repo and verify every claim against the actual diff.` -> pin the real repo/worktree state first and treat summaries as suspect until the live diff matches them. [Task 2][Task 3]
+- when the user says `read plan.md` / prior review docs first and `do not re-flag findings already documented as fixed there` -> rebase on prior review history and avoid duplicate findings. [Task 1][Task 4]
+- when the user says `Do NOT edit, stage, commit, or run any command that mutates files or git state.` or `do not modify any files` -> keep similar cross-repo reviews strictly read-only. [Task 1][Task 2][Task 3][Task 4]
+- when the user wants `structured findings report, ranked by severity` with exact `file:line` evidence and a one-line verdict -> stay compact, judgmental, and evidence-first instead of exploratory. [Task 1][Task 2][Task 3][Task 4]
+- when the user asks to `cover all 3 repos` and separate findings by repo/axis -> keep repo boundaries explicit instead of collapsing backend, websocket, and frontend into one verdict. [Task 1]
+- when the user asks to check Instagram shape parity or whether a new test would still fail if the fix were reverted -> inspect both platform paths independently and mentally revert the fix before trusting a new regression test. [Task 2]
+- when the user asks whether a websocket or frontend port is `actually faithful` -> compare semantics and state transitions, not just line similarity. [Task 2][Task 3][Task 4]
+- when the user asks for a complete flag/write/broadcast audit or to check pagination/performance implications -> trace UI mutations from socket events, authoritative fetch reconciliation, and append paths too, not just backend writes. [Task 1][Task 2][Task 3][Task 4]
 
 ## Reusable knowledge
 
-- The durable contract across these reviews is: SET writes are flag-gated, CLEAR writes are unconditional, and realtime broadcasts are flag-gated. Use that split when auditing each repo so a correct write-path change does not hide an incorrect broadcast-path gate. [Task 1][Task 2][Task 3]
-- For this task family, the high-value trace is end to end: payload source -> guard -> DB write result -> broadcast audience/result -> frontend merge/filter logic. The reviews repeatedly found partially correct fixes that only became visible when the whole chain was traced. [Task 1][Task 2][Task 3]
-- In `oho-api`, `buildCustomerMessageUnreadPayload()` is the SET-side source of truth for `unread_by` and `is_unresponded:true`, while `buildClearUnreadUnrespondedPayload()` intentionally stays unconditional to avoid flag-toggle stuck state. [Task 3]
-- The latest `oho-api` bulk-send review verified Facebook and Instagram reply services share the same `response.data` success / `GeneralError` failure contract, and the new mixed-success Facebook test calls `getLastStreamMessageTimestamp()` on both the merged payload and the successful-only payload. [Task 1]
-- In `oho-websocket`, `message.read` is the websocket-side CLEAR site; newer code improved it by doing the `$pull` first, keeping `new:true` plus `.select('business_id updated_at').lean()`, and using `modifiedCount > 0` to suppress no-op broadcasts, but downstream consumers can still drop the emitted `updated_at` as stale. [Task 1][Task 2][Task 3]
-- Group broadcast scoping moved from whole-business rooms toward eligible-member channels. The latest deploy-gate pass verified `channel-eligible-members.js` is now fresh-query plus single-flight dedup and fail-closed on unknown eligibility; older cache-TTL concerns are useful only when reviewing earlier rounds or regressions back toward cached behavior. [Task 1][Task 2]
-- The frontend guidance changed across these rollouts: the earlier cross-repo review found browser Remote Config could overwrite API-authenticated flags, while the later deploy-gate review validated the fix via `feature_flags_api_keys` plus `plugins/firebase-remote-config.js:52-56` making browser updates non-authoritative for API-owned keys. [Task 2][Task 3]
-- `utils/optimistic-flag-count-tracker.js` now records every increment in its Set and deletes on every decrement; round-2 fixed one known offscreen double-count path, but correctness still depends on seeding or reconciling those Sets from authoritative fetches on every full replacement and pagination append path. [Task 1][Task 2]
-- `Conversation.vue` now uses a function-local `did_decrement_unread_count` flag, which removes one rollback leak, but `markRead()` still needs its optimistic `last_read` cursor unwound on failure or retries can skip the needed unread decrement. [Task 1]
+- The durable contract across these reviews is: SET writes are flag-gated, CLEAR writes are unconditional, and realtime broadcasts are flag-gated. Use that split when auditing each repo so a correct write-path change does not hide an incorrect broadcast-path gate. [Task 1][Task 2][Task 3][Task 4]
+- For this task family, the high-value trace is end to end: payload source -> guard -> DB write result -> broadcast audience/result -> frontend merge/filter logic. The reviews repeatedly found partially correct fixes that only became visible when the whole chain was traced. [Task 1][Task 2][Task 3][Task 4]
+- In `oho-api`, `buildCustomerMessageUnreadPayload()` is the SET-side source of truth for `unread_by` and `is_unresponded:true`, while `buildClearUnreadUnrespondedPayload()` intentionally stays unconditional to avoid flag-toggle stuck state. [Task 1][Task 4]
+- The 2026-07-15 exact-MR review verified the four newly fixed contact clear broadcast call sites (`notify`, `inform-message`, `broadcast`, `bulk`) all route into `emitContactUnrespondedStatusUpdatedEvent()` / `emitEligibilityScopedUnrespondedUpdate()`. [Task 1]
+- The latest `oho-api` bulk-send review verified Facebook and Instagram reply services share the same `response.data` success / `GeneralError` failure contract, and the new mixed-success Facebook test calls `getLastStreamMessageTimestamp()` on both the merged payload and the successful-only payload. [Task 2]
+- In `oho-websocket`, `message.read` is the websocket-side CLEAR site. The exact-MR audit found it still flag-gated the `$pull unread_by` clear and missed the ordering guard; the later deploy-gate pass verified a newer version moved the `$pull` first, kept `new:true` plus `.select('business_id updated_at').lean()`, and used `modifiedCount > 0` to suppress no-op broadcasts, though downstream consumers can still drop emitted `updated_at` as stale. [Task 1][Task 2][Task 3][Task 4]
+- Group broadcast scoping moved from whole-business rooms toward eligible-member channels. The latest deploy-gate pass verified `channel-eligible-members.js` is now fresh-query plus single-flight dedup and fail-closed on unknown eligibility; older whole-business-room findings are still relevant when auditing earlier MR revisions. [Task 1][Task 2][Task 3][Task 4]
+- The frontend guidance changed across these rollouts: the earlier cross-repo reviews found browser Remote Config could overwrite API-authenticated flags, while the later deploy-gate review validated the fix via `feature_flags_api_keys` plus `plugins/firebase-remote-config.js:52-56` making browser updates non-authoritative for API-owned keys. [Task 1][Task 3][Task 4]
+- `utils/optimistic-flag-count-tracker.js` now records every increment in its Set and deletes on every decrement; round-2 fixed one known offscreen double-count path, but correctness still depends on seeding or reconciling those Sets from authoritative fetches on every full replacement and pagination append path. [Task 1][Task 2][Task 3]
+- `Conversation.vue` now uses a function-local `did_decrement_unread_count` flag, which removes one rollback leak, but `markRead()` still needs its optimistic `last_read` cursor unwound on failure or retries can skip the needed unread decrement. [Task 2]
 
 ## Failures and how to do differently
 
-- Symptom: a review inherits wrong assumptions from a written summary. Cause: the claimed fix set and the live worktree diverge. Fix/pivot: always run `git status` and inspect the actual diff in every repo before trusting summary text or prior conclusions. [Task 1][Task 2]
-- Symptom: a fix looks faithful because the ported code resembles another repo. Cause: semantic differences hide in guards, timestamps, payload fields, or audience selection. Fix/pivot: compare behavior contracts, not line similarity, especially for websocket ports and frontend consumers. [Task 1][Task 2][Task 3]
-- Symptom: websocket audience scoping gets reviewed against stale assumptions. Cause: the helper changed across rounds from cache-sensitive logic to fresh-query single-flight logic. Fix/pivot: inspect the current `channel-eligible-members.js` implementation before reasoning about revocation risk or QPS/load tradeoffs, and state explicitly when telemetry is missing. [Task 1][Task 2]
-- Symptom: bulk-send clear logic looks fixed once it skips the all-fail case. Cause: the clear guard is correct only partially if `lastMessageTimestamp` still comes from merged payloads that include failed deliveries, or if only one platform path is regression-tested. Fix/pivot: trace the timestamp source as carefully as the boolean success guard and check Facebook/Instagram parity separately. [Task 1][Task 2]
-- Symptom: unread badge drift seems resolved after a Set-based tracker patch. Cause: reconciliation may only cover full-list replacement while append pagination and `last_read` rollback paths still drift. Fix/pivot: inspect `set*List` and `add*List` mutations together, and verify failure rollback unwinds both counters and cursor state. [Task 1][Task 2]
-- Symptom: validation sounds stronger than it is because syntax checks passed. Cause: `git diff --check`, `node --check`, or wiring-only tests do not prove behavior; sandboxed read-only runs can also block Jest temp writes. Fix/pivot: report those checks as shallow confidence only and say explicitly when deeper behavioral proof could not run. [Task 1][Task 2][Task 3]
+- Symptom: a review inherits wrong assumptions from a written summary. Cause: the claimed fix set and the live worktree or exact MR head diverge. Fix/pivot: always inspect the actual diff in every repo before trusting summary text or prior conclusions, and be explicit about which revision was reviewed. [Task 1][Task 2][Task 3][Task 4]
+- Symptom: a fix looks faithful because the ported code resembles another repo. Cause: semantic differences hide in guards, timestamps, payload fields, or audience selection. Fix/pivot: compare behavior contracts, not line similarity, especially for websocket ports and frontend consumers. [Task 1][Task 2][Task 3][Task 4]
+- Symptom: websocket audience scoping gets reviewed against stale assumptions. Cause: the helper changed across rounds from whole-business rooms to channel-eligible paths, then from cache-sensitive logic to fresh-query single-flight logic. Fix/pivot: inspect the current `channel-eligible-members.js` and broadcast target before reasoning about overreach, revocation risk, or QPS/load tradeoffs. [Task 1][Task 2][Task 3][Task 4]
+- Symptom: bulk-send clear logic looks fixed once it skips the all-fail case. Cause: the clear guard is correct only partially if `lastMessageTimestamp` still comes from merged payloads that include failed deliveries, or if only one platform path is regression-tested. Fix/pivot: trace the timestamp source as carefully as the boolean success guard and check Facebook/Instagram parity separately. [Task 2][Task 3]
+- Symptom: unread badge drift seems resolved after a Set-based tracker patch. Cause: reconciliation may only cover full-list replacement while append pagination and `last_read` rollback paths still drift. Fix/pivot: inspect `set*List` and `add*List` mutations together, and verify failure rollback unwinds both counters and cursor state. [Task 1][Task 2][Task 3]
+- Symptom: validation sounds stronger than it is because syntax checks passed. Cause: `git diff --check`, `node --check`, or wiring-only tests do not prove behavior; sandboxed read-only runs can also block Jest temp writes. Fix/pivot: report those checks as shallow confidence only and say explicitly when deeper behavioral proof could not run. [Task 1][Task 2][Task 3][Task 4]
 
-# Task Group: /Users/tualek/ohochat/oho-api / Thai code review of unread-unresponded changes
-scope: Review-only memory for `oho-api` unread/unresponded diffs, especially query composition, flag-off contract checks, validation limits, and review reporting style; use when the user asks whether backend changes are okay, not when they ask for direct implementation.
+# Task Group: /Users/tualek/ohochat/oho-api / unread-unresponded code reviews
+scope: Review-only memory for `oho-api` unread/unresponded diffs, especially query composition, flag-off contract checks, service boot safety, coverage-loss judgment, and review reporting style; use when the user asks whether backend changes are okay, not when they ask for direct implementation.
 applies_to: cwd=/Users/tualek/ohochat/oho-api; reuse_rule=reuse for similar code reviews in this repo or nearby search-hook work, but re-verify exact query shape, failing tests, and worktree-specific files before treating any blocker as still open.
 
-## Task 1: Review unread/unresponded flag-gated changes in `mr-1285-fixes`, flag-off contract regressions found
+## Task 1: Review uncommitted `oho-api` unread/unresponded diff, one boot-time regression plus coverage-loss risk
+
+### rollout_summary_files
+
+- rollout_summaries/2026-07-15T09-09-58-II02-oho_api_uncommitted_unresponded_review_boot_regression_and_c.md (cwd=/Users/tualek/ohochat/oho-api, rollout_path=/Users/tualek/.codex/sessions/2026/07/15/rollout-2026-07-15T16-09-58-019f650a-4163-70e3-b3ce-6fa49d681272.jsonl, updated_at=2026-07-15T09:20:54+00:00, thread_id=019f650a-4163-70e3-b3ce-6fa49d681272, live-diff read-only review confirmed a Feathers boot regression from extra hook export and found deleted-spec coverage not fully replaced)
+
+### keywords
+
+- oho-api, unread, unresponded, read-only review, uncommitted diff, service.hooks(hooks), invalid hook type, computeBadgeCounts, business_id guard, paginate.max, getMessagePreviewText, deleted specs, coverage loss
+
+## Task 2: Review unread/unresponded flag-gated changes in `mr-1285-fixes`, flag-off contract regressions found
 
 ### rollout_summary_files
 
@@ -83,7 +107,7 @@ applies_to: cwd=/Users/tualek/ohochat/oho-api; reuse_rule=reuse for similar code
 
 - unread, unresponded, flag-off, mr-1285-fixes, emitChatSessionStatusUpdatedEvent, emitContactUnrespondedStatusUpdatedEvent, buildClearUnreadUnrespondedPayload, convertUnreadUnrespondedQuery, channel-eligible-members, worktree verification, Thai review
 
-## Task 2: Review `oho-api` unread/unresponded and bulk-send changes in `mr-1285-fixes`, blocker findings
+## Task 3: Review `oho-api` unread/unresponded and bulk-send changes in `mr-1285-fixes`, blocker findings
 
 ### rollout_summary_files
 
@@ -95,7 +119,7 @@ applies_to: cwd=/Users/tualek/ohochat/oho-api; reuse_rule=reuse for similar code
 
 - Related skill: skills/oho-smartchat-debugging/SKILL.md
 
-## Task 3: Verify unread/unresponded rollout coverage and remaining blockers, partial confidence
+## Task 4: Verify unread/unresponded rollout coverage and remaining blockers, partial confidence
 
 ### rollout_summary_files
 
@@ -105,7 +129,7 @@ applies_to: cwd=/Users/tualek/ohochat/oho-api; reuse_rule=reuse for similar code
 
 - MONGODB_URI, compute-badge-counts, Promise.allSettled, channel-eligible-members, cacheService, Redis timeout, bot-send-message.hooks.spec.js, quick-reply failures, updateContactProfile
 
-## Task 4: Review earlier unread/unresponded diff, blocker findings
+## Task 5: Review earlier unread/unresponded diff, blocker findings
 
 ### rollout_summary_files
 
@@ -117,29 +141,39 @@ applies_to: cwd=/Users/tualek/ohochat/oho-api; reuse_rule=reuse for similar code
 
 ## User preferences
 
-- when the user asked `review oho-api ที่มีการแก้ไขให้หน่อยว่าโอเคไหม` -> future similar review responses should be direct, Thai, and judgmental instead of generic or hedged. [Task 1][Task 2][Task 4]
-- when the user asked only whether the changes were okay -> stay review-first and findings-first; do not jump into fixing code unless asked. [Task 1][Task 2][Task 3][Task 4]
-- when the user asked `ถ้าปิด flag แล้วต้องหมายความว่า feature นี้ต้องไม่ทำงานแต่ feature อื่นๆ ก็ไม่กระทบด้วยเช่นกันต้องใช้งานได้เหมือนเดิม` -> review against the contract `feature off = no behavior + no collateral impact`, not just whether the flag is referenced somewhere. [Task 1]
-- when multiple worktrees exist, verify the real review target before making claims; the 2026-07-14 rollout had to discard an earlier wrong-worktree pass and re-anchor to `.claude/worktrees/mr-1285-fixes`. [Task 1]
-- when the review flow is in Thai and the user is evaluating a local diff -> concise Thai blocker findings are the right default, not implementation-heavy prose. [Task 1][Task 2][Task 3]
+- when the user says `This is a READ-ONLY REVIEW. Do not edit any code or files.` -> keep similar `oho-api` review tasks strictly read-only. [Task 1]
+- when the user says `run git status/git diff` and `verify with actual code inspection (not assumption)` -> inspect the live repo state first, not summaries or stale worktree assumptions. [Task 1][Task 2]
+- when the user asked `review oho-api ที่มีการแก้ไขให้หน่อยว่าโอเคไหม` -> future similar review responses should be direct, Thai, and judgmental instead of generic or hedged. [Task 2][Task 3][Task 5]
+- when the user asked only whether the changes were okay -> stay review-first and findings-first; do not jump into fixing code unless asked. [Task 1][Task 2][Task 3][Task 4][Task 5]
+- when the user asked `ถ้าปิด flag แล้วต้องหมายความว่า feature นี้ต้องไม่ทำงานแต่ feature อื่นๆ ก็ไม่กระทบด้วยเช่นกันต้องใช้งานได้เหมือนเดิม` -> review against the contract `feature off = no behavior + no collateral impact`, not just whether the flag is referenced somewhere. [Task 2]
+- when multiple worktrees exist, verify the real review target before making claims; the 2026-07-14 rollout had to discard an earlier wrong-worktree pass and re-anchor to `.claude/worktrees/mr-1285-fixes`. [Task 2]
+- when the user wants `CONFIRMED REGRESSIONS`, `RISKS / NEEDS-HUMAN-JUDGMENT`, `VERDICT ON QUALITY`, `CONCRETE SUGGESTIONS` and direct yes/no safety answers -> keep the report compact, sectioned, and explicit about whether the change set is actually safe. [Task 1]
+- when the review flow is in Thai and the user is evaluating a local diff -> concise Thai blocker findings are the right default, not implementation-heavy prose. [Task 2][Task 3][Task 4]
 
 ## Reusable knowledge
 
-- `convertUnreadUnrespondedQuery.ts` has a special both-flags path; the June and July reviews say this area must be traced through the full query lifecycle, not judged in isolation. `countBaseQuery`, `TYPED_FILTER_FIELDS`, parser coercion, and later visibility rewrites all affect whether the unread/unresponded shape survives. [Task 2][Task 4]
-- `search-query-converter.ts` and related typed-filter handling explicitly preserve only `read_by`, `is_unresponded`, and `read_by.0`; any future query-shape change that introduces `$or` / `$and` needs matching parser and converter updates. [Task 2][Task 4]
-- `buildClearUnreadUnrespondedPayload` is intentionally unconditional on the clear-write side and is used by multiple runtime paths; when flags toggle off and back on, unconditional clear logic prevents stuck `is_unresponded` / unread state. [Task 1]
-- `convertUnreadUnrespondedQuery` plus its spec are the early gate for unread/unresponded query semantics, while `emit-chat-session-event.spec.ts` is the best focused proof for broadcast behavior including flag-off fan-out. [Task 1]
-- `bulk.class.js` now updates contact state directly, and the rollout also touched cache and broadcast-adjacent utilities: `src/utils/compute-badge-counts.ts` uses `Promise.allSettled`, `src/utils/channel-eligible-members.ts` returns `null` on lookup failure or >2000 eligible members, and `src/utils/cache/index.js` wraps Redis commands with a 3s timeout. These affect how unread state propagates and fails. [Task 2][Task 3]
-- `src/models/contact.model.spec.ts` and `src/models/chat-session.model.spec.ts` verify `unread_by` and `is_unresponded` are absent on bare documents when flags are off, which is a useful regression boundary when review touches defaults or rollout safety. [Task 3]
+- `service.hooks(hooks)` is only safe when the hooks module exports exactly hook namespaces; any extra enumerable export becomes an invalid Feathers hook type, which is why `contact-send-message.service.js` booted incorrectly while `notify.service.js` stayed safe. [Task 1]
+- `computeBadgeCounts()` now guards on `countBaseQuery.business_id != null`, not mere truthiness, to avoid cross-business counting on api-key paths where `buildCountBaseQuery()` can return `{}`. [Task 1]
+- `config/default.json` still sets `paginate.max` to `50`; the reviewed dynamic max in group search resolved to the same value, so that change was effectively neutral. [Task 1]
+- `getMessagePreviewText()` intentionally treats non-string `data.label` as invalid and falls back to `message.text` / generic label; the real malformed shape came from query-string parsing of postback data. [Task 1]
+- `contact.model.js` and `chat-session.model.js` now express an absence contract via `default: undefined` for `unread_by` and `is_unresponded`, but the deleted `contact.model.spec.ts` / `chat-session.model.spec.ts` had been the only direct proof of that contract via `toObject()` on new documents. [Task 1]
+- `convertUnreadUnrespondedQuery.ts` has a special both-flags path; the June and July reviews say this area must be traced through the full query lifecycle, not judged in isolation. `countBaseQuery`, `TYPED_FILTER_FIELDS`, parser coercion, and later visibility rewrites all affect whether the unread/unresponded shape survives. [Task 3][Task 5]
+- `search-query-converter.ts` and related typed-filter handling explicitly preserve only `read_by`, `is_unresponded`, and `read_by.0`; any future query-shape change that introduces `$or` / `$and` needs matching parser and converter updates. [Task 3][Task 5]
+- `buildClearUnreadUnrespondedPayload` is intentionally unconditional on the clear-write side and is used by multiple runtime paths; when flags toggle off and back on, unconditional clear logic prevents stuck `is_unresponded` / unread state. [Task 2]
+- `convertUnreadUnrespondedQuery` plus its spec are the early gate for unread/unresponded query semantics, while `emit-chat-session-event.spec.ts` is the best focused proof for broadcast behavior including flag-off fan-out. [Task 2]
+- `bulk.class.js` now updates contact state directly, and the rollout also touched cache and broadcast-adjacent utilities: `src/utils/compute-badge-counts.ts` uses `Promise.allSettled`, `src/utils/channel-eligible-members.ts` returns `null` on lookup failure or >2000 eligible members, and `src/utils/cache/index.js` wraps Redis commands with a 3s timeout. These affect how unread state propagates and fails. [Task 3][Task 4]
+- `src/models/contact.model.spec.ts` and `src/models/chat-session.model.spec.ts` verify `unread_by` and `is_unresponded` are absent on bare documents when flags are off, which is a useful regression boundary when review touches defaults or rollout safety. [Task 4]
 
 ## Failures and how to do differently
 
-- Symptom: unread/unresponded filter breaks or disappears when `search` or sale-visibility paths are involved. Cause: the new filter shape is vulnerable to typed-filter coercion and `addVisibilityFilter()` rebuilding `context.params.query` with its own `$or`. Fix/pivot: audit the full hook chain, including parser and visibility rewrite stages, not just the helper that first injected the condition. [Task 2][Task 4]
-- Symptom: flag-off behavior still does work or leaks visibility. Cause: some hot paths still read/evaluate before deciding not to emit, and the new emitter audience follows channel eligibility rather than the stricter sale-owner/assignee/team visibility rules. Fix/pivot: review both zero-work and zero-side-effect expectations, then compare emitter audience to chat-search visibility semantics. [Task 1]
-- Symptom: contact and group realtime behavior diverge across send paths. Cause: the new contact unresponded emitter was wired into `member-send-message` and `bot-send-message`, while `contact-send-message` still used the older emitter path. Fix/pivot: trace every send entrypoint before concluding the realtime contract is uniformly implemented. [Task 1]
-- Symptom: review looks formatted clean but still has semantic bugs. Cause: `git diff --check` passed while the diff still contained blocker-level query-composition issues. Fix/pivot: do not treat formatting sanity as correctness; use focused tests and path tracing. [Task 2]
-- Symptom: repo-wide validation gives noisy or misleading confidence. Cause: `npm run type-check` had unrelated TypeScript failures and `src/services/bot-send-message/bot-send-message.hooks.spec.js` still had 6 unrelated quick-reply failures. Fix/pivot: prefer targeted Jest suites and report exactly which failures are pre-existing versus relevant. [Task 2][Task 3][Task 4]
-- Symptom: rollout verification stops short of DB proof. Cause: Mongo-backed tests could not run without `MONGODB_URI`. Fix/pivot: state the missing datasource explicitly and avoid claiming `explain()`-level or integration-level confidence when the DB-backed path was never exercised. [Task 3]
+- Symptom: removing a helper export looks like safe cleanup but the service still fails at boot. Cause: the service registration passes the whole hooks namespace into Feathers, so any extra export becomes an invalid hook type. Fix/pivot: inspect `service.hooks(hooks)` bootstrap semantics before approving hook-module cleanup. [Task 1]
+- Symptom: deleted tests look redundant by file name but real coverage still drops. Cause: payload-helper specs do not replace service-boot assertions, hook-registration coverage, or exact write-shape / ordering assertions. Fix/pivot: compare deleted assertions against surviving tests branch by branch, not just by helper name. [Task 1]
+- Symptom: unread/unresponded filter breaks or disappears when `search` or sale-visibility paths are involved. Cause: the new filter shape is vulnerable to typed-filter coercion and `addVisibilityFilter()` rebuilding `context.params.query` with its own `$or`. Fix/pivot: audit the full hook chain, including parser and visibility rewrite stages, not just the helper that first injected the condition. [Task 3][Task 5]
+- Symptom: flag-off behavior still does work or leaks visibility. Cause: some hot paths still read/evaluate before deciding not to emit, and the new emitter audience follows channel eligibility rather than the stricter sale-owner/assignee/team visibility rules. Fix/pivot: review both zero-work and zero-side-effect expectations, then compare emitter audience to chat-search visibility semantics. [Task 2]
+- Symptom: contact and group realtime behavior diverge across send paths. Cause: the new contact unresponded emitter was wired into `member-send-message` and `bot-send-message`, while `contact-send-message` still used the older emitter path. Fix/pivot: trace every send entrypoint before concluding the realtime contract is uniformly implemented. [Task 2]
+- Symptom: review looks formatted clean but still has semantic bugs. Cause: `git diff --check` passed while the diff still contained blocker-level query-composition issues. Fix/pivot: do not treat formatting sanity as correctness; use focused tests and path tracing. [Task 3]
+- Symptom: repo-wide or sandboxed validation gives noisy or misleading confidence. Cause: `npm run type-check` had unrelated TypeScript failures, `src/services/bot-send-message/bot-send-message.hooks.spec.js` still had 6 unrelated quick-reply failures, and this environment can block Jest via duplicate `.claude/worktrees` manual mocks plus haste-map write `EPERM` errors. Fix/pivot: prefer targeted Jest suites when they run, and otherwise report the exact environment blocker instead of overstating validation. [Task 1][Task 3][Task 4][Task 5]
+- Symptom: rollout verification stops short of DB proof. Cause: Mongo-backed tests could not run without `MONGODB_URI`. Fix/pivot: state the missing datasource explicitly and avoid claiming `explain()`-level or integration-level confidence when the DB-backed path was never exercised. [Task 4]
 
 # Task Group: /Users/tualek/ohochat/oho-web-app / realtime unread-unresponded badge review
 scope: Read-only review memory for frontend unread/unresponded badge diffs in `oho-web-app`, especially contract checks against `oho-websocket`, Vue 2 reactivity boundaries, and merge-safety of optimistic/realtime counter updates.
