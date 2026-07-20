@@ -783,6 +783,168 @@ References:
 - `git status` / `git diff --check` were run in all three repos; targeted Jest was blocked by sandbox `EPERM` haste-map writes
 - frontend and backend review context came from the actual branches/worktrees: `oho-api/.claude/worktrees/mr-1285-fixes`, `oho-websocket` feature branch, and `oho-web-app` `uat`
 
+## Thread `019f649e-9cc4-7813-bcca-a102cb1b4a2a`
+updated_at: 2026-07-15T07:21:36+00:00
+cwd: /Users/tualek/ohochat/oho-api
+rollout_path: /Users/tualek/.codex/sessions/2026/07/15/rollout-2026-07-15T14-12-24-019f649e-9cc4-7813-bcca-a102cb1b4a2a.jsonl
+rollout_summary_file: 2026-07-15T07-12-24-BMSu-oho_api_badge_count_redis_cache_review.md
+
+---
+description: Review of a new 8s Redis cache for unread/unresponded badge counts in oho-api; main durable takeaways are that key isolation looked correct, but stale-write/queueing behavior and lack of single-flight could still undermine the mitigation.
+task: review-only code review of unread/unresponded badge-count cache change
+ task_group: oho-api / review
+ task_outcome: partial
+cwd: /Users/tualek/ohochat/oho-api
+keywords: badge-count-cache, compute-badge-counts, cacheService, raceCommandTimeout, Redis, Bluebird, ObjectId, buildCountBaseQuery, unread_by, is_unresponded, Promise.allSettled, offline_queue, single-flight, stampede, EPERM, Jest haste map
+---
+
+### Task 1: Review badge-count cache correctness and risk
+
+task: review unread/unresponded badge-count cache change for correctness and cross-member poisoning
+ task_group: oho-api / review
+ task_outcome: partial
+
+Preference signals:
+- when the user said "do NOT modify files" for a review-only task -> future similar reviews should stay read-only and not start editing as a default.
+- when the user asked for "findings ranked by severity with file:line references" and an "overall verdict" -> future similar reviews should default to concise, judgmental, evidence-backed output.
+- when the user emphasized "correctness bugs (especially cross-member cache poisoning)" -> future similar cache reviews should prioritize scope isolation, member identity, and stale-data correctness before style or minor test coverage.
+
+Reusable knowledge:
+- `computeBadgeCounts` is called from both `src/services/contact/chat-search/chat-search.class.js` and `src/services/chat-session/group/search/search.class.js`; both pass `countBaseQuery`, `countMemberId`, and a label.
+- `buildCountBaseQuery()` in `src/services/contact/chat-search/build-count-base-query.ts` strips meta fields and typed unread/unresponded fields, so the scope is intended to live in the base query.
+- `getCachedBadgeCount()` returns numeric `0` as a valid hit and `undefined` as miss; `runCount()` checks `cached !== undefined`.
+- Redis TTL is passed as numeric seconds via `cacheService.set(key, value, ttl)`.
+- `src/index.js` sets `global.Promise = require('bluebird')`, so production promise inspection differs from Jest’s native Promise shape.
+
+Failures and how to do differently:
+- The first-pass concern that ObjectId/stringification might cause collisions was not the main issue; direct runtime probes showed equal ObjectIds stringify the same and different ObjectIds stringify differently.
+- Jest could not run cleanly in the read-only environment because it tried to write a haste map under `/private/var/...` and hit `EPERM`; in similar environments, rely more on direct source inspection and targeted runtime probes.
+- The cache module is mocked in the new spec, so orchestration tests do not prove real helper-boundary behavior.
+
+References:
+- `src/utils/badge-count-cache.ts:20-78` — TTL 8s, key format, fail-soft get/set.
+- `src/utils/compute-badge-counts.ts:119-219` — cache lookup, DB fallback, `Promise.allSettled`, Bluebird-compatible settlement handling, and fire-and-forget write-through.
+- `src/utils/compute-badge-counts.spec.ts:22-29, 266-363` — cache module mocked; tests do not exercise real Redis helper behavior.
+- `src/services/contact/chat-search/build-count-base-query.ts:37-41` — count base query stripping rules.
+- Runtime probe evidence — same ObjectId stringified identically; different ObjectIds differently.
+
+### Task 2: Trace Redis timeout, offline queue, and stale-write behavior
+
+task: review Redis timeout and late-write behavior for badge-count cache
+ task_group: oho-api / review
+ task_outcome: partial
+
+Preference signals:
+- when the user asked about the fire-and-forget write path and unhandled-rejection risk -> future similar reviews should inspect async helper semantics, not just the caller line.
+- when the user asked about staleness vs realtime -> future similar reviews should separate freshness trade-offs from actual correctness bugs.
+
+Reusable knowledge:
+- `raceCommandTimeout()` in `src/utils/cache/index.js` races a promise against a timeout; it does not cancel the underlying Redis command.
+- Node Redis 3.x defaults `enable_offline_queue` to true; commands issued while disconnected are queued and replayed on reconnect.
+- `src/services/chat-session/hooks/emit-chat-session-event.js` emits `chat-session/status updated` payloads carrying `is_unresponded`, but there is no badge-count push path.
+
+Failures and how to do differently:
+- A timed-out Redis write can still be queued and later applied after reconnect, which can violate the intended short-TTL staleness bound. In similar cases, treat "timeout does not cancel command + offline queue enabled" as a serious stale-write risk.
+
+References:
+- `src/utils/cache/index.js:27-55` — timeout/race implementation.
+- `node_modules/redis/index.js:97-103, 476-480, 766-792` and `node_modules/redis/README.md:181-183` — offline queue default behavior.
+- `src/services/chat-session/hooks/emit-chat-session-event.js:271-323` — realtime payload contains `is_unresponded`, not badge count.
+
+### Task 3: Judge overall ship readiness
+
+task: consolidate review findings and verdict for badge-count cache change
+ task_group: oho-api / review
+ task_outcome: partial
+
+Preference signals:
+- when the user asked for a ranked list and a final one-paragraph verdict -> future similar reviews should end with a clear recommendation rather than an ambiguous recap.
+
+Reusable knowledge:
+- Verified non-findings: cross-member cache poisoning was not substantiated, `countMemberId` is part of the unread filter, the base query keeps business/tab scope, `0` remains a valid cached value, and the helper swallows normal Redis errors/timeouts.
+- Remaining concern: late Redis writes plus lack of single-flight mean the cache can still violate its intended bounded-staleness and load-smoothing goals.
+
+Failures and how to do differently:
+- The mitigation looked correct on key isolation, but not yet fully safe on stale-write and stampede behavior; future reviews should treat those as the main risks once collision is ruled out.
+
+References:
+- `src/utils/compute-badge-counts.ts:139-149` and `src/utils/badge-count-cache.ts:20` — no single-flight or distributed lock.
+- `src/utils/compute-badge-counts.ts:139-145` and `src/utils/cache/index.js:19,27-55` — cache GET timeout and fallback timing.
+- `src/utils/cache/index.js:113-120, 75-80` and `src/utils/compute-badge-counts.ts:139-140` — `0` is handled as a real hit.
+- `src/utils/compute-badge-counts.ts:154-160` — unread cache key carries member scope via `unread_by: countMemberId`.
+
+## Thread `019f6506-8353-7c13-9dda-4d97fcfab9ad`
+updated_at: 2026-07-15T09:18:31+00:00
+cwd: /Users/tualek/ohochat/oho-api
+rollout_path: /Users/tualek/.codex/sessions/2026/07/15/rollout-2026-07-15T16-05-53-019f6506-8353-7c13-9dda-4d97fcfab9ad.jsonl
+rollout_summary_file: 2026-07-15T09-05-53-eBHL-oho_api_uncommitted_review_startup_blocker_and_behavior_pres.md
+
+---
+description: Read-only review of uncommitted `oho-api` unread/unresponded diff on `feature/tk-sprint-2613/oho-1018-unrespone`; found one blocking Feathers service-startup regression in contact-send-message hook registration, while items 1–5 and 7 were behavior-preserving under current repo config.
+task: review uncommitted working-tree changes in oho-api
+ task_group: code_review
+task_outcome: partial
+cwd: /Users/tualek/ohochat/oho-api
+keywords: git status, git diff, Feathers hooks, service.hooks, contact-send-message, notify.service.js, compute-badge-counts, build-clear-unread-unresponded-payload, get-message-preview-text, paginate.max, checkJs, startup blocker
+---
+
+### Task 1: Review uncommitted unread/unresponded diff
+
+task: review uncommitted working-tree changes in `/Users/tualek/ohochat/oho-api`
+task_group: code_review
+task_outcome: partial
+
+Preference signals:
+- user explicitly said `Review the UNCOMMITTED working-tree changes ... This is a REVIEW ONLY task. Do not edit any files.` -> future similar work should stay strictly read-only and evidence-led
+- user required exact file paths and line numbers in all claims -> future reviews should answer in the same citation-heavy format
+- user called out pre-existing failing suites that must not be blamed on this diff -> future reviewers should separate repo noise from diff-caused regressions
+
+Reusable knowledge:
+- Feathers 4 `service.hooks()` validates hook-module keys; whole-module registration only works when the module exports lifecycle keys (`before/after/error/finally`) and nothing else
+- `config/default.json` sets `paginate.max` to 50, so the new `context.app?.get('paginate')?.max ?? 50` fallback preserves current behavior when config is present or missing
+- `buildClearUnreadUnrespondedPayload()` treats omitted, `undefined`, and `null` member IDs the same; call sites switching from `undefined` to `()` do not change payload shape
+- `getMessagePreviewText()` now safely ignores non-string `data.label` values from `qs.parse` and falls back to `message.text` or `กดปุ่ม`
+- the diff removed named exports from several local hook files, but those functions are still invoked from their local hook arrays; repository search found no surviving external imports of those hook helpers
+
+Failures and how to do differently:
+- `contact-send-message.service.js:12` is a blocking regression: `service.hooks(hooks)` receives the whole module, but `contact-send-message.hooks.js:497` still exports `getContactSendMessagePreviewText`, so Feathers throws `'getContactSendMessagePreviewText' is not a valid hook type` and startup aborts
+- `notify.service.js:15` is fine because its hooks module only exports lifecycle keys
+- Jest in this sandbox was blocked by read-only haste-map persistence / duplicate-worktree collisions, so future reviews should not over-interpret Jest failures as diff regressions; static tracing was the usable path here
+
+References:
+- `src/services/contact-send-message/contact-send-message.service.js:12` — `service.hooks(hooks)`
+- `src/services/contact-send-message/contact-send-message.hooks.js:497-500` — `getContactSendMessagePreviewText` export and caller
+- `src/services/index.js:439` — service configuration reaches `contactSendMessages`
+- `node_modules/@feathersjs/feathers/lib/hooks/index.js:141-166` — unknown hook types are rejected during registration
+- `src/services/chat-session/group/search/search.hooks.js:41-44` and `config/default.json:6-8` — paginated limit fallback to 50
+- `src/utils/build-clear-unread-unresponded-payload.ts:51-62` — `undefined`/`null`/absent member IDs all resolve identically
+- `src/utils/get-message-preview-text.ts:19-27` and `src/utils/message-converter/youpin-to-stream.js:296-301` — string-label preservation and object-label fallback
+- `src/services/contact/close-chat/end-case/end-case.hooks.js:457` and `src/services/contact/close-chat/no-case/no-case.hooks.js:448` — direct helper invocation after alias removal
+- `src/services/bot-send-message/notify/notify.service.js:15` — safe whole-module hook registration
+- `tsconfig.json:9-10,17` — JS allowed, JS checking disabled, only TS sources included
+
+### Task 2: Capture review workflow facts
+
+task: capture review workflow facts from the diff review
+task_group: code_review
+task_outcome: success
+
+Preference signals:
+- user preferred a review-only pass and forbade edits/commits/write git commands -> keep future similar sessions read-only unless the user changes scope
+- user wanted pre-existing failing tests excluded from findings unless directly caused by the diff -> preserve that separation rule in future reviews
+
+Reusable knowledge:
+- `service.hooks(hooks)` is only safe when the hooks module is a pure hook registry; if the module also exports utilities, split the module or revert to `{ before, after, error }`
+- `allowJs: true` with `checkJs: false` means JS callers are not statically typechecked even when a utility adds a TypeScript interface
+
+Failures and how to do differently:
+- Jest in this sandbox is noisy because multiple worktrees create duplicate mock/path collisions and the environment cannot persist haste-map files; do not treat those failures as evidence of a diff bug
+
+References:
+- `src/services/index.js:439` configures `contactSendMessages`, making the startup regression user-visible immediately
+- `src/services/contact-send-message/contact-send-message.hooks.js:497` is the extra export that breaks whole-module hook registration
+- `node_modules/@feathersjs/feathers/lib/hooks/index.js:141-166` is the validation path that throws on unknown hook types
+
 ## Thread `019f650a-4163-70e3-b3ce-6fa49d681272`
 updated_at: 2026-07-15T09:20:54+00:00
 cwd: /Users/tualek/ohochat/oho-api
@@ -972,4 +1134,54 @@ References:
 - `store/modules/groupchat.js:215-321`
 - `pages/business/_biz_id/groupchat/index.vue:26-31,449-567`
 - `utils/optimistic-flag-count-tracker.js:1-27`
+
+## Thread `019f6ae5-4dea-7a62-b818-7b3d28db18df`
+updated_at: 2026-07-16T12:35:11+00:00
+cwd: /Users/tualek/ohochat/oho-backoffice
+rollout_path: /Users/tualek/.codex/sessions/2026/07/16/rollout-2026-07-16T19-27-20-019f6ae5-4dea-7a62-b818-7b3d28db18df.jsonl
+rollout_summary_file: 2026-07-16T12-27-20-o4b5-oho_1177_pagination_select_all_read_only_review.md
+
+description: Read-only review of OHO-1177 pagination/select-all changes found async selection races, stale page responses, duplicate-name validation race, and overlong comments; cross-page checkbox model and last-page recursion were verified correct
+ task: review uncommitted OHO-1177 pagination and select-all work in oho-backoffice
+ task_group: /Users/tualek/ohochat/oho-backoffice external-message Vue/Nuxt admin review
+ task_outcome: success
+ cwd: /Users/tualek/ohochat/oho-backoffice
+ keywords: OHO-1177, Vue2, Nuxt2, element-ui, pagination, select-all, checkbox-group, stale-response, whitelist_request_seq, duplicate-name, $limit, BadRequest
+
+### Task 1: Pagination and select-all correctness review
+
+task: read-only line-cited review of external-message app catalog and whitelist pagination/select-all changes
+task_group: oho-backoffice external-message admin UI
+ task_outcome: success
+
+Preference signals:
+- when the user said “read-only, do NOT edit any files” and requested a report only -> inspect strictly without editing, staging, committing, or creating files.
+- when the user required every correctness claim to cite actual lines and requested ranked findings -> report evidence-first, severity ordered, and omit speculative issues.
+- when the user supplied a specific checklist for cross-page state, select-all, races, recursion, contract adherence, and comments -> use that checklist explicitly in similar reviews.
+
+Reusable knowledge:
+- `components/ExternalMessage/WhitelistAppChecklist.vue:19-28,80-105` uses Element UI's full checkbox-group model, so visible-page toggles preserve IDs from other pages; this mechanism was checked and is not a bug.
+- `components/ExternalMessage/WhitelistAppChecklist.vue:86-95` derives all/indeterminate from `selected_app_ids.length` versus catalog `total`; under the supplied cascade-delete contract this is correct.
+- `pages/external-message-apps.vue:173-195` has bounded last-page step-back recursion; it refetches the corrected page and does not leave loading stuck.
+- `pages/external-message-whitelist.vue:174-186,224-259` select-all fetches the whole catalog asynchronously but does not bind the result to the initiating business/request sequence.
+- `pages/external-message-whitelist.vue:145-172` and `pages/external-message-apps.vue:173-199` page fetches lack request sequencing, so rapid paging can display stale rows and mishandle loading/error state.
+- `pages/external-message-apps.vue:147-149,201-216,235-256,267-289` starts full-catalog validation without awaiting it; because the backend does not enforce unique names, duplicate-name validation can be bypassed by a fast submit.
+- `api/externalMessageApps.js:12-13,26-33` clamps invalid limits instead of preserving the verified API behavior where `$limit > 50` returns BadRequest. Current callers use valid limits, so this is a contract mismatch rather than confirmed current-call failure.
+
+Failures and how to do differently:
+- Disable Save or otherwise serialize it while select-all is loading; otherwise a save can persist old IDs and then incorrectly mark the newly selected IDs as clean locally.
+- Associate select-all with the current business/request sequence and discard results after a business switch.
+- Add stale-response guards to both catalog page loaders so older page requests cannot overwrite newer page state or clear the latest loading flag.
+- Await or gate validation-catalog loading before allowing Save; do not rely on the server to catch duplicate names because the supplied contract says it does not.
+- Remove dead `.pagination-wrap .selected-text` SCSS at checklist lines 174-185 and reduce comments that merely narrate obvious code, especially API header comments and single-use `impact_text` explanation.
+
+References:
+- `pages/external-message-whitelist.vue:77-83,174-186,276-304` — Save/select-all race.
+- `pages/external-message-whitelist.vue:174-186,224-259` — select-all/business-switch race.
+- `pages/external-message-whitelist.vue:145-172` — whitelist page fetch without stale-response guard.
+- `pages/external-message-apps.vue:173-199` — catalog page fetch and step-back logic.
+- `pages/external-message-apps.vue:147-149,201-216,235-256,267-289` — duplicate-name validation race.
+- `api/externalMessageApps.js:12-13,26-33` — silent `$limit` clamping.
+- `components/ExternalMessage/WhitelistAppChecklist.vue:19-28,80-105` — cross-page checkbox model verified safe.
+- `components/ExternalMessage/WhitelistAppChecklist.vue:86-95` — total-based select-all state verified safe.
 
