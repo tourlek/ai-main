@@ -2,17 +2,16 @@ v1
 
 ## User Profile
 
-The user uses Codex for evidence-first, read-only code review, debugging, and deploy-gate work across OHO repositories. They want to know whether the exact live diff is safe, especially for unread/unresponded behavior across `oho-api`, `oho-websocket`, and `oho-web-app`. They also review Vue/Nuxt admin work in `oho-backoffice`, including async state/race correctness. Thai, direct judgments suit local `oho-api` review requests. Personal monthly-finance baseline notes live under `/Users/tualek/life`. [ad-hoc note]
+The user uses Codex mainly for evidence-first, read-only review and debugging work across OHO repositories. They repeatedly ask whether the exact live diff or MR head is safe, especially in `oho-api`, `oho-websocket`, `oho-web-app`, and `oho-backoffice`. Good collaboration means verifying the real repo/worktree first, grounding claims in exact `file:line` evidence, and returning a compact verdict rather than a broad essay. Thai, direct judgments fit several local `oho-api` / MR review requests. Personal monthly-finance baseline notes live under `/Users/tualek/life`. [ad-hoc note]
 
 ## User preferences
 
 - For review-only work, do not edit, stage, commit, or drift into implementation unless explicitly asked.
-- Inspect the actual repo/worktree or exact MR diff first; do not trust summaries. Re-check `git status` / `git diff`, and verify the target worktree when several exist.
-- Keep reviews compact, severity-ranked, grounded in exact `file:line` evidence, with an explicit safety/ship verdict.
-- Separate pre-existing test or environment noise from regressions caused by the reviewed diff; do not overstate validation blocked by haste-map `EPERM` or duplicate worktrees.
-- If prior review docs or `plan.md` are named, read them first and do not re-flag documented fixed findings.
-- For unread/unresponded audits, preserve `SET writes = flag-gated`, `CLEAR writes = unconditional`, `realtime broadcasts = flag-gated` and trace the full UI-to-broadcast chain.
-- For admin pagination/select-all reviews, explicitly check cross-page model preservation, Save/loading races, business/request identity, stale responses, backend contract, and recursion.
+- Inspect the actual repo/worktree or exact MR diff first; do not trust summaries. Re-check `git status` / `git diff`, verify the target worktree, and pin the reviewed SHA/MR head when multiple copies exist.
+- Keep reviews compact, severity-ranked, grounded in exact `file:line` evidence, with an explicit ship/merge verdict.
+- If prior review docs or `plan.md` are named, read them first and do not re-flag findings already documented as fixed.
+- For cross-repo unread/unresponded audits, preserve `SET writes = flag-gated`, `CLEAR writes = unconditional`, `realtime broadcasts = flag-gated`, and trace the full UI-to-broadcast chain.
+- For `oho-backoffice` admin reviews, explicitly check cross-page model preservation, Save/loading races, business/request identity, stale responses, page-reset refetches, dialog snapshotting, backend contract, and recursion.
 - For finance planning, do not count wife monthly support as income; include tuition saving, utilities, and `Paynext 3,300/month`. [ad-hoc note]
 
 ## General Tips
@@ -28,11 +27,17 @@ The user uses Codex for evidence-first, read-only code review, debugging, and de
 
 ### /Users/tualek/ohochat/oho-backoffice
 
+#### 2026-07-20
+
+- MR !32 external-message admin UI review: merge request 32, glab, external-message, request_seq, git diff --check, prettier
+  - desc: Search first for read-only GitLab MR review memory in `cwd=/Users/tualek/ohochat/oho-backoffice` when the user wants a merge verdict on the live diff rather than an implementation.
+  - learnings: The latest MR review found late-save baseline corruption, page-reset stale rows, dialog snapshot drift, and debounced-search stale responses; `glab mr view ... -F json` plus `glab mr diff` were the reliable routing handles.
+
 #### 2026-07-16
 
-- OHO-1177 pagination/select-all review: OHO-1177, WhitelistAppChecklist, whitelist_request_seq, stale-response, duplicate-name, $limit, BadRequest
-  - desc: Search first for read-only external-message whitelist/app-catalog reviews in `cwd=/Users/tualek/ohochat/oho-backoffice` where pagination, select-all, and API-contract behavior interact.
-  - learnings: Cross-page checkbox state and bounded last-page recursion were safe; Save/select-all, duplicate-name validation, business-switch, and stale-page response races were not.
+- OHO-1177 pagination/select-all review: OHO-1177, WhitelistAppChecklist, whitelist_request_seq, select-all, duplicate-name, BadRequest
+  - desc: Use for uncommitted external-message whitelist/app-catalog reviews where pagination, select-all, and API-contract behavior interact in `cwd=/Users/tualek/ohochat/oho-backoffice`.
+  - learnings: Cross-page checkbox state and bounded last-page recursion were safe; Save/select-all serialization, stale-response guards, and duplicate-name validation gating were not.
 
 ### /Users/tualek/ohochat
 
@@ -40,33 +45,26 @@ The user uses Codex for evidence-first, read-only code review, debugging, and de
 
 - Cross-repo unread/unresponded deploy-gate reviews: mr-1285, message.read, buildCustomerMessageUnreadPayload, emitEligibilityScopedUnrespondedUpdate, optimistic-flag-count-tracker
   - desc: Use when a review spans `oho-api`, `oho-websocket`, and `oho-web-app` and asks whether exact unread/unresponded changes are deploy-safe.
-  - learnings: Trace payload, guard, write, broadcast audience, and frontend reconciliation; reviewed MR revisions varied, so pin the live diff before carrying a finding forward.
+  - learnings: Trace payload, guard, write, broadcast audience, and frontend reconciliation end to end; reviewed MR revisions varied, so pin the live diff before carrying a finding forward.
 
 ### /Users/tualek/ohochat/oho-api
 
 #### 2026-07-15
 
-- Badge-count Redis cache review: badge-count-cache, computeBadgeCounts, raceCommandTimeout, offline_queue, single-flight, stampede, Bluebird
-  - desc: Search for short-TTL unread/unresponded badge-count cache correctness, cache-key scope, and Redis behavior in `cwd=/Users/tualek/ohochat/oho-api`.
-  - learnings: Cross-member poisoning was not substantiated and `0` is a valid hit; late queued writes and concurrent cache misses still defeat bounded-staleness/load-smoothing goals.
-
-- Uncommitted unread/unresponded diff review: service.hooks(hooks), getContactSendMessagePreviewText, invalid hook type, paginate.max, getMessagePreviewText, checkJs
-  - desc: Use for read-only live-diff reviews covering Feathers boot safety, behavior-preserving refactors, and coverage-loss judgment.
+- Uncommitted unread/unresponded diff review: service.hooks(hooks), invalid hook type, getMessagePreviewText, paginate.max, checkJs, deleted specs
+  - desc: Search first for read-only live-diff reviews in `cwd=/Users/tualek/ohochat/oho-api` covering Feathers boot safety, behavior-preserving refactors, and coverage-loss judgment.
   - learnings: Whole-module hook registration failed because of an extra export; sandbox Jest/typecheck noise required source tracing rather than false confidence.
 
-#### 2026-07-14
-
-- Flag-off contract review: flag-off, buildClearUnreadUnrespondedPayload, emitContactUnrespondedStatusUpdatedEvent, convertUnreadUnrespondedQuery, channel-eligible-members
-  - desc: `feature off = no behavior + no collateral impact` review memory for `cwd=/Users/tualek/ohochat/oho-api`, including concise Thai blocker reports.
-  - learnings: Verify the real worktree and compare emitter audience to actual visibility semantics, not only feature-flag branches.
-
-#### 2026-07-11
-
-- Unread/unresponded performance debugging: unread_by, countDocuments, $nin, maxTimeMS, message.read
-  - desc: Use when determining whether slowdown is caused by unread count queries or write-side stamping in `cwd=/Users/tualek/ohochat/oho-api`.
-  - learnings: The validated pattern was `countDocuments` with `$nin` on `read_by`; equality on `unread_by` plus `maxTimeMS` was the mitigation direction.
+- Badge-count Redis cache review: badge-count-cache, computeBadgeCounts, raceCommandTimeout, offline_queue, single-flight, Bluebird
+  - desc: Use for short-TTL unread/unresponded cache correctness, cache-key scope, and Redis behavior in `cwd=/Users/tualek/ohochat/oho-api`.
+  - learnings: Cross-member poisoning was not substantiated and `0` is a valid hit; late queued writes and concurrent misses still defeat bounded-staleness/load-smoothing goals.
 
 ### Older Memory Topics
+
+#### /Users/tualek/ohochat/oho-backoffice
+
+- External-message UI/UX root-cause review: el-select, remote filterable, dropdown arrow, cascade delete, app_id, mock API
+  - desc: Read when the task is about `cwd=/Users/tualek/ohochat/oho-backoffice` external-message admin UI behavior or mock-model safety rather than the newer MR race review; it covers Element UI arrow behavior, cascade delete, and immutable `app_id` data-integrity boundaries.
 
 #### /Users/tualek/ohochat/oho-web-app
 
@@ -77,6 +75,14 @@ The user uses Codex for evidence-first, read-only code review, debugging, and de
 
 - `migrate-unread.ts` checkpoint/cleanup review: cleanup-read-by, CHECKPOINT_FILE, readByCutoffDate, buildTotals, confirm-cleanup-read-by
   - desc: Evidence-first migration cleanup/correctness memory for `cwd=/Users/tualek/ohochat/script-oho`; compare persisted state and exact filters, not comments.
+
+#### /Users/tualek/ohochat/oho-api
+
+- Flag-off contract review: flag-off, buildClearUnreadUnrespondedPayload, emitContactUnrespondedStatusUpdatedEvent, convertUnreadUnrespondedQuery, channel-eligible-members
+  - desc: `feature off = no behavior + no collateral impact` review memory for `cwd=/Users/tualek/ohochat/oho-api`, including concise Thai blocker reports.
+
+- Unread/unresponded performance debugging: unread_by, countDocuments, $nin, maxTimeMS, message.read
+  - desc: Use when determining whether slowdown is caused by unread count queries or write-side stamping in `cwd=/Users/tualek/ohochat/oho-api`.
 
 #### /Users/tualek/life
 

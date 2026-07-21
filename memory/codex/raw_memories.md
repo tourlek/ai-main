@@ -1185,3 +1185,50 @@ References:
 - `components/ExternalMessage/WhitelistAppChecklist.vue:19-28,80-105` — cross-page checkbox model verified safe.
 - `components/ExternalMessage/WhitelistAppChecklist.vue:86-95` — total-based select-all state verified safe.
 
+## Thread `019f7d53-c7cc-7ea2-9fb1-76d2f5ace193`
+updated_at: 2026-07-20T02:28:26+00:00
+cwd: /Users/tualek/ohochat
+rollout_path: /Users/tualek/.codex/sessions/2026/07/20/rollout-2026-07-20T09-21-10-019f7d53-c7cc-7ea2-9fb1-76d2f5ace193.jsonl
+rollout_summary_file: 2026-07-20T02-21-10-WqUb-oho_backoffice_mr32_external_message_code_review.md
+
+---
+description: code review of GitLab MR !32 for oho-backoffice external-message admin UI; found two correctness blockers and two medium async-state risks, plus a Prettier warning on api/endpoint.js
+task: code review of GitLab MR !32 for external-message admin UI changes
+task_group: oho-backoffice code review / nuxt2 admin UI
+task_outcome: partial
+cwd: /Users/tualek/ohochat/oho-backoffice
+keywords: glab, merge request 32, code review, external-message, whitelist, pagination, request_seq, race condition, prettier, git diff --check, nuxt2, element-ui
+---
+
+### Task 1: Review MR !32 external-message catalog/whitelist UI
+
+task: code review of GitLab MR !32 for external-message admin UI changes
+task_group: oho-backoffice code review / nuxt2 admin UI
+task_outcome: partial
+
+Preference signals:
+- when the user asked “review mr นี้ให้หน่อย” with the `code-reviewer` skill, they wanted a real review workflow rather than an implementation task.
+- the accepted review shape was severity-ranked, actionable, and line-cited; the final response gave P1/P2 findings instead of generic comments.
+
+Reusable knowledge:
+- `glab mr view 32 -F json` and `glab mr diff 32` were the main reliable sources for MR metadata and patch content.
+- `git diff --check` passed on the reviewed diff, but Prettier still warned on `api/endpoint.js`.
+- The feature introduces several async state transitions that must be guarded separately: business switching, save, page refresh, dialog reopen, and debounced search.
+- `fetchAllExternalMessageApps()` walks every page because the API wrapper supports paginated reads only; it is used for whole-catalog validation and select-all behavior.
+- The edit flow intentionally keeps `app_id` immutable to avoid orphaning existing whitelists.
+
+Failures and how to do differently:
+- Do not assume a page reset also reloads the visible data; verify the fetch call follows the state change.
+- Bind save/validation to a dialog token or snapshot form state before `await`, otherwise a reopened dialog can inherit the prior task.
+- Debouncing search is not enough by itself; older in-flight responses can still overwrite newer results.
+
+References:
+- `pages/external-message-whitelist.vue:321-333` — late save can overwrite `loaded_app_ids` for a newer business.
+- `pages/external-message-whitelist.vue:269-279` — resetting `app_page = 1` without fetching leaves stale rows visible.
+- `pages/external-message-apps.vue:284-301` — save path awaits validation before snapshotting state.
+- `pages/external-message-whitelist.vue:211-226` — debounced business search can still be overwritten by an older response.
+- `api/externalMessageApps.js`
+- `glab mr view 32 -F json`
+- `glab mr diff 32`
+- `git diff --check b3a96113c8c15408a487352d5e38a7ec5d50c3ef 18d4af10d7c74fd8a736a4e839df8052f9c02900`
+

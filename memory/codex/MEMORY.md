@@ -1,3 +1,68 @@
+# Task Group: /Users/tualek/ohochat/oho-backoffice / external-message admin UI review
+scope: Read-only review memory for `oho-backoffice` external-message whitelist and app-catalog work, especially GitLab MR diffs, async-state/race correctness, Element UI behavior, and admin data-safety boundaries.
+applies_to: cwd=/Users/tualek/ohochat/oho-backoffice; reuse_rule=reuse for similar review-only admin UI checks in this checkout, but re-check the exact worktree or MR head, framework behavior, and API contract before treating any finding as still open.
+
+## Task 1: Review MR !32 external-message catalog/whitelist UI, two correctness blockers and two async-state risks found
+
+### rollout_summary_files
+
+- rollout_summaries/2026-07-20T02-21-10-WqUb-oho_backoffice_mr32_external_message_code_review.md (cwd=/Users/tualek/ohochat/oho-backoffice, rollout_path=/Users/tualek/.codex/sessions/2026/07/20/rollout-2026-07-20T09-21-10-019f7d53-c7cc-7ea2-9fb1-76d2f5ace193.jsonl, updated_at=2026-07-20T02:28:26+00:00, thread_id=019f7d53-c7cc-7ea2-9fb1-76d2f5ace193, GitLab MR review found late-save baseline corruption, page-reset stale rows, dialog-token drift, and debounced-search stale-response risk)
+
+### keywords
+
+- glab, merge request 32, code review, external-message, whitelist, pagination, request_seq, race condition, prettier, git diff --check, nuxt2, element-ui
+
+## Task 2: Read-only OHO-1177 pagination/select-all review, four correctness risks found while cross-page model and recursion were safe
+
+### rollout_summary_files
+
+- rollout_summaries/2026-07-16T12-27-20-o4b5-oho_1177_pagination_select_all_read_only_review.md (cwd=/Users/tualek/ohochat/oho-backoffice, rollout_path=/Users/tualek/.codex/sessions/2026/07/16/rollout-2026-07-16T19-27-20-019f6ae5-4dea-7a62-b818-7b3d28db18df.jsonl, updated_at=2026-07-16T12:35:11+00:00, thread_id=019f6ae5-4dea-7a62-b818-7b3d28db18df, uncommitted OHO-1177 review found save/select-all, duplicate-validation, business-switch, and stale-page races)
+
+### keywords
+
+- OHO-1177, Vue2, Nuxt2, element-ui, pagination, select-all, checkbox-group, stale-response, whitelist_request_seq, duplicate-name, $limit, BadRequest
+
+## Task 3: Read-only UI/UX review of external-message whitelist/app catalog screens, root cause and data-safety findings
+
+### rollout_summary_files
+
+- rollout_summaries/2026-07-14T07-38-59-v0i2-oho_backoffice_external_message_ui_review.md (cwd=/Users/tualek/ohochat/oho-backoffice, rollout_path=/Users/tualek/.codex/sessions/2026/07/14/rollout-2026-07-14T14-38-59-019f5f90-99ef-79c1-9da8-c8468ab76236.jsonl, updated_at=2026-07-14T07:43:25+00:00, thread_id=019f5f90-99ef-79c1-9da8-c8468ab76236, line-cited review established Element UI arrow behavior and mock cascade/orphan risks)
+
+### keywords
+
+- vue2, nuxt2, element-ui, el-select, remote filterable, dropdown arrow, cascade delete, whitelist, app catalog, mock API, line-cited review
+
+## User preferences
+
+- when the user says `read-only, do NOT edit any files`, `Do NOT edit any files -- this is review only`, or asks `review mr นี้ให้หน่อย` -> inspect without editing, staging, committing, or drifting into implementation. [Task 1][Task 2][Task 3]
+- when the user requires every correctness claim to cite actual lines and wants severity-ranked findings -> report evidence-first, blocker-oriented, and omit speculative issues. [Task 1][Task 2][Task 3]
+- when the task is a GitLab MR review in this repo -> use the live MR metadata/diff, not a paraphrased summary, and keep the output merge-oriented with P1/P2-style findings. [Task 1]
+- when the user supplies a checklist for cross-page state, select-all, async races, recursion, API contract adherence, and comments -> explicitly use that checklist rather than review only visible UI behavior. [Task 2]
+- when the user specifies `root-cause first` and then High/Medium/Low findings with concrete suggested fixes -> preserve that severity ordering and actionable output shape. [Task 3]
+- when the user asks to grep the wider repo for other `filterable remote` usages -> check wider repo usage before claiming a pattern or divergence. [Task 3]
+
+## Reusable knowledge
+
+- `glab mr view 32 -F json` and `glab mr diff 32` were reliable sources for `oho-backoffice` GitLab MR review, and `git diff --check` is a useful quick sanity check even when functional races remain. `prettier --check` can still catch formatting drift separately. [Task 1]
+- This feature area is highly race-prone: business switching, save, page refresh, dialog open/close, and debounced search each need their own request-identity or snapshot guard. Do not treat one existing `request_seq` guard as blanket coverage. [Task 1][Task 2]
+- Element UI checkbox-group keeps the full model, so toggling visible-page checkboxes preserves IDs from other pages. Deriving all/indeterminate from `selected_app_ids.length` versus catalog `total` is correct under the supplied cascade-delete contract. [Task 2]
+- Last-page step-back recursion is bounded and refetches the corrected page without leaving loading stuck. [Task 2]
+- `fetchAllExternalMessageApps()` walks every page because the API wrapper only supports paginated reads. It is used for whole-catalog validation and select-all behavior, so Save/dirty-baseline updates must be serialized against that async fetch and tied to the initiating business/request sequence. [Task 1][Task 2]
+- In `pages/external-message-whitelist.vue`, changing business or resetting `app_page = 1` is not sufficient by itself; the visible page-1 list must be refetched or stale rows can remain on screen. [Task 1]
+- The edit flow intentionally keeps `app_id` immutable to avoid orphaning existing whitelists, which matches the earlier mock-model data-integrity warning. [Task 1][Task 3]
+- Page loaders need stale-response guards; duplicate-name validation must be loaded/gated before Save because the backend does not enforce unique names. The adapter's `_.clamp` of `$limit` hides the verified `BadRequest` contract for values above 50. [Task 2]
+- Element UI `el-select` with `remote && filterable` intentionally omits the default arrow; no repo CSS override was found. The mock backend models `external_message_apps` and `business_external_app_whitelist`, cascades app deletion, and does not propagate mutable `app_id` edits to existing whitelist rows. [Task 3]
+
+## Failures and how to do differently
+
+- Symptom: a late whitelist save corrupts the newly selected business baseline. Cause: `saved_app_ids` from an older save overwrites `loaded_app_ids` after the user switches business. Fix/pivot: bind save completion to the business/dialog state that initiated it before mutating clean-baseline state. [Task 1]
+- Symptom: the pager shows page 1 while stale rows from another page remain visible. Cause: code resets `app_page = 1` without refetching page 1 data. Fix/pivot: treat page reset as its own fetch boundary and verify the reload follows the state change. [Task 1]
+- Symptom: Save persists old IDs then marks newly fetched select-all IDs clean. Cause: select-all fetches the whole catalog asynchronously while Save stays enabled. Fix/pivot: disable/serialize Save until the selection fetch resolves and only update dirty baseline after the matching PATCH succeeds. [Task 2]
+- Symptom: business A select-all overwrites business B after a switch, or rapid paging/search shows old rows/loading state. Cause: responses are not tied to the initiating business/request sequence and page/search loaders lack stale-response guards. Fix/pivot: bind each request to current sequence/context and discard stale results. [Task 1][Task 2]
+- Symptom: a fast create/update bypasses duplicate-name validation or a reopened dialog saves against the wrong form state. Cause: validation/save awaits before snapshotting dialog state and whole-catalog validation is not fully gated. Fix/pivot: snapshot dialog/form state before the first await and await/gate validation before Save. [Task 1][Task 2]
+- Symptom: a missing dropdown arrow looks like a CSS bug. Cause: Element UI hides the suffix icon for `remote && filterable`. Fix/pivot: inspect component source before blaming styling. [Task 3]
+- Symptom: whitelist/admin mockups appear safe because the UI has warning text. Cause: the data model still allows cascade delete and `app_id` rename orphaning. Fix/pivot: inspect the mock service/data layer, not only page copy. [Task 3]
+
 # Task Group: /Users/tualek/ohochat / cross-repo unread-unresponded deploy-gate reviews
 scope: Read-only cross-repo review memory for unread/unresponded fixes spanning `oho-api`, `oho-websocket`, and `oho-web-app`; use for deploy-gate audits, MR review follow-ups, or "is this actually fixed?" checks where write gates, realtime broadcasts, and frontend counters must align.
 applies_to: cwd=/Users/tualek/ohochat; reuse_rule=reuse for similar cross-repo review-only audits across these repos, but always re-check live `git status` / `git diff` in each repo and current commit semantics before treating any finding as still open.
@@ -214,54 +279,6 @@ applies_to: cwd=/Users/tualek/ohochat/oho-web-app; reuse_rule=reuse for similar 
 - Symptom: the frontend diff looks symmetric but is not merge-safe. Cause: the backend `message.new` emission path in `oho-websocket@9141805` did not prove any sender-role guard, so the frontend cannot assume every emitted payload represents a customer-message increment case. Fix/pivot: verify producer-side contract fields before approving consumer-side counter logic. [Task 1]
 - Symptom: unread counters still drift after local mark-read plus realtime updates. Cause: `markRoomRead()` decrements unread locally but does not synchronize `room.is_read_by_me`, so the later realtime transition logic can miss or double-handle unread state. Fix/pivot: trace optimistic local state and websocket transition state together, not as separate concerns. [Task 1]
 - Symptom: counters are wrong when a room is not currently loaded. Cause: the increment path treats missing prior row state as already represented in the aggregate. Fix/pivot: require proof of previous aggregate membership before incrementing or skipping an adjustment. [Task 1]
-
-# Task Group: /Users/tualek/ohochat/oho-backoffice / external-message admin UI review
-scope: Read-only UI/UX review memory for `oho-backoffice` external-message whitelist and app-catalog screens, especially Element UI behavior, repo-convention checks, and mock-data safety edges in the admin model.
-applies_to: cwd=/Users/tualek/ohochat/oho-backoffice; reuse_rule=reuse for similar review-only admin UI checks in this checkout, but re-check the exact worktree and framework version because line numbers and component behavior assumptions can drift.
-
-## Task 1: Read-only OHO-1177 pagination/select-all review, four correctness risks found while cross-page model and recursion were safe
-
-### rollout_summary_files
-
-- rollout_summaries/2026-07-16T12-27-20-o4b5-oho_1177_pagination_select_all_read_only_review.md (cwd=/Users/tualek/ohochat/oho-backoffice, rollout_path=/Users/tualek/.codex/sessions/2026/07/16/rollout-2026-07-16T19-27-20-019f6ae5-4dea-7a62-b818-7b3d28db18df.jsonl, updated_at=2026-07-16T12:35:11+00:00, thread_id=019f6ae5-4dea-7a62-b818-7b3d28db18df, uncommitted OHO-1177 review found save/select-all, duplicate-validation, business-switch, and stale-page races)
-
-### keywords
-
-- OHO-1177, Vue2, Nuxt2, element-ui, pagination, select-all, checkbox-group, stale-response, whitelist_request_seq, duplicate-name, $limit, BadRequest
-
-## Task 2: Read-only UI/UX review of external-message whitelist/app catalog screens, root cause and data-safety findings
-
-### rollout_summary_files
-
-- rollout_summaries/2026-07-14T07-38-59-v0i2-oho_backoffice_external_message_ui_review.md (cwd=/Users/tualek/ohochat/oho-backoffice, rollout_path=/Users/tualek/.codex/sessions/2026/07/14/rollout-2026-07-14T14-38-59-019f5f90-99ef-79c1-9da8-c8468ab76236.jsonl, updated_at=2026-07-14T07:43:25+00:00, thread_id=019f5f90-99ef-79c1-9da8-c8468ab76236, line-cited review established Element UI arrow behavior and mock cascade/orphan risks)
-
-### keywords
-
-- vue2, nuxt2, element-ui, el-select, remote filterable, dropdown arrow, cascade delete, whitelist, app catalog, mock API, line-cited review
-
-## User preferences
-
-- when the user says `read-only, do NOT edit any files` or `Do NOT edit any files -- this is review only` -> inspect without editing, staging, committing, or creating files. [Task 1][Task 2]
-- when the user requires every correctness claim to cite actual lines and requests ranked findings -> report evidence-first, severity ordered, and omit speculative issues. [Task 1][Task 2]
-- when the user supplies a checklist for cross-page state, select-all, async races, recursion, API contract adherence, and comments -> explicitly use that checklist rather than review only visible UI behavior. [Task 1]
-- when the user specifies `root-cause first` and then High/Medium/Low findings with concrete suggested fixes -> preserve that severity ordering and actionable output shape. [Task 2]
-- when the user asks to grep the wider repo for other `filterable remote` usages -> check wider repo usage before claiming a pattern or divergence. [Task 2]
-
-## Reusable knowledge
-
-- Element UI checkbox-group keeps the full model, so toggling visible-page checkboxes preserves IDs from other pages. Deriving all/indeterminate from `selected_app_ids.length` versus catalog `total` is correct under the supplied cascade-delete contract. [Task 1]
-- Last-page step-back recursion is bounded and refetches the corrected page without leaving loading stuck. [Task 1]
-- `fetchAllExternalMessageApps()` is asynchronous: Save must be disabled/serialized while select-all loads, and its result must be associated with the initiating business/request sequence before updating `selected_app_ids` / `loaded_app_ids`. [Task 1]
-- Page loaders need stale-response guards; duplicate-name validation must be loaded/gated before Save because the backend does not enforce unique names. The adapter's `_.clamp` of `$limit` hides the verified `BadRequest` contract for values above 50. [Task 1]
-- Element UI `el-select` with `remote && filterable` intentionally omits the default arrow; no repo CSS override was found. The mock backend models `external_message_apps` and `business_external_app_whitelist`, cascades app deletion, and does not propagate mutable `app_id` edits to existing whitelist rows. [Task 2]
-
-## Failures and how to do differently
-
-- Symptom: Save persists old IDs then marks newly fetched select-all IDs clean. Cause: select-all fetches the whole catalog asynchronously while Save stays enabled. Fix/pivot: disable/serialize Save until the selection fetch resolves and only update dirty baseline after the matching PATCH succeeds. [Task 1]
-- Symptom: business A select-all overwrites business B after a switch, or rapid paging shows old rows/loading state. Cause: responses are not tied to `whitelist_request_seq` / the initiating business and page loaders have no stale-response guard. Fix/pivot: bind each request to current sequence/context and discard stale results. [Task 1]
-- Symptom: a fast create/update bypasses duplicate-name validation. Cause: dialog opening starts the whole-catalog validation fetch without awaiting it and backend does not reject duplicates. Fix/pivot: await/gate validation before Save. [Task 1]
-- Symptom: a missing dropdown arrow looks like a CSS bug. Cause: Element UI hides the suffix icon for `remote && filterable`. Fix/pivot: inspect component source before blaming styling. [Task 2]
-- Symptom: whitelist/admin mockups appear safe because the UI has warning text. Cause: the data model still allows cascade delete and `app_id` rename orphaning. Fix/pivot: inspect the mock service/data layer, not only page copy. [Task 2]
 
 # Task Group: /Users/tualek/ohochat/script-oho / migrate-unread.ts correctness review
 scope: Read-only correctness-review memory for `unread-unresponded/migrate-unread.ts`, especially checkpoint semantics, cleanup-vs-backfill invariants, crash/resume safety, and operational cleanup guidance that must be proven from code lines rather than comments.
