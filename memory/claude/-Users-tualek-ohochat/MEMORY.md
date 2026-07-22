@@ -11,3 +11,4 @@
 - [Confirm before editing on question phrasing](feedback_confirm_before_editing_on_question_phrasing.md) — "แก้...ได้ไหม" is a question not go-ahead; wait for explicit "แก้เลย"/"go"
 - [Unread incident + unread_by refactor](project_unread_by_refactor.md) — oho-api read_by→unread_by state, flag off, plan.md; never $nin on array hot path
 - [Smartchat deep-link channel regression](project_smartchat_deeplink_channel_regression.md) — v1.113.0 (commit 2692b732) ลบ channel_id จาก direct contact fetch → restricted member เปิดห้องผ่านลิงก์ไม่ได้ แต่ search เจอ
+- [Unread migration ordering](project_unread_migration_ordering.md) — flag ปิดตอน migrate เสมอ, ห้ามแตะ oho-api, ลำดับ migrate → เปิด flag → recap
