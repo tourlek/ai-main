@@ -1232,3 +1232,257 @@ References:
 - `glab mr diff 32`
 - `git diff --check b3a96113c8c15408a487352d5e38a7ec5d50c3ef 18d4af10d7c74fd8a736a4e839df8052f9c02900`
 
+## Thread `019f8412-1e0f-7e93-b5dd-807abd10d7d0`
+updated_at: 2026-07-21T09:58:39+00:00
+cwd: /Users/tualek/ohochat/oho-api
+rollout_path: /Users/tualek/.codex/sessions/2026/07/21/rollout-2026-07-21T16-46-47-019f8412-1e0f-7e93-b5dd-807abd10d7d0.jsonl
+rollout_summary_file: 2026-07-21T09-46-47-Fnuo-script_oho_catchup_adversarial_review.md
+
+---
+description: Adversarial read-only review of a proposed script-oho catchup mitigation against oho-api@master; key takeaway is that exact reconstruction is not possible from current live inputs, catchup needs stronger guards and likely a best-effort/baseline framing rather than a ship-ready exact repair.
+task: review proposed catchup mitigation for unread_by / is_unresponded
+ task_group: /Users/tualek/ohochat/script-oho
+ task_outcome: partial
+cwd: /Users/tualek/ohochat/script-oho
+keywords: script-oho, unread-unresponded, migrate-unread.ts, catchup, unread_by, is_unresponded, oho-api@master, Stream read state, last_contact_date, last_active_at, feature flags, queryChannels, maxTimeMS, checkpoint, guardMisses, overCap, streamMissing, adversarial review
+---
+
+### Task 1: Review proposed catchup mitigation
+
+task: adversarial read-only design review of proposed `--mode=catchup --since=<watermark>` mitigation
+
+task_group: /Users/tualek/ohochat/script-oho
+
+task_outcome: partial
+
+Preference signals:
+- when the user says `Design review, READ-ONLY, adversarial. Do NOT edit files. Do NOT run the migration or anything that connects to a database. Do NOT commit or switch branches.` -> future similar reviews should stay strictly read-only and non-invasive
+- when the user asks for `file:line evidence` for every answer and says `If evidence is not in the repo, say 'cannot verify from repo' rather than guessing` -> future similar reviews should default to hard citations and explicit uncertainty
+- when the user asks for `Answer EACH question below` and wants a final verdict on whether the mitigation is `sound enough to ship` -> future similar reviews should stay structured, question-by-question, and end with an explicit ship/no-ship judgment
+
+Reusable knowledge:
+- `oho-api@master:src/utils/build-customer-message-unread-payload.ts:24-38` shows customer-message SET payloads are split by feature flags; `unread_by` is only written when unread is enabled and eligible members are known, and `is_unresponded` is only written when unresponded is enabled.
+- `oho-api@master:src/utils/channel-eligible-members.ts:12-18,59-93` shows the runtime cap is 2000 eligible members; above cap it returns `null` and skips unread tracking entirely.
+- `oho-api@master:src/webhook/stream.js:94-149` shows Stream `message.read` only `$pull`s unread_by and uses a `last_contact_date` ordering guard; it does not advance timestamps.
+- `oho-api@master:src/services/member-send-message/member-send-message.hooks.js:661-685`, `src/services/member-send-message/bulk/bulk.class.js:186-202`, `src/services/chat-session/group/member/send-message/send-message.hooks.js:419-428`, `src/services/chat-session/group/bot/send-message/internal/internal.class.js:24-35`, and `src/services/contact/helper-hook/prepare-close-case-contact-update-data.ts:51-68` show the main CLEAR paths are unconditional CLEARs with timestamp guards.
+- `script-oho/unread-unresponded/migrate-unread.ts:2244-2447` defines catchup as an unconditional recompute over docs touched since `--since`, using Stream read state plus `classifyIsUnresponded()` and write guards on only `last_contact_date`/`last_active_at`.
+- `script-oho/unread-unresponded/helpers/steps.ts:129-140` defines the proposed catchup watermark as `last_contact_date >= since OR last_active_at >= since`.
+- `script-oho/unread-unresponded/helpers/migration-cli.ts:476-480` rejects catchup without `--include-stream`, and `:502-507` gives catchup its own state-file suffix so it cannot be mistaken for backfill.
+- `script-oho/unread-unresponded/migrate-unread.ts:2391-2403` shows the actual catchup write guard only checks `_id`, `last_contact_date`, and `last_active_at`, which is insufficient for exact reconstruction under concurrent live writes.
+- `script-oho/unread-unresponded/migrate-unread.ts:2724-2743` shows completion in catchup depends on guard/skip counters, not a read-only residual scan like backfill.
+
+Failures and how to do differently:
+- The proposed catchup is not an exact repair because it recomputes from current eligibility and Stream state rather than from a historical event log; this can retroactively change unread state for members whose permissions changed during the window.
+- `classifyIsUnresponded()` is not a faithful live state-machine clone; customer messages can leave `chat_status` stale, and CLEARs occur independently of the feature flag, so the classifier can flip state incorrectly.
+- The catchup watermark is not sufficient to find every doc whose badge state can change, because several CLEAR paths do not advance either `last_contact_date` or `last_active_at`.
+- Group `is_unresponded` is omitted by the current catchup pass, so the proposal as written is incomplete even before correctness/race issues.
+- Over-cap / missing-Stream docs should be treated as explicit exclusions or separate repair classes, not silently counted as success.
+- Aggregate numeric completion checks (`guardMisses/overCap/streamMissing`) are too weak for a busy large tenant; future work should use identity-based retry/residual verification or explicitly frame the pass as best effort.
+
+References:
+- `script-oho/unread-unresponded/migrate-unread.ts:568-624` — unread_by derivation from Stream read state + current eligible members.
+- `script-oho/unread-unresponded/migrate-unread.ts:2354-2434` — catchup pass, skip logic, and guarded write shape.
+- `script-oho/unread-unresponded/migrate-unread.ts:2488-2499` — group sessions are unread_by-only in catchup; no `is_unresponded` repair.
+- `script-oho/unread-unresponded/migrate-unread.ts:2724-2743` — catchup completion criteria.
+- `oho-api@master:src/services/contact-send-message/contact-send-message.hooks.js:157-236` and `oho-api@master:src/services/chat-session/group/contact-user/send-message/send-message.class.js:19-36` — customer-message SET paths.
+- `oho-api@master:src/services/member-send-message/member-send-message.hooks.js:661-685`, `src/services/member-send-message/bulk/bulk.class.js:186-202`, `src/services/chat-session/group/member/send-message/send-message.hooks.js:419-428`, `src/services/chat-session/group/bot/send-message/internal/internal.class.js:24-35`, `src/services/bot-send-message/broadcast/broadcast.hooks.js:320-330`, `src/services/bot-send-message/notify/notify.hooks.js:527-537`, `src/services/bot-send-message/inform-message/inform-message.hooks.js:418-428`, `src/services/contact/helper-hook/prepare-close-case-contact-update-data.ts:51-68` — CLEAR paths.
+
+### Task 2: Assess scale/index/completion feasibility
+
+task: review 5-6M scale, query-plan risk, `maxTimeMS`, and completion criteria for the proposed catchup/backfill flow
+
+task_group: /Users/tualek/ohochat/script-oho
+
+task_outcome: partial
+
+Preference signals:
+- when the user asks `assess the query plan risk ... what index/paging change would make 5-6M feasible` -> future similar reviews should include concrete index/paging recommendations, not just risk commentary
+- when the user asks whether the tightened completion criteria are satisfiable on a busy large tenant -> future similar reviews should include an operational realism check, not just logical correctness
+
+Reusable knowledge:
+- `script-oho/unread-unresponded/migrate-unread.ts:185-198` centralizes paged reads through `_id` sort plus `maxTimeMS=QUERY_MAX_TIME_MS`.
+- `oho-api@master:src/models/contact.model.js:429-432,562-565,632-665` shows the relevant contact indexes, but none naturally matches `_id`-sorted pagination over the catchup OR predicate.
+- `oho-api@master:src/models/chat-session.model.js:109-152` shows similar limitations for group sessions.
+- `script-oho/unread-unresponded/migrate-unread.ts:2332-2434` shows Stream pacing (`STREAM_QUERY_BATCH=30`, `STREAM_DELAY_MS=300`) and write throttling.
+- `script-oho/unread-unresponded/migrate-unread.ts:2788-2849` writes a catchup report; `:2421-2433` emits per-batch heartbeat metrics.
+
+Failures and how to do differently:
+- `maxTimeMS` is a failure shield, not a scalability fix. If the plan is not indexable, a 60s timeout simply turns the issue into a hard stop.
+- Aggregate completion criteria are too weak for large busy tenants; identity-based residuals or explicit best-effort framing are needed when Stream state, eligibility, and timestamps can diverge.
+
+References:
+- `script-oho/unread-unresponded/migrate-unread.ts:185-198` — paged read helper.
+- `oho-api@master:src/models/contact.model.js:429-432,562-565,632-665` — contact indexes.
+- `oho-api@master:src/models/chat-session.model.js:109-152` — chat-session indexes.
+- `script-oho/unread-unresponded/migrate-unread.ts:2332-2434` — catchup pacing.
+- `script-oho/unread-unresponded/migrate-unread.ts:2724-2743` and `:3142-3160` — completion criteria and residual checks.
+
+## Thread `019f8442-2665-7082-a710-f24709dca055`
+updated_at: 2026-07-21T10:51:30+00:00
+cwd: /Users/tualek/ohochat/oho-api
+rollout_path: /Users/tualek/.codex/sessions/2026/07/21/rollout-2026-07-21T17-39-15-019f8442-2665-7082-a710-f24709dca055.jsonl
+rollout_summary_file: 2026-07-21T10-39-15-ce7r-migrate_unread_final_review_option_a_no_unresponded_backfill.md
+
+---
+description: third-pass read-only review of unread/unresponded migration; decided Option A (backfill unread_by only, leave is_unresponded absent), with follow-on plan to remove unresponded migration paths and use explain-based preflight plus minimal indexing
+task: third-and-final-review-pass-on-mongodb-migration
+task_group: /Users/tualek/ohochat/script-oho / migrate-unread correctness review
+task_outcome: success
+cwd: /Users/tualek/ohochat/script-oho
+keywords: migrate-unread, unread_by, is_unresponded, option A, explain preflight, hint, checkpoint v3, residual IDs, group index, chat-sessions, fail-closed CLI, read-only review
+---
+
+### Task 1: Decide whether to backfill `is_unresponded`
+
+task: third-pass source audit of `oho-api@master` and `script-oho/unread-unresponded` for whether `is_unresponded` can be reconstructed
+
+task_group: /Users/tualek/ohochat/oho-api + /Users/tualek/ohochat/script-oho migration review
+task_outcome: success
+
+Preference signals:
+- when the user said “do not soften now — but the deliverable this time is ONE DECIDED PLAN, not another catalogue of concerns” -> future similar reviews should converge to one choice and avoid handing back a concern list
+- when the user required “Verify every factual claim in the brief against source before relying on it” and “cite file:line for each load-bearing claim” -> future similar work should default to line-cited proof and explicitly say “cannot verify from repo” when proof is missing
+- when the user said “If you must assume, name the assumption” -> future plans should separate evidence from assumptions instead of blending them into conclusions
+
+Reusable knowledge:
+- Contact customer-message handling writes `last_active_at` and `last_contact_date` via separate guarded updates; same-timestamp behavior is normal but not an invariant.
+- `chat_status` is not a reliable historical reply classifier because it conflates customer-message fallback and bot fallback cases.
+- The inbox send path is a known asymmetry: it advances `last_active_at` but does not clear `is_unresponded`.
+- The safest migration policy from the audited source is to leave historical `is_unresponded` absent rather than infer it.
+
+Failures and how to do differently:
+- The brief’s timestamp-classifier draft relied on insufficient provenance; future runs should reject heuristics unless the repo exposes a true reply ledger.
+- Do not assume the migration is the only actor affecting user-visible state; clear paths remain unconditional when the field exists.
+
+References:
+- `oho-api/src/services/contact-send-message/contact-send-message.hooks.js:164-167, 230-237`
+- `oho-api/src/services/chat-session/group/contact-user/send-message/send-message.class.js:19-36`
+- `oho-api/src/utils/update-contact-last-active-at.js:12-19`
+- `oho-api/src/services/member-send-message/member-send-message.hooks.js:634-686`
+- `oho-api/src/services/bot-send-message/bot-send-message.hooks.js:540-576`
+- `oho-api/src/utils/build-customer-message-unread-payload.ts:24-38`
+- `oho-api/src/models/contact.model.js:211-219`
+- `oho-api/src/models/chat-session.model.js:78-86`
+
+### Task 2: Decide classifier / filter shape
+
+task: determine whether a pure classifier or Mongo filter should be used for `is_unresponded`
+
+task_group: migration design review
+task_outcome: success
+
+Preference signals:
+- when the user asked for “the final classifier rule, as a pure function and as a Mongo filter” but the audit concluded the honest answer was that the classifier should not exist -> future similar reviews should answer “not applicable” when the evidence says the feature should be omitted
+- when the user asked to “Attack the draft above” -> future similar work should actively reject unsafe heuristics rather than merely weakening them
+
+Reusable knowledge:
+- `first_chat_at` can exclude contacts that never messaged, but it does not prove whether later activity was a reply.
+- `assigned_at` was unsafe because the contact schema uses `assign_at`, not a top-level `assigned_at`; whether historical documents persisted an undeclared top-level `assigned_at` could not be verified from the repo.
+- Timestamp tolerance increases false matches rather than fixing the ambiguity.
+
+Failures and how to do differently:
+- A timestamp-based heuristic can misclassify assignment/status/comment/spam actions as replies.
+- The migration CLI still exposes unresponded passes unless the operator explicitly skips them; relying only on an opt-out flag is weaker than deleting the path.
+
+References:
+- `script-oho/unread-unresponded/helpers/migration-cli.ts:479-485`
+- `oho-api/src/models/contact.model.js:154-164, 185-188`
+
+### Task 3: Decide index and paging strategy
+
+task: adjudicate contact vs group indexing and paging preflight for the migration
+task_group: migration execution hardening
+task_outcome: success
+
+Preference signals:
+- when the user asked to “Adjudicate the index/paging disagreement” and “Give one answer” -> future similar decisions should pick one side and tie it to a concrete preflight rule
+- when the user insisted the checked-out tree is stale and `oho-api@master` is the source of truth -> future similar repo decisions should trust branch `master` evidence, not the working tree
+
+Reusable knowledge:
+- `pagedFind()` currently does keyset pagination on `_id` but does not use `hint()` or `explain()`.
+- Contacts already have a `business_id + _id` index on `master`; group sessions do not have the needed `_id`-ordered index for this migration path.
+- The explain-based preflight should refuse execution if the plan is a collection scan or blocking sort.
+
+Failures and how to do differently:
+- It is not enough to say a plan is “probably fine”; the rollout only accepted the plan after tying it to concrete index declarations and a fail-closed explain check.
+- The residual-count logic can numerically cancel unrelated documents, so “done” must be exact-ID based rather than aggregate-count based.
+
+References:
+- `script-oho/unread-unresponded/migrate-unread.ts:177-190, 238-250`
+- `oho-api/src/models/contact.model.js:621-624`
+- `oho-api/src/models/chat-session.model.js:109-137`
+
+### Task 4: Produce an ordered production plan
+
+task: write one ordered plan from current state to production rollout completion
+task_group: migration runbook / production readiness
+task_outcome: success
+
+Preference signals:
+- when the user required “one ordered plan” including dependencies, parallelism, and explicit human decisions -> future similar plans should be sequenced, not freeform
+- when the user’s rollout shape already agreed on per-tenant migration followed by immediate tenant flag-on -> future plans should preserve that operational sequencing unless the user changes it
+
+Reusable knowledge:
+- The current code already has a separate `cleanup-read-by` mode that is gated by checkpoint membership and dedicated confirmation.
+- The CLI is fail-closed: `.env.<env>` selection, a matching `--confirm`, and explicit `--execute` are required.
+- Production rollout should only proceed after explicit database authorization and explain/index verification.
+
+Failures and how to do differently:
+- Current checkpoint/residual logic is count-based in places where exact identity is safer; exact ID tracking should be a prerequisite, not an optional enhancement.
+- The old status file’s cumulative counters cannot be trusted as per-tenant proof; treat them as advisory until exact IDs are reconciled.
+
+References:
+- `script-oho/unread-unresponded/migrate-unread.ts:2084-2112, 2126-2134`
+- `script-oho/unread-unresponded/helpers/migration-cli.ts:321-334, 401-412`
+- `script-oho/migrate-unread-by-status-prod-explicit-target.json:2-14, 26-69`
+
+### Task 5: Identify incorrect or missing claims
+
+task: final pass over the brief for overstated claims and missing constraints
+task_group: evidence audit / postmortem
+task_outcome: success
+
+Preference signals:
+- when the user asked for “Anything in the above you believe is still wrong or missing” -> future similar reports should explicitly enumerate corrections and not just provide the main answer
+- when the user demanded evidence-dense language and “cannot verify from repo” rather than guessing -> future similar reports should keep uncertainty visible
+
+Reusable knowledge:
+- The inbox send path advances `last_active_at` without clearing `is_unresponded`; any rollout that turns on the unresponded flag must either accept that false-positive path or defer the feature until API behavior changes.
+- The old status file proves a prior run happened, but not that the named three tenants each received the cumulative `s0a` total.
+- External operational facts, production state, and retention assumptions should not be encoded as repo facts.
+
+Failures and how to do differently:
+- Do not treat cumulative counts as proof of per-tenant effect unless the artifact explicitly preserves per-tenant attribution.
+- Do not convert assumptions about production state into assertions about the codebase.
+
+References:
+- `oho-api/src/services/member-send-message/inbox/inbox.hooks.js:143-159`
+- `script-oho/migrate-unread-by-status-prod-explicit-target.json:2-14, 26-69`
+
+### Task 6: Final plan synthesis
+
+task: synthesize final production plan from source audit and migration code review
+task_group: migration readiness / final recommendation
+task_outcome: success
+
+Preference signals:
+- the user required the final output to be machine-consumed and terse, so future similar syntheses should remain compact, decision-oriented, and citation-heavy
+- the user wanted the rollout shaped as a per-tenant migration with immediate tenant flag enablement, not a catchup mode
+
+Reusable knowledge:
+- Keep `is_unresponded` absent; do not backfill it.
+- Use explain-based preflight and a minimal group index rather than broad new contact indexes.
+- Treat guard misses, Stream-missing docs, over-cap docs, and residual counts as exact-ID reconciliation problems, not just counters.
+- `read_by` cleanup remains a separate gated mode to run after the main rollout.
+
+Failures and how to do differently:
+- The old status file could not cleanly attribute its cumulative numbers to the named tenants, so future rollouts should not use it as proof of tenant-specific writes.
+- There is a known inbox-send asymmetry that may require product-owner acceptance before enabling `is_unresponded`-related behavior.
+
+References:
+- `script-oho/unread-unresponded/migrate-unread.ts:730-735, 884-888, 1024-1057, 1406-1469, 1729-1734`
+- `oho-api/src/utils/channel-eligible-members.ts:28-35, 78-92`
+- `oho-api/src/models/chat-session.model.js:109-137`
+- `oho-api/src/models/contact.model.js:621-624`
+- `oho-api/src/services/member-send-message/inbox/inbox.hooks.js:143-159`
+
