@@ -1232,6 +1232,159 @@ References:
 - `glab mr diff 32`
 - `git diff --check b3a96113c8c15408a487352d5e38a7ec5d50c3ef 18d4af10d7c74fd8a736a4e839df8052f9c02900`
 
+## Thread `019f83c2-4d93-7f91-b205-955f99879506`
+updated_at: 2026-07-21T08:28:49+00:00
+cwd: /Users/tualek/ohochat/oho-api
+rollout_path: /Users/tualek/.codex/sessions/2026/07/21/rollout-2026-07-21T15-19-37-019f83c2-4d93-7f91-b205-955f99879506.jsonl
+rollout_summary_file: 2026-07-21T08-19-36-jN8a-unread_migration_flag_ordering_adversarial_review.md
+
+---
+description: Read-only adversarial review of unread/unresponded migration and flag-ordering claims; main durable takeaway is that clear-write paths are flag-ungated but still ordering-guarded, while Step 0 legacy read_by backfill can overwrite live unread_by and makes "flag-on-first" unsafe without additional write-prep gating.
+task: adversarial review of migrate-unread.ts claims and rollout ordering
+ task_group: /Users/tualek/ohochat/script-oho + /Users/tualek/ohochat/oho-api
+ task_outcome: success
+cwd: /Users/tualek/ohochat/oho-api
+keywords: migrate-unread.ts, unread_by, is_unresponded, feature flags, ordering guards, read_by cleanup, secondaryPreferred, checkpoint, status file, analyze-business-size, computeBadgeCounts, channel-eligible-members, firebase-remote-config, master branch, read-only review
+---
+
+### Task 1: Verify/refute 13 migration and flag-order claims
+
+task: adversarial code review of claims 1-13 against source
+ task_group: /Users/tualek/ohochat/script-oho + /Users/tualek/ohochat/oho-api
+ task_outcome: success
+
+Preference signals:
+- when the user said "Adversarial code review, READ-ONLY" and "Do not trust the draft findings file's claims at face value" -> do independent re-derivation from source, not agreement with the draft.
+- when the user required "Every claim you make must cite file:line evidence you actually read" -> keep review citation-dense and grounded in direct source reads.
+- when the user requested per-claim verdicts `CONFIRMED / PARTIALLY CORRECT / REFUTED / CANNOT VERIFY` -> preserve a structured itemized format for similar future reviews.
+
+Reusable knowledge:
+- `buildCustomerMessageUnreadPayload()` gates SET writes on flags, but clear writes remain unconditional and are still protected by `last_contact_date` / timestamp ordering guards.
+- `migrate-unread.ts` Step 0 legacy `read_by` conversion can recompute or unset `unread_by` from stale legacy state and can therefore conflict with live writes if run in the wrong order.
+- `script-oho`'s migration/checkpoint model is stateful: checkpoint membership, status totals, and cleanup eligibility are separate artifacts and should not be conflated.
+- The current `oho-api` master schema and runtime code are the truth source, not the checked-out `script-oho` worktree or a prior draft findings file.
+
+Failures and how to do differently:
+- Do not collapse "ungated by feature flag" into "unguarded"; the runtime clear paths still use ordering guards.
+- Be conservative about claims that depend on live production state (e.g. whether an index exists in prod) unless an explicit artifact verifies it.
+- Flag-on-first is unsafe when legacy backfill can still overwrite live `unread_by` from `read_by`.
+
+References:
+- `script-oho/unread-unresponded/migrate-unread.ts:1-84, 108-183, 356-464, 588-966, 971-1168, 1190-1437, 1441-1671, 1679-1879, 1888-2328`
+- `oho-api@master:src/utils/build-customer-message-unread-payload.ts:24-38`
+- `oho-api@master:src/utils/build-clear-unread-unresponded-payload.ts:17-33`
+- `oho-api@master:src/webhook/stream.js:94-172`
+- `oho-api@master:src/services/member-send-message/member-send-message.hooks.js:634-686`
+- `oho-api@master:src/services/member-send-message/bulk/bulk.class.js:171-208`
+- `oho-api@master:src/services/bot-send-message/bot-send-message.hooks.js:540-576`
+- `oho-api@master:src/services/contact/helper-hook/prepare-close-case-contact-update-data.ts:51-69`
+- `oho-api@master:src/services/contact-send-message/contact-send-message.hooks.js:213-237`
+- `oho-api@master:src/utils/channel-eligible-members.ts:10-38, 40-116`
+- `oho-api@master:src/utils/compute-badge-counts.ts:32-95, 114-139`
+- `oho-api@master:src/services/contact/helper-hook/convert-unread-unresponded-query.ts:29-84`
+- `oho-api@master:src/models/contact.model.js:211-219, 638-664`
+- `oho-api@master:src/models/chat-session.model.js:78-86, 128-152`
+- `oho-api@master:src/firebase-remote-config.js:184-215`
+- `script-oho/unread-unresponded/analyze-business-size.ts:47-65, 246-345`
+- `script-oho/migrate-unread-by-status-prod-explicit-target.json:1-75`
+- `script-oho/reports/migrate-unread-report-prod-gate-small-2026-07-08T14-33-49.md:45-58`
+
+### Task 2: Decide migration/flag rollout ordering
+
+task: determine whether to migrate before or after enabling flags
+ task_group: migration ordering / rollout safety
+ task_outcome: success
+
+Preference signals:
+- when the user asked for "the central question: is it safe to run the migration BEFORE turning the flags on?" -> answer with a concrete safe protocol, not just a generic risk summary.
+- when the user asked to evaluate the "third option" `flag || field-exists` -> test that proposal against the actual guards and failure modes, rather than accepting it as a fix.
+- when the user asked about per-tenant migrate-then-flip timing and cited per-business durations -> use the actual runtime spread when deciding whether a manual paired rollout is operationally realistic.
+
+Reusable knowledge:
+- The current code supports a stronger ordering than either pure flag-first or pure migrate-first: treat migration as write-prep, then enable public reads after the tenant is proven correct.
+- The backfill can still rewrite live `unread_by` from stale `read_by`; that is the dominant reason flag-on-first is unsafe without more gating.
+- `flag || field-exists` is not an ordering fix once the fields already exist; it mainly duplicates current clear-write behavior.
+- A few long-running businesses mean "migrate then flip within minutes" is not an atomic safety boundary.
+
+Failures and how to do differently:
+- Do not reason only about state decay; also reason about live write races and about read/count-side exposure while the tenant is half-migrated.
+- Cross-check both write paths and read/count paths together before recommending rollout order.
+
+References:
+- `oho-api@master:src/webhook/stream.js:127-172`
+- `oho-api@master:src/services/member-send-message/member-send-message.hooks.js:667-685`
+- `oho-api@master:src/services/member-send-message/bulk/bulk.class.js:186-202`
+- `oho-api@master:src/services/bot-send-message/bot-send-message.hooks.js:564-575`
+- `oho-api@master:src/services/contact/helper-hook/convert-unread-unresponded-query.ts:29-84`
+- `oho-api@master:src/utils/compute-badge-counts.ts:62-95`
+- `oho-api@master:src/utils/build-customer-message-unread-payload.ts:28-38`
+- `script-oho/unread-unresponded/migrate-unread.ts:393-464, 615-674, 733-791, 857-946, 971-1155, 1215-1257, 1394-1420, 1546-1560, 2012-2177`
+- `script-oho/reports/migrate-unread-report-prod-gate-small-2026-07-08T14-33-49.md:45-58`
+- `script-oho/migrate-unread-by-status-prod-explicit-target.json:1-75`
+
+### Task 3: Surface missed bugs/races/operational hazards
+
+task: identify hazards not in the draft findings
+ task_group: migration correctness / ops review
+ task_outcome: success
+
+Preference signals:
+- when the user asked for "What the Claude agents missed" -> prioritize latent correctness and operational hazards over the obvious claim-by-claim verdicts.
+- when the user called this the "highest-value section" -> spend review effort on cross-cutting issues such as checkpoint semantics, stale reads, and drift between producer/consumer artifacts.
+
+Reusable knowledge:
+- `secondaryPreferred` reads can make migration/reconcile think a guarded write did not happen, while the code may still checkpoint the business.
+- Cleanup uses a fresh runtime view of complete channels and checkpoint membership, so a business/channel snapshot can drift between backfill and cleanup.
+- Status writes are atomic-renamed, but checkpoint writes are direct and parse errors degrade to empty-set restart behavior.
+- The monitor and migration report schemas are already out of sync; shared step definitions should be reused if the tool remains maintained.
+
+Failures and how to do differently:
+- Treat intent counters as intent, not proof of successful mutation.
+- Checkpoint files and status files have different durability properties; do not assume both are equally safe.
+- If a migration script reuses live runtime lookup logic, long-running per-business windows can introduce stale eligibility drift even without a direct write race.
+
+References:
+- `script-oho/unread-unresponded/migrate-unread.ts:1441-1459, 1465-1535, 1660-1671, 1704-1739, 1793-1868, 2012-2177, 2248-2309`
+- `script-oho/unread-unresponded/analyze-business-size.ts:151-165, 246-345, 417-442`
+- `script-oho/unread-unresponded/monitor-migrate-unread.ts:78-176`
+- `script-oho/unread-unresponded/helpers/biz-summary.ts:1-72`
+- `script-oho/unread-unresponded/helpers/classify-is-unresponded.ts:31-52`
+- `oho-api@master:src/utils/channel-eligible-members.ts:59-93`
+- `oho-api@master:src/firebase-remote-config.js:19-70`
+
+### Task 4: Rank script improvements
+
+task: propose CLI, dry-run, confirmation, split, dedup, observability changes
+ task_group: migration tooling / rollout hardening
+ task_outcome: success
+
+Preference signals:
+- when the user asked for a ranked improvement plan with CLI ergonomics, dry-run default, confirmation banner, file split, deduplication, and observability -> keep P0/P1/P2 separation and recommend what is required before prod.
+- when the user asked whether a file split is worth it for a one-shot migration script -> do not over-engineer into a large module split right before a prod run; prefer a minimal extraction if any.
+
+Reusable knowledge:
+- `package.json` exposes `migrate:unread`, `migrate:unread:cleanup-read-by`, `monitor:unread`, and `analyze:business-size`; `ecosystem.config.js` hard-codes `NODE_ENV: "prod"` and PM2 restart behavior.
+- The current runbook is local/ignored and uses `db.chat_sessions` even though the model collection name is `chat-sessions`.
+- Mongoose defaults to `autoIndex:true` unless configuration disables it, so model-init index creation can happen unless deployment config says otherwise.
+- Migration, analysis, and monitor output have step-label drift; one shared step-definition source would reduce that.
+
+Failures and how to do differently:
+- A full `config / db / passes/* / runner / state / reporting` split is likely too much before a one-shot production run; the high-risk surface is ordering/state, not file count.
+- Dry-run defaults must fail closed and require explicit scope and confirmation tied to the actual target DB/host, not just a generic env label.
+- Index readiness should be verified explicitly rather than assumed from boot behavior.
+
+References:
+- `script-oho/package.json:8-11`
+- `script-oho/ecosystem.config.js:1-77`
+- `script-oho/unread-unresponded/migrate-unread.ts:1888-2328`
+- `script-oho/unread-unresponded/analyze-business-size.ts:1-450`
+- `script-oho/unread-unresponded/monitor-migrate-unread.ts:1-230`
+- `script-oho/unread-unresponded/helpers/biz-summary.ts:1-72`
+- `script-oho/unread-unresponded-deploy-runbook.md:24-183`
+- `oho-api@master:src/mongoose_connector.js:12-21, 72-87, 117-120`
+- `node_modules/mongoose/lib/index.js:66-71, 196-198`
+- `node_modules/mongoose/lib/model.js:1304-1316`
+
 ## Thread `019f8412-1e0f-7e93-b5dd-807abd10d7d0`
 updated_at: 2026-07-21T09:58:39+00:00
 cwd: /Users/tualek/ohochat/oho-api
@@ -1485,4 +1638,173 @@ References:
 - `oho-api/src/models/chat-session.model.js:109-137`
 - `oho-api/src/models/contact.model.js:621-624`
 - `oho-api/src/services/member-send-message/inbox/inbox.hooks.js:143-159`
+
+## Thread `019f8a65-96f5-7a71-a99e-19040bdcad19`
+updated_at: 2026-07-22T15:22:38+00:00
+cwd: /Users/tualek/ohochat/oho-webhook
+rollout_path: /Users/tualek/.codex/sessions/2026/07/22/rollout-2026-07-22T22-15-41-019f8a65-96f5-7a71-a99e-19040bdcad19.jsonl
+rollout_summary_file: 2026-07-22T15-15-41-t20F-oho_api_member_send_message_locking_retry_review.md
+
+---
+description: Read-only source review of six `member-send-message` performance/locking claims in `oho-api`; confirmed lock/retry/axios/reference_id behaviors, found dead 429 retry branches, and identified early-ack redesign hazards plus safe backgroundable hooks.
+task: verify claims about member-send-message performance/locking behavior with exact file:line evidence
+task_group: /Users/tualek/ohochat/oho-api read-only code review
+task_outcome: success
+cwd: /Users/tualek/ohochat/oho-api
+keywords: oho-api, member-send-message, redlock, retry-backoff, axios timeout, StreamChat, reference_id, early-ack, socket-reconcile, chat_session lock, code review
+---
+
+### Task 1: Verify six claims about `member-send-message` internals and produce redesign risk review
+
+task: read-only verification of six claims about member-send-message locking, retries, timeouts, Stream retries, after-hook dependencies, and reference_id propagation
+task_group: oho-api code review / performance + correctness
+task_outcome: success
+
+Preference signals:
+- when the user said "read the actual source code" and "precision matters — every verdict must cite exact file:line evidence from the real code, not inference" -> future similar reviews should stay strictly evidence-backed and cite exact lines.
+- when the user said "Do not modify any code — this is a read-only verification and review task" -> keep similar tasks read-only and avoid opportunistic fixes.
+- when the user asked for claim verdicts plus an independent "second-reviewer opinion" and "Top 3 highest-impact, lowest-risk changes" -> structure future review output as verdicts plus a separate risk/mitigation section.
+- when the user asked to trace whether `reference_id` reaches Stream and/or the API response -> verify correlation IDs end to end rather than assuming they propagate.
+
+Reusable knowledge:
+- `member-send-message` acquires `contact:$1:chat_session` in the before-hook and releases only in after/error hooks, so platform/Stream work sits inside the lock window unless hook order changes.
+- The lock auto-extension timer is 200ms, but extension happens only when the lock is close to expiry; `LOCK_MS` is 3000ms and `LOCK_EXTEND_GAP_MS` is 1000ms.
+- Other `contact:$1:chat_session` users include member assignment, bot assignment, member respond, and close-chat actions; `active-case` / `case` create flows use `contact:$1:active_case` instead.
+- `shouldRetryOnFacebookTooManyRequests`, `shouldRetryOnInstagramTooManyRequests`, and `shouldRetryOnLineTooManyRequests` each contain a dead later `else if (status === 429)` branch because the first `if` already returns false on 429.
+- `createAxiosApi()` defaults to `timeout: 60000`, so omitted per-call timeouts are still bounded to 60s.
+- `callWithStreamChatRetry()` uses `maxRetry: 5` with exponential backoff from 5000ms, yielding delays of 5s, 10s, 20s, 40s, 80s (155s total backoff) and 6 total attempts.
+- `reference_id` is accepted by the schema and preserved in final API responses, but it is not forwarded into the Stream payload in this snapshot.
+
+Failures and how to do differently:
+- The initial claim wording about redlock extension cadence was too strong; use the actual timer/threshold behavior from `resource-lock.js`.
+- The LINE timeout claim needed correction: there is no explicit timeout at the call site, but the shared axios instance still enforces 60s.
+- For worst-case latency, compute both per-bubble retry cost and the total across sequential bubbles because the hook uses `mapSeries`.
+
+References:
+- `src/services/member-send-message/member-send-message.hooks.js:1252-1307, 1313`
+- `src/hooks/lock-resource.js:48-105`
+- `src/utils/resource-lock.js:7-34`
+- `src/services/contact/member-assign/self/self.hooks.js:841`, `src/services/contact/member-assign/team/team.hooks.js:1318`, `src/services/contact/member-assign/member/member.hooks.js:1202`, `src/services/contact/close-chat/no-case/no-case.hooks.js:433`, `src/services/contact/close-chat/end-case/end-case.hooks.js:453`, `src/services/contact/bot-assign/request/request.hooks.js:685`, `src/services/contact/bot-assign/team/team.hooks.js:777`, `src/services/contact/bot-assign/member/member.hooks.js:670`, `src/services/contact/member-respond/reject/reject.hooks.js:590`, `src/services/contact/member-respond/accept/accept.hooks.js:629`, `src/services/contact/member-respond/cancel/cancel.hooks.js:625`
+- `src/utils/retry-backoff.js:117-183, 206-245, 296-305`
+- `src/utils/axios.js:6-14, 94-99`
+- `src/services/integration/facebook/reply-message/reply-message.class.js:30-35`
+- `src/services/integration/instagram/reply-message/reply-message.class.js:30-35`
+- `src/services/member-send-message/member-send-message.class.js:177-192`
+- `src/services/member-send-message/member-send-message.hooks.js:537-670, 673-707, 1008-1043, 1178-1230`
+- `src/utils/message-converter/validator-youpin.js:73-105`
+- `src/utils/message-converter/youpin-to-stream.js:32-320`
+- `src/services/member-send-message/member-send-message.hooks.spec.js:693-837`
+- `src/utils/get-error-message-send-message-fail.js:142-156`
+- `src/services/member-send-message/bulk/bulk.hooks.js:139-169, 649-655`
+- `src/services/member-send-message/member-send-message.class.js:98-171, 239-276, 286-337`
+- `src/hooks/send-oho-webhook-events.js:71-106, 333-420`
+- `src/services/business/hooks/update-last-active-at.js:5-33`
+- `src/utils/hooks/promise-all.js:1-8`
+- `src/sdk/streamChat.js:12-14, 55-67`
+
+## Thread `019f8a8e-191c-7740-8373-583d8f41643f`
+updated_at: 2026-07-22T16:09:45+00:00
+cwd: /Users/tualek/ohochat/oho-webhook
+rollout_path: /Users/tualek/.codex/sessions/2026/07/22/rollout-2026-07-22T22-59-56-019f8a8e-191c-7740-8373-583d8f41643f.jsonl
+rollout_summary_file: 2026-07-22T15-59-56-ExfV-blind_audit_send_message_webhook_oho_api_webhook.md
+
+---
+description: Blind source-code audit of oho-api and oho-webhook send-message/webhook flows; captured exhaustive call-chain tracing, retry/timeout arithmetic, sibling-path deltas, and several correctness risks (dedup/retry, swallowed Cloud Tasks failures, unreachable retry branches, ack-before-work patterns).
+task: blind audit of send-message flows and webhook receipt/worker paths across oho-api and oho-webhook
+task_group: source-code-audit / send-message-webhook-flows
+task_outcome: success
+cwd: /Users/tualek/ohochat/oho-webhook
+keywords: oho-api, oho-webhook, member-send-message, Facebook webhook, LINE webhook, Cloud Tasks, Redlock, Redis dedup, retry-backoff, axios timeout, Stream Chat, bulk send, partner send-message, contact-send-message, bot-send-message, inform-message, tiktok, correctness bugs, silent drop, duplicate message
+---
+
+### Task 1: oho-api outbound send-message flows
+
+task: blind audit of /member-send-message plus sibling send paths in oho-api
+task_group: oho-api send-message audit
+task_outcome: success
+
+Preference signals:
+- when the user said "Independent BLIND audit" and "Do NOT read any *.md report/plan files", treat the audit as source-only and avoid any documentation or prior-plan contamination.
+- when the user said "Exhaustively inventory" and "Before finalizing, grep for every awaited call", run a completeness sweep over async primitives before closing out.
+- when the user required file:line citations for every claim, keep evidence anchored to exact lines in the source tree.
+
+Reusable knowledge:
+- `/member-send-message` validates `messages.max(25)` and acquires a Redlock on `contact:$1:chat_session` via `data.contact_id`.
+- Lock TTL is 3s and the extension gap is 1s; the same lock serializes member assignment, bot assignment, accept/reject/cancel, close-chat, and `/member-send-message`.
+- Facebook/Instagram integration services use `axios.create({ timeout: 60000 })` and the shared retry wrappers, but the 429 retry branches are unreachable; effectively the outer service gets one 60s attempt plus wrapper overhead.
+- LINE outbound in the main member-send path is chunked by 5, processed serially, and retries only ECONNRESET via the shared wrapper; worst-case per chunk is `4*60 + 7 = 247s`.
+- TikTok send path uploads image media first (timeout 60s, concurrency 5), then sends messages serially; failed uploads fall back to sending without `tiktok_media_id`.
+- Stream Chat send calls use `callWithStreamChatRetry` (`maxRetry: 5`, exponential starting at 5s), so a single Stream call can contribute `6*60 + 155 = 515s` worst-case.
+
+Failures and how to do differently:
+- Some helper code swallows errors and returns partial success objects; future audits should check whether downstream hooks ever see the error or only `{ok:false}`.
+- The repo contains several overlapping send paths with similar names; future retrieval should key off route file + service file, not just the service name.
+
+References:
+- `src/services/member-send-message/member-send-message.hooks.js:1243-1317` — before/after/error hook chain.
+- `src/services/member-send-message/member-send-message.class.js:37-339` — platform dispatch and helpers.
+- `src/utils/retry-backoff.js:296-360`, `src/utils/axios.js:6-16` — retry and Axios defaults.
+- `src/hooks/lock-resource.js:43-105`, `src/utils/resource-lock.js:7-13` — lock key pattern and TTL.
+- `src/services/integration/facebook/reply-message/reply-message.class.js:20-50`, `src/services/integration/instagram/reply-message/reply-message.class.js:20-50`, `src/utils/api/tiktok.js:68-72`, `src/services/channel/utils/tiktok.js:131-217` — platform-specific integrations.
+
+### Task 2: oho-webhook inbound receipt, worker chains, and retry/dedup paths
+
+task: blind audit of Facebook/LINE webhook receipt and worker chain in oho-webhook
+task_group: webhook audit
+task_outcome: success
+
+Preference signals:
+- when the user asked for "platform webhook receipt -> ack" and Cloud Tasks worker tracing, start from controller ACK timing and follow through the worker chain.
+- when the user said to "state the ambiguity explicitly", treat dynamic config/feature-flag branches as open questions only if they cannot be resolved from code.
+- when the user required completeness, end with a final async-primitive sweep to make sure every implementation file is represented.
+
+Reusable knowledge:
+- Facebook controller writes source-message metrics, resolves external-app whitelist caches, optionally inserts Cloud Tasks, and can bypass queueing when `USE_QUEUE !== 1`.
+- Facebook worker `handleWebhook` processes entries in `Promise.all`, and errors are turned into HTTP 200 to force Cloud Tasks completion.
+- Facebook dedup is Redis-based and non-atomic (`get` then `setEx`), so concurrent workers can both pass the check; retry tasks can also be dropped as duplicates if they reuse the same key.
+- LINE controller can route through Cloud Tasks or direct worker mode depending on `USE_QUEUE` and `isThrottled`; worker verification and event processing are parallelized over `events[]`.
+- LINE manual retry scheduling composes RMQ and DLQ delays into `330,125s` total scheduled delay (about `91h 42m 5s`) based on the inspected arrays.
+- `send-oho-webhook-events` is intentionally detached, uses a 3s Axios timeout, and is observability-only.
+
+Failures and how to do differently:
+- Some helper failures are swallowed and replaced by 200 responses; future audits should distinguish intended "force completion" from accidental loss of durability.
+- Webhook worker chains contain detached helpers (e.g. forwarding, some state updates); future audits should explicitly mark whether a helper is awaited and whether its failure is user-visible.
+
+References:
+- `src/controllers/facebook/facebook.controller.ts:47-245`, `:247-413` — Facebook receipt + worker.
+- `src/controllers/line/line.controller.ts:38-346`, `src/controllers/line/handler.ts:1146-1347` — LINE receipt + worker.
+- `src/controllers/facebook/block.ts:53-83`, `src/services/redis.service.ts:73-176` — Redis dedup implementation.
+- `src/helpers/external-app-whitelist.ts:17-94`, `src/helpers/cached-channel-profile.ts:31-77` — whitelist cache path.
+- `src/helpers/retry-message.ts:21-455` — retry queue scheduling.
+- `src/helpers/send-oho-webhook-events.js:71-108` — detached outgoing webhook delivery.
+
+### Task 3: sibling send-path divergence audit
+
+task: compare bulk, bot-send-message, partner/send-message, partner-send-message, inform-message, and contact-send-message against main member-send-message
+task_group: sibling send-path audit
+task_outcome: success
+
+Preference signals:
+- when the user asked for "PART C" deltas only, compare against the main path and do not restate identical calls.
+- when the user asked to tag deltas as "concrete risk or benign", separate correctness risk from harmless implementation differences.
+- when the user asked for "one subsection per sibling flow", preserve route-by-route organization.
+
+Reusable knowledge:
+- `bulk` returns `{ok:true}` before all sends settle and does not use the main contact lock.
+- `bot-send-message` and `inform-message` update contact state and log after/around sends, but LINE in `inform-message` does not use the main retry wrapper and Instagram/TikTok are unsupported there.
+- `partner/send-message` is API-key authenticated, validates platform/messages, but does not re-check that the provided `business_id` matches the loaded contact business; it reuses the same platform integration helpers.
+- `partner-send-message` is a separate legacy route that only writes to Stream Chat and does not call platform send helpers.
+- `contact-send-message` updates contact state before Stream writes and swallows Stream failures; it also expands long texts into 5000-character chunks.
+
+Failures and how to do differently:
+- Legacy and new routes have similar names but very different semantics; future audits should identify them by file and route path to avoid mixing them up.
+- Some sibling flows share helpers but differ in sequencing; future comparisons should focus on commit order and await placement, not just helper reuse.
+
+References:
+- `src/services/member-send-message/bulk/bulk.class.js:35-109`, `bulk.hooks.js:636-669` — bulk.
+- `src/services/bot-send-message/bot-send-message.class.js:15-190`, `src/services/bot-send-message/bot-send-message.hooks.js:504-688` — bot-send-message.
+- `src/services/partner/send-message/send-message.hooks.ts:39-480`, `send-message.class.ts:18-161` — partner/send-message.
+- `src/services/partner-send-message/partner-send-message.class.js:1-69`, `partner-send-message.hooks.js:1-163` — legacy partner-send-message.
+- `src/services/bot-send-message/inform-message/inform-message.class.js:18-133`, `inform-message.hooks.js:1-171` — inform-message.
+- `src/services/contact-send-message/contact-send-message.class.js:20-67`, `contact-send-message.hooks.js:242-556` — contact-send-message.
 
