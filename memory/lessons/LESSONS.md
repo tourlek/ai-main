@@ -71,3 +71,8 @@ consolidate: merge duplicates, drop obsolete ones, keep the rule one line each.
 ## 2026-07 — Declared a mobile OTA patch "deployed to customers" from CI pipeline success alone
 - **Mistake**: concluded the incident root cause was code from `hotfix/v2.10.0-hotfix.2` because its GitLab pipeline was the only successful hotfix build — but the Shorebird job trace showed the patch was only promoted to the **staging track**, never production; the mobile team was right (`แต่ทีม mobile ยืนยันนะ`) that customers ran hotfix.1, invalidating a confidently-delivered root cause.
 - **Rule**: for OTA/code-push systems (Shorebird, CodePush, Remote Config), "build succeeded" ≠ "users have it" — read the publish job trace for the track/channel/promotion step (e.g. `Track: Staging`, `Promoting patch to staging`) and confirm against the delivery console or the app's own telemetry before attributing an incident to a build; patches can also ship manually outside CI, so CI history alone can neither convict nor clear a release.
+
+
+## 2026-07 — Declared scanned-PDF duplicate audit complete before cross-checking every name
+- **Mistake**: summarized 15 duplicate-name groups from a single OCR pass, but a second offset and visual pass found `พิมมาดา ลักษณาศัย` was omitted.
+- **Rule**: for scanned-PDF duplicate audits, reconcile the expected item count, canonical tracking IDs, and at least two OCR or crop passes before reporting the final duplicate list.

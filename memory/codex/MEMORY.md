@@ -1,3 +1,53 @@
+# Task Group: /Users/tualek/ohochat / send-message and webhook source audits
+scope: Read-only, source-first audit memory for outbound `oho-api` send paths and inbound `oho-webhook` receipt/worker chains; use for latency, locking, retry, duplicate, silent-drop, early-ack, or sibling-route divergence reviews.
+applies_to: cwd=/Users/tualek/ohochat/oho-api + /Users/tualek/ohochat/oho-webhook; reuse_rule=reuse for similar static audits across these two repos, but pin the exact branch/SHA and retrace hooks, retries, and queue configuration before treating a finding as current.
+
+## Task 1: Blind audit outbound sends, webhook receipt/workers, and sibling divergences; multiple latency and correctness risks found
+
+### rollout_summary_files
+
+- rollout_summaries/2026-07-22T15-59-56-ExfV-blind_audit_send_message_webhook_oho_api_webhook.md (cwd=/Users/tualek/ohochat/oho-webhook, rollout_path=/Users/tualek/.codex/sessions/2026/07/22/rollout-2026-07-22T22-59-56-019f8a8e-191c-7740-8373-583d8f41643f.jsonl, updated_at=2026-07-22T16:09:45+00:00, thread_id=019f8a8e-191c-7740-8373-583d8f41643f, source-only audit of outbound, receipt, worker, retry/dedup, and sibling send paths)
+
+### keywords
+
+- member-send-message, Facebook webhook, LINE webhook, Cloud Tasks, Redis dedup, retry-backoff, axios timeout, Stream Chat, bulk send, partner/send-message, contact-send-message, bot-send-message, inform-message, silent drop, duplicate message
+
+## Task 2: Verify `member-send-message` locking/retries/timeouts/reference_id and early-ack redesign risks
+
+### rollout_summary_files
+
+- rollout_summaries/2026-07-22T15-15-41-t20F-oho_api_member_send_message_locking_retry_review.md (cwd=/Users/tualek/ohochat/oho-webhook, rollout_path=/Users/tualek/.codex/sessions/2026/07/22/rollout-2026-07-22T22-15-41-019f8a65-96f5-7a71-a99e-19040bdcad19.jsonl, updated_at=2026-07-22T15:22:38+00:00, thread_id=019f8a65-96f5-7a71-a99e-19040bdcad19, exact line-cited verification against pinned oho-api snapshot)
+
+### keywords
+
+- member-send-message, redlock, contact:$1:chat_session, LOCK_MS, LOCK_EXTEND_GAP_MS, retry-backoff, status 429, createAxiosApi, callWithStreamChatRetry, reference_id, early-ack, socket-reconcile
+
+## User preferences
+
+- when the user says `Independent BLIND audit` and `Do NOT read any *.md report/plan files` -> trace source only; do not let existing reports or plans contaminate the audit. [Task 1]
+- when the user asks to `Exhaustively inventory` and `Before finalizing, grep for every awaited call` -> finish with an async-primitive completeness sweep, not a narrative-only review. [Task 1]
+- when the user says `precision matters — every verdict must cite exact file:line evidence from the real code, not inference` and `Do not modify any code` -> keep the audit read-only and every verdict source-cited. [Task 2]
+- when the user asks for an early-ack/socket-reconcile redesign review -> provide claim verdicts and a separate risk/mitigation section; trace correlation IDs end-to-end rather than assuming `reference_id` reaches Stream. [Task 2]
+- when comparing sibling send paths, the user asked for `DIVERGENCE` and `concrete risk or benign` -> organize by route/file and emphasize sequencing/await placement over shared helper names. [Task 1]
+
+## Reusable knowledge
+
+- `member-send-message` takes `contact:$1:chat_session` before platform calls and releases it only in after/error hooks. Long platform or Stream work therefore occupies the same lock used by member/bot assignment, member response, and close-chat actions. [Task 1][Task 2]
+- The lock is not extended every 200ms: the timer is 200ms but extension happens only near expiry (`LOCK_MS=3000`, `LOCK_EXTEND_GAP_MS=1000`). [Task 2]
+- `createAxiosApi()` supplies a 60s default even when the LINE call site has no explicit timeout. `callWithStreamChatRetry()` makes six attempts with 5s/10s/20s/40s/80s delays (155s backoff); account for serial messages, not only per-message latency. [Task 1][Task 2]
+- Facebook/Instagram/LINE 429 retry predicates contain dead later `else if (status === 429)` branches because the initial condition already returns false. [Task 1][Task 2]
+- `reference_id` is validated and returned for API correlation but is not forwarded into the Stream payload in the reviewed snapshot. [Task 2]
+- Facebook dedup is non-atomic Redis `get` then `setEx`; concurrent workers can both pass, while a retry that reuses its dedup key can be silently dropped. Facebook worker errors can become HTTP 200 to complete Cloud Tasks. [Task 1]
+- `send-oho-webhook-events` is intentionally detached, 3s-timeout, observability-only work; separate it from awaited customer-visible path dependencies. [Task 1]
+- Do not merge similarly named routes: `bulk` returns `{ok:true}` before all sends settle and lacks the main lock; `partner/send-message` does not re-check contact/business match; legacy `partner-send-message` only writes Stream; `contact-send-message` updates contact state before Stream and swallows Stream failures. [Task 1]
+
+## Failures and how to do differently
+
+- Symptom: retry behavior is inferred from helper names or a claimed 429 branch. Cause: predicate control flow makes the later 429 code unreachable. Fix/pivot: read the full predicate and calculate effective attempts, timeout, backoff, and serial accumulation. [Task 1][Task 2]
+- Symptom: an early ACK or 200 response is assumed safe. Cause: queue completion, detached work, and swallowed errors have different durability/customer-visible semantics. Fix/pivot: trace ACK timing, awaits, error conversion, retry/dedup namespace, and commit order end to end. [Task 1]
+- Symptom: a refactor reduces lock time by moving work to background. Cause: it may detach hard state/Stream dependencies or lose correlation/reconciliation correctness. Fix/pivot: classify each hook as hard dependency, safely backgroundable, or observability-only before changing hook order. [Task 2]
+- Symptom: sibling send routes are treated as equivalent. Cause: route names and shared helpers hide different lock, validation, retry, and failure semantics. Fix/pivot: inventory each route/service and compare deltas against `member-send-message`. [Task 1]
+
 # Task Group: /Users/tualek/ohochat/oho-backoffice / external-message admin UI review
 scope: Read-only review memory for `oho-backoffice` external-message whitelist and app-catalog work, especially GitLab MR diffs, async-state/race correctness, Element UI behavior, and admin data-safety boundaries.
 applies_to: cwd=/Users/tualek/ohochat/oho-backoffice; reuse_rule=reuse for similar review-only admin UI checks in this checkout, but re-check the exact worktree or MR head, framework behavior, and API contract before treating any finding as still open.
@@ -319,7 +369,19 @@ applies_to: cwd=/Users/tualek/ohochat/script-oho; reuse_rule=reuse for similar s
 
 - pagedFind, _id sort, idx_business_id_v1, chat-session index, explain, hint, COLLSCAN, blocking sort, maxTimeMS, 5-6M, migration preflight
 
-## Task 4: Explain how to remove legacy `read_by` after unread migration, cleanup is a separate gated mode
+## Task 4: Adversarially verify flag ordering and migration hazards, flag-on-first refuted without write-prep gating
+
+### rollout_summary_files
+
+- rollout_summaries/2026-07-21T08-19-36-jN8a-unread_migration_flag_ordering_adversarial_review.md (cwd=/Users/tualek/ohochat/oho-api, rollout_path=/Users/tualek/.codex/sessions/2026/07/21/rollout-2026-07-21T15-19-37-019f83c2-4d93-7f91-b205-955f99879506.jsonl, updated_at=2026-07-21T08:28:49+00:00, thread_id=019f83c2-4d93-7f91-b205-955f99879506, adversarial source audit of 13 claims, safe ordering, missed hazards, and hardening priorities)
+
+### keywords
+
+- migrate-unread.ts, flag-on-first, flag || field-exists, read_by, unread_by, last_contact_date, secondaryPreferred, checkpoint, status file, analyze-business-size, monitor-migrate-unread, oho-api@master
+
+- Related skill: skills/script-oho-migrate-unread-review/SKILL.md
+
+## Task 5: Explain how to remove legacy `read_by` after unread migration, cleanup is a separate gated mode
 
 ### rollout_summary_files
 
@@ -329,7 +391,7 @@ applies_to: cwd=/Users/tualek/ohochat/script-oho; reuse_rule=reuse for similar s
 
 - script-oho, migrate-unread.ts, cleanup-read-by, read_by, unread_by, checkpoint, MongoDB, $unset, migration, confirm-cleanup-read-by
 
-## Task 5: Review checkpoint semantics versus cleanup-read-by assumptions, cleanup can trust incomplete proof
+## Task 6: Review checkpoint semantics versus cleanup-read-by assumptions, cleanup can trust incomplete proof
 
 ### rollout_summary_files
 
@@ -339,7 +401,7 @@ applies_to: cwd=/Users/tualek/ohochat/script-oho; reuse_rule=reuse for similar s
 
 - migrate-unread.ts, cleanup-read-by, CHECKPOINT_FILE, INCLUDE_PARTIAL, runLegacyReadByReconcilePass, skippedNoChannel, partial, completed, loadCheckpoint, backfillCompleted, verified, checkpoint safety
 
-## Task 6: Review cleanup cutoff parity, cleanup lacks the 90-day bound used elsewhere
+## Task 7: Review cleanup cutoff parity, cleanup lacks the 90-day bound used elsewhere
 
 ### rollout_summary_files
 
@@ -349,7 +411,7 @@ applies_to: cwd=/Users/tualek/ohochat/script-oho; reuse_rule=reuse for similar s
 
 - readByCutoffDate, DAYS, last_active_at, cleanup-read-by, runReadByToUnreadByPass, runLegacyReadByReconcilePass, resolveBusinessIds, MAX_DOCS_PER_BIZ, filter parity, HAS_LEGACY_READ_BY
 
-## Task 7: Review crash/resume safety and totals refactor, buildTotals wiring confirmed with checkpoint caveats
+## Task 8: Review crash/resume safety and totals refactor, buildTotals wiring confirmed with checkpoint caveats
 
 ### rollout_summary_files
 
@@ -362,29 +424,34 @@ applies_to: cwd=/Users/tualek/ohochat/script-oho; reuse_rule=reuse for similar s
 ## User preferences
 
 - when the user says `Design review, READ-ONLY, adversarial. Do NOT edit files. Do NOT run the migration or anything that connects to a database. Do NOT commit or switch branches.` -> keep similar migration reviews strictly non-invasive and evidence-first. [Task 2]
+- when the user says `Adversarial code review, READ-ONLY` and `Do not trust the draft findings file's claims at face value` -> independently re-derive from source rather than agreeing with a draft. [Task 4]
 - when the user asks for `file:line evidence` for every answer and says `If evidence is not in the repo, say "cannot verify from repo" rather than guessing` -> default to line-cited proof, and keep uncertainty explicit instead of smoothing it over. [Task 1][Task 2]
 - when the user says `do not soften now — but the deliverable this time is ONE DECIDED PLAN, not another catalogue of concerns` -> converge to one choice once the source audit is complete; do not hand back an open-ended concern list. [Task 1]
+- when the central question is whether it is safe to run the migration before enabling flags -> answer with a concrete protocol and test proposed mitigations such as `flag || field-exists` against actual write and read/count paths. [Task 4]
 - when the user says `If you must assume, name the assumption` -> separate evidence from assumptions explicitly in migration plans and rollout advice. [Task 1]
-- when the user asks `ขอสรุปสั้นๆ` and then narrows to `ถ้างั้นถ้า run migration script ที่ script-oho แล้ว จะลบ read_byยังไง` -> switch to short, direct operational instructions once the concept is already established. [Task 4]
-- when the user asks whether removing `read_by` closes the blockers -> separate `migrate unread_by` from `unset read_by` explicitly and state the safety boundary instead of answering as if they are the same step. [Task 4]
-- when the user says `Trace the actual filter/gating logic, not the comments` and asks for line citations -> treat comments as non-binding, ground every behavioral claim in source lines/snippets, and do not smooth over gaps with intent-based reasoning. [Task 5][Task 6]
-- when the user asks for `CONFIRMED / REFUTED / PARTIALLY-CONFIRMED` per item or `Answer EACH question below` -> keep the review tightly structured, question-by-question, and map each verdict to exact code lines. [Task 2][Task 5]
+- when the user asks `ขอสรุปสั้นๆ` and then narrows to `ถ้างั้นถ้า run migration script ที่ script-oho แล้ว จะลบ read_byยังไง` -> switch to short, direct operational instructions once the concept is already established. [Task 5]
+- when the user asks whether removing `read_by` closes the blockers -> separate `migrate unread_by` from `unset read_by` explicitly and state the safety boundary instead of answering as if they are the same step. [Task 5]
+- when the user says `Trace the actual filter/gating logic, not the comments` and asks for line citations -> treat comments as non-binding, ground every behavioral claim in source lines/snippets, and do not smooth over gaps with intent-based reasoning. [Task 6][Task 7]
+- when the user asks for `CONFIRMED / REFUTED / PARTIALLY-CONFIRMED` per item or `Answer EACH question below` -> keep the review tightly structured, question-by-question, and map each verdict to exact code lines. [Task 2][Task 6]
 
 ## Reusable knowledge
 
 - The July 2026 source audits converged on Option A: `unread_by` is reconstructible from Stream read state plus current eligible-member lookup, but historical `is_unresponded` is not reconstructible honestly from Mongo state alone, so the safe plan is to leave `is_unresponded` absent rather than infer it. [Task 1][Task 2]
 - `oho-api@master:src/utils/build-customer-message-unread-payload.ts:24-38` is the SET-side source of truth: `unread_by` is only written when unread is enabled and eligible members are known, and `is_unresponded` is only written when unresponded is enabled. Several CLEAR paths remain unconditional when the field exists. [Task 1][Task 2]
+- Do not call clear writes unguarded: they are flag-ungated, but reviewed clear paths still use `last_contact_date` / event timestamp ordering and field-existence guards. The larger flag-order blocker is Step 0 legacy `read_by` conversion, which can rewrite `unread_by` from stale legacy state after live writes. [Task 4]
+- Safer rollout framing is write-preparation first, then public unread/unresponded reads only after the tenant backfill is proven correct. `flag || field-exists` does not solve the ordering race once fields exist, and a long-running tenant pass is not an atomic “migrate then flip within minutes” boundary. [Task 4]
 - `chat_status` is not a reliable historical reply classifier, and the inbox send path advances `last_active_at` without clearing `is_unresponded`; any rollout that enables historical unresponded behavior must either accept that asymmetry or change API behavior first. [Task 1]
 - The proposed catchup recomputes from current eligibility and Stream state rather than a historical event ledger. That means it can only be framed as best-effort rebaseline, not exact repair, especially when permissions changed during the window or some CLEAR paths did not move `last_contact_date` / `last_active_at`. [Task 2]
 - Catchup’s current write guard checks only `_id`, `last_contact_date`, and `last_active_at`; group `is_unresponded` is not repaired there, and aggregate completion counters (`guardMisses`, `overCap`, `streamMissing`) are weaker than identity-based residual verification. [Task 2][Task 3]
 - For migration execution, `pagedFind()` currently does `_id` keyset pagination without `hint()` / `explain()`. Contacts can reuse `idx_business_id_v1` for tenant-scoped `_id` scans, but group sessions need one minimal `_id`-ordered migration index, and execution should fail closed if explain shows `COLLSCAN` or blocking sort. [Task 1][Task 3]
 - The CLI is already fail-closed: `.env.<env>` selection, matching `--confirm`, and explicit `--execute` are required. Production rollout should stay per-tenant, verify explain/index readiness first, then migrate and enable flags immediately after each tenant pass. [Task 1]
-- `script-oho/unread-unresponded/migrate-unread.ts` already contains a dedicated cleanup path, `--mode=cleanup-read-by`; it is intentionally not auto-chained after backfill. Cleanup writes only when both `--execute` and `--confirm-cleanup-read-by` are present, and it unsets `read_by` on both `contacts` and `chat-sessions`. [Task 4]
-- Cleanup is gated by current checkpoint membership only, and the checkpoint file stores only `{ completed: [...] }`, with no durable proof about reconcile coverage, skipped unresolved channels, or whether a business was verified under the current semantic config. [Task 4][Task 5][Task 7]
-- `INCLUDE_PARTIAL` is opt-in only (`INCLUDE_STREAM && process.env.INCLUDE_PARTIAL === "true"`), and `runLegacyReadByReconcilePass()` only runs inside that branch. A business can still become checkpoint-complete without legacy Stream verification because `partial` means budget exhaustion only and checkpointing checks only `!isDryRun && !result.partial`. [Task 5][Task 7]
-- Step 0a/0b and legacy reconcile both apply `last_active_at: { $gte: readByCutoffDate }` when a cutoff exists, but cleanup does not carry any date window. It filters only by business, current complete channel IDs, and `HAS_LEGACY_READ_BY`. [Task 6]
-- Cleanup mode reads checkpoint membership only and does not itself write checkpoint/status files, so it cannot overwrite backfill state by itself. `CHECKPOINT_SUFFIX` isolates `-explicit-target`, `-gate-${GATE_FILTER}`, and default runs, but not cutoff/stream/partial semantics. `saveStatus()` uses a temp-file rename, while `saveCheckpoint()` writes directly and `loadCheckpoint()` degrades parse errors into an empty set. [Task 7]
-- `buildTotals()` is the single totals builder now: both `saveStatus()` call sites use it, and no third hand-built totals literal remained. `processedCount++` happens before checkpoint eligibility is decided, so status can show business progress that has not been durably checkpointed. [Task 7]
+- `script-oho/unread-unresponded/migrate-unread.ts` already contains a dedicated cleanup path, `--mode=cleanup-read-by`; it is intentionally not auto-chained after backfill. Cleanup writes only when both `--execute` and `--confirm-cleanup-read-by` are present, and it unsets `read_by` on both `contacts` and `chat-sessions`. [Task 5]
+- Cleanup is gated by current checkpoint membership only, and the checkpoint file stores only `{ completed: [...] }`, with no durable proof about reconcile coverage, skipped unresolved channels, or whether a business was verified under the current semantic config. [Task 5][Task 6][Task 8]
+- `INCLUDE_PARTIAL` is opt-in only (`INCLUDE_STREAM && process.env.INCLUDE_PARTIAL === "true"`), and `runLegacyReadByReconcilePass()` only runs inside that branch. A business can still become checkpoint-complete without legacy Stream verification because `partial` means budget exhaustion only and checkpointing checks only `!isDryRun && !result.partial`. [Task 6][Task 8]
+- Step 0a/0b and legacy reconcile both apply `last_active_at: { $gte: readByCutoffDate }` when a cutoff exists, but cleanup does not carry any date window. It filters only by business, current complete channel IDs, and `HAS_LEGACY_READ_BY`. [Task 7]
+- Cleanup mode reads checkpoint membership only and does not itself write checkpoint/status files, so it cannot overwrite backfill state by itself. `CHECKPOINT_SUFFIX` isolates `-explicit-target`, `-gate-${GATE_FILTER}`, and default runs, but not cutoff/stream/partial semantics. `saveStatus()` uses a temp-file rename, while `saveCheckpoint()` writes directly and `loadCheckpoint()` degrades parse errors into an empty set. [Task 8]
+- `buildTotals()` is the single totals builder now: both `saveStatus()` call sites use it, and no third hand-built totals literal remained. `processedCount++` happens before checkpoint eligibility is decided, so status can show business progress that has not been durably checkpointed. [Task 8]
+- `secondaryPreferred` reads can make a guarded write appear not to have happened while the business is still checkpointed. Cleanup re-resolves current complete channels, analyzer coverage differs from migration (`mock_seed_key` exclusion), and monitor/report step schemas drift; treat these artifacts as separate, fallible signals. [Task 4]
 
 ## Failures and how to do differently
 
@@ -392,10 +459,11 @@ applies_to: cwd=/Users/tualek/ohochat/script-oho; reuse_rule=reuse for similar s
 - Symptom: a catchup proposal sounds exact because it uses current Stream read state plus guards. Cause: eligibility, timestamp changes, and CLEAR paths are not historically invertible from current live inputs. Fix/pivot: frame catchup as best effort or residual-repair only, not as ship-ready exact repair. [Task 2]
 - Symptom: `maxTimeMS` or heartbeat logging is treated as proof the migration scales to 5-6M docs. Cause: timeouts and metrics are failure shields, not plan quality. Fix/pivot: inspect real index compatibility, require explain-based preflight, and fail closed on `COLLSCAN` / blocking sort. [Task 2][Task 3]
 - Symptom: migration completion looks good because residual counts net to zero. Cause: aggregate counters can cancel unrelated documents and hide over-cap / skipped identities. Fix/pivot: use exact-ID residuals and retry tracking instead of numeric-only done criteria. [Task 1][Task 2][Task 3]
-- Symptom: `read_by` cleanup is described as if it naturally follows migration. Cause: the script intentionally splits backfill and cleanup for rollback safety. Fix/pivot: keep the sequence explicit, `backfill/spot-check unread_by` first and `cleanup-read-by` second. [Task 4]
-- Symptom: comments say a business is "verified" or cleanup is "safe to drop". Cause: the code does not persist any proof beyond membership in `completed`. Fix/pivot: inspect what the code actually stores and what cleanup consumes before accepting safety claims. [Task 5]
-- Symptom: cleanup appears to mirror backfill/reconcile scope. Cause: the file comments suggest full-population behavior, but the actual queries diverge and cleanup omits the `last_active_at` cutoff. Fix/pivot: compare query objects and cutoff propagation across every related pass. [Task 6]
-- Symptom: future resume logic assumes checkpoint files are durable and config-specific. Cause: checkpoint writes are non-atomic and the suffix key omits semantic dimensions such as cutoff/stream/partial choices. Fix/pivot: treat checkpoint correctness and resume safety as separate review items, not as implied by shared file names alone. [Task 7]
+- Symptom: `read_by` cleanup is described as if it naturally follows migration. Cause: the script intentionally splits backfill and cleanup for rollback safety. Fix/pivot: keep the sequence explicit, `backfill/spot-check unread_by` first and `cleanup-read-by` second. [Task 5]
+- Symptom: migration ordering is justified only by field decay or by “clear writes are ungated.” Cause: this ignores ordering guards, Step 0 stale legacy rewrites, live write races, and read/count exposure while a tenant is half-migrated. Fix/pivot: trace both write and read/count paths, separate write-prep from public rollout, and do not claim production facts such as index presence without an artifact. [Task 4]
+- Symptom: comments say a business is "verified" or cleanup is "safe to drop". Cause: the code does not persist any proof beyond membership in `completed`. Fix/pivot: inspect what the code actually stores and what cleanup consumes before accepting safety claims. [Task 6]
+- Symptom: cleanup appears to mirror backfill/reconcile scope. Cause: the file comments suggest full-population behavior, but the actual queries diverge and cleanup omits the `last_active_at` cutoff. Fix/pivot: compare query objects and cutoff propagation across every related pass. [Task 7]
+- Symptom: future resume logic assumes checkpoint files are durable and config-specific. Cause: checkpoint writes are non-atomic and the suffix key omits semantic dimensions such as cutoff/stream/partial choices. Fix/pivot: treat checkpoint correctness and resume safety as separate review items, not as implied by shared file names alone. [Task 8]
 
 # Task Group: /Users/tualek/ohochat/oho-api / unread-unresponded performance debugging
 scope: Root-cause performance memory for unread/unresponded slowdowns in `oho-api`; use for attribution work that must separate expensive count paths from write-side stamping.
