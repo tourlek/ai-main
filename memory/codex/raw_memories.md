@@ -1808,3 +1808,47 @@ References:
 - `src/services/bot-send-message/inform-message/inform-message.class.js:18-133`, `inform-message.hooks.js:1-171` — inform-message.
 - `src/services/contact-send-message/contact-send-message.class.js:20-67`, `contact-send-message.hooks.js:242-556` — contact-send-message.
 
+## Thread `019f9319-959c-7630-8f42-e17b70c0d6ef`
+updated_at: 2026-07-24T07:53:27+00:00
+cwd: /Users/tualek/ohochat/oho-web-app
+rollout_path: /Users/tualek/.codex/sessions/2026/07/24/rollout-2026-07-24T14-49-15-019f9319-959c-7630-8f42-e17b70c0d6ef.jsonl
+rollout_summary_file: 2026-07-24T07-49-15-1jYz-vue2_realtime_badge_recheck_four_issues.md
+
+description: Read-only adversarial re-review of Vue 2/Vuex realtime unread/unresponded badge fix; found synthetic-timestamp false unread, pre-fetch aggregate drift, incomplete/blocked new-room handling, and stale unresponded reassertion.
+task: review realtime unread and unresponded badge fix
+task_group: /Users/tualek/ohochat/oho-web-app frontend review
+task_outcome: partial
+cwd: /Users/tualek/ohochat/oho-web-app
+keywords: Vue2, Vuex, smartchat.js, RoomList.vue, refreshChatRoomBadgeRealtime, handleSmartchatRealtimeUpdate, unread, unresponded, last_contact_date, already_read_locally, triggerFilteredListRefetch
+
+### Task 1: Realtime badge fix re-review
+
+task: determine whether realtime unread/unresponded badges work across in-list and new-room paths
+ task_group: Vue2 frontend realtime badge review
+ task_outcome: partial
+
+Preference signals:
+- The user said “read ONLY these, do not explore the repo broadly” -> constrain future reviews to explicitly named files/line ranges.
+- The user said “Review only, do not modify files” -> do not edit, stage, commit, or run mutating commands.
+- The user required “yes/no verdict + file:line evidence” and an adversarial search for real defects -> provide compact, line-cited verdicts and avoid speculative findings.
+
+Reusable knowledge:
+- `RoomList.room_list()` prioritizes current-room false, then `state.read[my_id]` timestamp comparison, then presence of `state.read`, and only finally `is_read_by_me` fallback (`RoomList.vue:161-177`). Because backend rows may contain `state.read`, injecting only `is_read_by_me:false` is insufficient; a timestamp is needed for the `my_read` branch.
+- Injecting a client “now” timestamp is unsafe. `smartchat.js:730-733` creates `last_contact_date`, while `smartchat.js:836-845` compares it with the local read cursor. A delayed event after the real message was read can make the cursor appear older and falsely mark the room unread; `RoomList.vue:163-165` repeats the same comparison. Use the real message timestamp/version or authoritative fetch, and discard synthetic badge fields when stale.
+- Aggregate transitions run before new-room API reconciliation (`smartchat.js:779,813-860` before `915-927`), so authoritative `is_read_by_me`/`is_unresponded` values fetched for a new room do not update aggregate counts. Calculate deltas after fetch using final data.
+- New-room insertion is skipped when `is_show_reload_chat_list_btn` is true or ascending pagination is incomplete (`smartchat.js:966-994`). Only active filtered lists refetch, so legitimate rooms can be absent until a later poll. Refetch or queue insertion in the blocked path.
+- Failed/empty new-room fetches leave socket-only payloads (`smartchat.js:904-931`); missing badge fields then render as read/not-unresponded under `RoomList.vue:169-180`, and incomplete data may fail visibility/filter checks (`smartchat.js:952-965`). Avoid inserting incomplete rows or retry/refetch authoritatively.
+- `is_unresponded:true` is injected independently for in-list rooms (`smartchat.js:725-738`) and can be counted/merged (`smartchat.js:813-825,869-880`), but stale inbound events lack causal ordering and can reassert true after a bot/member reply clears it. Add event ordering metadata or authoritative reconciliation.
+- No direct flag-combination hole was identified: unread and unresponded feature flags are checked independently (`smartchat.js:710-715,727-733`); shared new-room defects affect either combination.
+
+Failures and how to do differently:
+- Do not treat a synthetic timestamp as equivalent to the socket message’s real ordering metadata; it breaks both the stale-read guard and RoomList derivation.
+- Do not evaluate aggregate badge deltas before the authoritative new-room fetch completes.
+- Do not silently skip blocked new-room insertion without a refetch path.
+
+References:
+- `/private/tmp/claude-501/-Users-tualek-ohochat/e09208f3-facf-4303-8b26-c1c18904dc1b/scratchpad/oho1272-recheck.diff`
+- `store/modules/smartchat.js:730-733,772-779,813-860,904-931,952-994`
+- `components/Smartchat/RoomList.vue:149-177,191-205`
+- Final verdict from the review: `VERDICT: 4 issues`.
+

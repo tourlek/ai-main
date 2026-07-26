@@ -9,6 +9,7 @@ The user repeatedly uses Codex for evidence-first, read-only source/MR reviews a
 - For review-only work, do not edit, stage, commit, switch branches, run migrations, or otherwise drift into implementation unless explicitly asked.
 - Inspect the actual repo/worktree or exact MR head first; pin the reviewed branch/SHA and do not trust draft findings, reports, or summaries as proof.
 - Every verdict should cite exact `file:line` source evidence; say `cannot verify from repo` for unproven live/production claims.
+- When the user names files or says `read ONLY these, do not explore the repo broadly`, keep the review narrowly scoped and still give a yes/no, adversarial, line-cited verdict.
 - Keep reviews compact and severity/ship-oriented. For claim audits, use explicit per-item verdicts; for rollout questions, give one concrete protocol rather than an open concern catalogue.
 - For blind audits, honor `Do NOT read any *.md report/plan files`; inventory the complete call chain and finish with a sweep for awaited/detached calls.
 - For migration/flag ordering, test proposed mitigations against both write paths and read/count exposure; separate write-prep from public rollout.
@@ -21,9 +22,18 @@ The user repeatedly uses Codex for evidence-first, read-only source/MR reviews a
 - For `script-oho` migration reviews, use `oho-api@master` as runtime truth. `unread_by` is reconstructible; historical `is_unresponded` is not. Require index-aligned paging plus fail-closed `explain()` / `hint()` checks.
 - For send/webhook audits, calculate actual timeout × attempts × serial accumulation, and distinguish awaited customer-visible work from fire-and-forget observability. Retry helper names are not evidence.
 - For Redis cache reviews, separately check scope/key isolation, `0`-as-hit, timeout cancellation, offline queue late writes, and single-flight/stampede behavior.
+- For Smartchat realtime badges, trace real message ordering through `RoomList` and Vuex, calculate counters after authoritative new-room fetches, and cover blocked/failed insertion plus stale-event reassertion.
 - Use the matching local skill for repeated OHO unread review, `migrate-unread`, Smartchat, JERA, web-app branching, commit, or MR-description workflows.
 
 ## What's in Memory
+
+### /Users/tualek/ohochat/oho-web-app
+
+#### 2026-07-24
+
+- Vue 2/Vuex realtime unread/unresponded badge re-review: smartchat.js, RoomList.vue, last_contact_date, already_read_locally, triggerFilteredListRefetch
+  - desc: Search first for narrowly scoped review of `cwd=/Users/tualek/ohochat/oho-web-app` realtime badge fixes, especially existing-vs-new room transitions and aggregate correctness.
+  - learnings: Client-now timestamps cause false unread; aggregate deltas must follow authoritative fetch; blocked/failed new-room paths need recovery; stale events can reassert unresponded.
 
 ### /Users/tualek/ohochat/oho-api + /Users/tualek/ohochat/oho-webhook
 
@@ -40,14 +50,6 @@ The user repeatedly uses Codex for evidence-first, read-only source/MR reviews a
 - `migrate-unread.ts` final Option A, flag ordering, and catchup rejection: unread_by, is_unresponded, read_by, flag-on-first, explain preflight, residual IDs
   - desc: Use for read-only decisions on safe unread migration/rollout ordering, catchup honesty, checkpoint semantics, or prod readiness in `cwd=/Users/tualek/ohochat/script-oho` with `oho-api@master` runtime context.
   - learnings: Backfill `unread_by` only; Step 0 legacy `read_by` can overwrite live state, so public flags follow proven write-prep; `maxTimeMS` is not a scale proof.
-
-### /Users/tualek/ohochat/oho-backoffice
-
-#### 2026-07-20
-
-- MR !32 external-message admin UI review: merge request 32, external-message, request_seq, dialog snapshot, git diff --check
-  - desc: Use for `cwd=/Users/tualek/ohochat/oho-backoffice` merge reviews of whitelist/app-catalog pagination, async-state, and data-contract behavior.
-  - learnings: Guard save/page/search/dialog updates with the initiating business/request identity; resetting a page requires a refetch, not just state mutation.
 
 ### Older Memory Topics
 
@@ -70,6 +72,8 @@ The user repeatedly uses Codex for evidence-first, read-only source/MR reviews a
 
 #### /Users/tualek/ohochat/oho-backoffice
 
+- MR !32 external-message admin UI review: merge request 32, external-message, request_seq, dialog snapshot, git diff --check
+  - desc: Use for `cwd=/Users/tualek/ohochat/oho-backoffice` merge reviews of whitelist/app-catalog pagination, async-state, and data-contract behavior.
 - OHO-1177 and external-message UI/UX reviews: WhitelistAppChecklist, select-all, duplicate-name, el-select, remote filterable, cascade delete
   - desc: Use for older uncommitted UI reviews, cross-page selection, stale-response, Element UI behavior, or mock-model integrity in `cwd=/Users/tualek/ohochat/oho-backoffice`.
 

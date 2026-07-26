@@ -62,10 +62,15 @@ Do not use this for JERA-specific contact-link/API-key tasks unless the symptom 
 6. For performance questions:
    - separate Mongo query, populate, Stream `queryChannels`, response size, and detail re-fetch.
    - identify whether `query_params.contact_default` is being used where a lighter list payload would suffice.
+7. For realtime unread/unresponded badge review:
+   - inspect `store/modules/smartchat.js` producer/merge paths and `components/Smartchat/RoomList.vue` derivation together; include existing-room, new-room, filtered, reload-button, and ascending-pagination branches.
+   - trace the real message timestamp/version through the local-read guard. Never treat client `new Date().toISOString()` as equivalent ordering metadata.
+   - defer aggregate transitions until any authoritative new-room fetch resolves; if fetch or insertion is blocked, require a queue/retry/refetch path rather than inserting a partial socket payload.
+   - test stale event reassertion after a local bot/member reply clears `is_unresponded`.
 
 ## Efficiency Plan
 
-- Use `rg` with exact terms from the user: `sale_owner`, `RoomPlaceholder`, `filterDuplicate`, `is_dummy`, `reference_id`, `addContactListDataFromHead`, `filtered_list_refetch_fn`, `contact_default`, `rt_chat_list_search_optimization`.
+- Use `rg` with exact terms from the user: `sale_owner`, `RoomPlaceholder`, `filterDuplicate`, `is_dummy`, `reference_id`, `addContactListDataFromHead`, `filtered_list_refetch_fn`, `contact_default`, `rt_chat_list_search_optimization`, `refreshChatRoomBadgeRealtime`, `handleSmartchatRealtimeUpdate`, `last_contact_date`, `already_read_locally`, `is_show_reload_chat_list_btn`.
 - For history questions, use targeted git commands in `/Users/tualek/ohochat/oho-web-app`, such as `git blame -L ...` and `git show <sha> -- <files>`.
 - Do not use repo tests as decisive proof when the user says tests are not trustworthy; rely on code paths, history, and targeted manual reasoning.
 - If the user asks for “แบบคนหน่อย” / “เข้าใจง่าย ๆ”, close with a plain-language cause/effect summary after the technical evidence.
@@ -80,12 +85,15 @@ Do not use this for JERA-specific contact-link/API-key tasks unless the symptom 
 - Symptom: Smartchat search-field dropdown missing. Likely cause: feature flag/runtime config false. Fix: check optimized-search flag and Firebase remote config.
 - Symptom: duplicate bubbles after send. Likely cause: dummy replacement mismatch or missing `reference_id`. Fix: inspect `is_dummy`, response handling, `appendOrReplaceDummyMessage()`, and bubble-helper matching.
 - Symptom: performance blamed only on `populate`. Likely cause: combined DB query, populate, Stream lookup, and room-detail refetch. Fix: measure or reason about each stage separately.
+- Symptom: a delayed realtime event makes an already-read room unread, or aggregate counts diverge for a new room. Likely cause: synthetic client timestamp, count deltas before authoritative fetch, or blocked/failed insertion. Fix: use real causal ordering, calculate after final data, and queue/retry/refetch incomplete or blocked paths.
+- Symptom: `is_unresponded` returns after a reply cleared it. Likely cause: stale inbound event merges without ordering metadata. Fix: version/order-gate the merge or reconcile authoritatively.
 
 ## Verification Checklist
 
 - The answer names whether the symptom is frontend visibility, backend list inclusion, search state, duplicate render, or performance.
 - If code was changed, both the primary path and the related alternate path are checked, for example websocket and `profile-saved`.
 - If the bug involves ordering, verification covers both filtered/search mode and normal oldest-sort mode.
+- For realtime badges, verification covers existing and new rooms; successful, failed, and blocked fetch/insertion; delayed event after local read; and stale event after unresponded clear.
 - Scope matches the user’s request: review-only stays review-only; frontend-only stays frontend-only unless the user approves backend work.
 - Any history claim cites commit SHA or `git blame/show` evidence.
 - If no timing/profile data was captured, performance conclusions are labeled structural rather than measured.

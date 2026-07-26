@@ -311,11 +311,24 @@ applies_to: cwd=/Users/tualek/ohochat/oho-web-app; reuse_rule=reuse for similar 
 
 - Related skill: skills/oho-smartchat-debugging/SKILL.md
 
+## Task 2: Adversarial re-review of Vue 2/Vuex realtime badge fix, four defects found
+
+### rollout_summary_files
+
+- rollout_summaries/2026-07-24T07-49-15-1jYz-vue2_realtime_badge_recheck_four_issues.md (cwd=/Users/tualek/ohochat/oho-web-app, rollout_path=/Users/tualek/.codex/sessions/2026/07/24/rollout-2026-07-24T14-49-15-019f9319-959c-7630-8f42-e17b70c0d6ef.jsonl, updated_at=2026-07-24T07:53:27+00:00, thread_id=019f9319-959c-7630-8f42-e17b70c0d6ef, narrowly scoped re-review found synthetic-timestamp, pre-fetch aggregate, new-room, and stale-unresponded defects)
+
+### keywords
+
+- Vue2, Vuex, smartchat.js, RoomList.vue, refreshChatRoomBadgeRealtime, handleSmartchatRealtimeUpdate, unread, unresponded, last_contact_date, already_read_locally, triggerFilteredListRefetch, is_show_reload_chat_list_btn
+
+- Related skill: skills/oho-smartchat-debugging/SKILL.md
+
 ## User preferences
 
 - when the user says `This is a review-only request. Do not fix anything, do not edit any files. Only report findings.` -> stay read-only and avoid proposing or applying patches unless explicitly asked. [Task 1]
 - when the user says `Ground every claim in the actual diff content and the actual oho-websocket commit 9141805 content that you read yourself` -> cite exact file/line/field evidence and separate verified facts from inference. [Task 1]
 - when the user wants findings grouped by severity and a one-line merge verdict -> preserve that compact review shape instead of drifting into a generic essay. [Task 1]
+- when the user says `read ONLY these, do not explore the repo broadly` and asks for `yes/no verdict + file:line evidence` -> stay within the named files/line ranges, perform an adversarial defect search, and end with a compact, line-cited verdict. [Task 2]
 
 ## Reusable knowledge
 
@@ -323,12 +336,20 @@ applies_to: cwd=/Users/tualek/ohochat/oho-web-app; reuse_rule=reuse for similar 
 - `store/modules/groupchat.js` already defines `unread_count` and `unresponded_count` in initial state, but `store/modules/smartchat.js` `contact_list` initial/reset shapes do not include those fields, so creating them later can hit a Vue 2 reactivity gap during reset/load windows. [Task 1]
 - `components/Smartchat/Conversation.vue` already sets `room.is_unresponded = false` before decrementing in the optimistic unresponded flow, which is why that path avoids a duplicate decrement when the realtime event lands. [Task 1]
 - `components/Smartchat/RoomList.vue` treats missing or legacy `is_read_by_me` as read in the list fallback, which explains the reviewed diff's asymmetry (`is_unresponded === true` vs `is_read_by_me !== false`) for already-known rows. [Task 1]
+- `RoomList.room_list()` prioritizes the current-room false branch, then `state.read[my_id]` timestamp comparison, then presence of `state.read`, and only finally `is_read_by_me` fallback (`RoomList.vue:161-177`). A backend row with `state.read` therefore cannot reliably become unread merely by injecting `is_read_by_me:false`. [Task 2]
+- `last_contact_date = new Date().toISOString()` is not valid realtime ordering metadata: a delayed inbound event can be newer than the local read cursor even when the real message was already read, producing false unread in `smartchat.js:730-733,836-860` and `RoomList.vue:163-165`. Use the real message timestamp/version or authoritative reconciliation. [Task 2]
+- New-room aggregate transitions occur before the post-event API fetch (`smartchat.js:779,813-860` before `915-927`), so final fetched `is_read_by_me` / `is_unresponded` cannot correct the counters. Calculate deltas only after final data is known. [Task 2]
+- New-room insertion can be skipped under `is_show_reload_chat_list_btn` or incomplete ascending pagination, while only active filtered lists refetch (`smartchat.js:966-994`); failed/empty fetches also leave incomplete socket-only rows (`904-931`). Queue/retry or authoritatively refetch rather than treating either path as a valid insertion. [Task 2]
+- `is_unresponded:true` injection for existing rooms has no causal ordering; a stale inbound event can reassert it after a bot/member reply cleared it. Require event ordering/version metadata or authoritative reconciliation. Feature flags are independently gated, so this is shared-event handling rather than a flag-combination hole. [Task 2]
 
 ## Failures and how to do differently
 
 - Symptom: the frontend diff looks symmetric but is not merge-safe. Cause: the backend `message.new` emission path in `oho-websocket@9141805` did not prove any sender-role guard, so the frontend cannot assume every emitted payload represents a customer-message increment case. Fix/pivot: verify producer-side contract fields before approving consumer-side counter logic. [Task 1]
 - Symptom: unread counters still drift after local mark-read plus realtime updates. Cause: `markRoomRead()` decrements unread locally but does not synchronize `room.is_read_by_me`, so the later realtime transition logic can miss or double-handle unread state. Fix/pivot: trace optimistic local state and websocket transition state together, not as separate concerns. [Task 1]
 - Symptom: counters are wrong when a room is not currently loaded. Cause: the increment path treats missing prior row state as already represented in the aggregate. Fix/pivot: require proof of previous aggregate membership before incrementing or skipping an adjustment. [Task 1]
+- Symptom: a room falsely becomes unread after a delayed socket event. Cause: client `now` is substituted for the message's real timestamp and defeats the local-read comparison. Fix/pivot: preserve causal message ordering or discard/reconcile stale synthetic badge fields; do not equate synthetic time with socket ordering metadata. [Task 2]
+- Symptom: aggregate counters and new-room visibility drift despite a successful fetch. Cause: deltas run before authoritative fetch, insertion can be blocked without a recovery path, and failed fetches insert incomplete data. Fix/pivot: fetch final row state before counting, and queue/retry/refetch every blocked or incomplete new-room path. [Task 2]
+- Symptom: unresponded returns after it was cleared. Cause: stale inbound events have no ordering guard. Fix/pivot: gate merges on version/order or reconcile against authoritative state. [Task 2]
 
 # Task Group: /Users/tualek/ohochat/script-oho / migrate-unread.ts correctness review
 scope: Read-only correctness-review memory for `unread-unresponded/migrate-unread.ts`, especially whether `unread_by` / `is_unresponded` can be reconstructed safely, what checkpoint/cleanup guarantees actually exist, and what migration plan is honest enough to ship.
