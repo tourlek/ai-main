@@ -76,3 +76,7 @@ consolidate: merge duplicates, drop obsolete ones, keep the rule one line each.
 ## 2026-07 — Declared scanned-PDF duplicate audit complete before cross-checking every name
 - **Mistake**: summarized 15 duplicate-name groups from a single OCR pass, but a second offset and visual pass found `พิมมาดา ลักษณาศัย` was omitted.
 - **Rule**: for scanned-PDF duplicate audits, reconcile the expected item count, canonical tracking IDs, and at least two OCR or crop passes before reporting the final duplicate list.
+
+## 2026-07 — เชื่อ CLI success ของ replay ทั้งที่ pipeline ack 200 เสมอ
+- **Mistake**: `oho fix replay` รายงาน success 1,429/1,429 แต่ webhook ตอบ 200 แม้ process fail — ของจริงกู้ได้ 26; และก่อนรันได้ทำนายว่า "409 เป็น race ชั่วคราว replay แล้วจะผ่าน" โดยไม่เทสสัก event เดียว (แท้จริง 409 = LINE profile 404 user บล็อก OA, deterministic)
+- **Rule**: pipeline ที่ ack 200 เสมอ ห้ามใช้ HTTP success เป็นตัววัดผล — วัดจาก terminal state ใน datastore ก่อน/หลังเสมอ และก่อน replay จำนวนมาก ให้ replay 1-2 events แล้วตรวจ state จริงก่อนยิงทั้งชุด
