@@ -1808,6 +1808,91 @@ References:
 - `src/services/bot-send-message/inform-message/inform-message.class.js:18-133`, `inform-message.hooks.js:1-171` — inform-message.
 - `src/services/contact-send-message/contact-send-message.class.js:20-67`, `contact-send-message.hooks.js:242-556` — contact-send-message.
 
+## Thread `019f92b8-19b7-75b3-bdd9-8d9231dfb910`
+updated_at: 2026-07-24T06:05:35+00:00
+cwd: /Users/tualek/ohochat/oho-api
+rollout_path: /Users/tualek/.codex/sessions/2026/07/24/rollout-2026-07-24T13-02-46-019f92b8-19b7-75b3-bdd9-8d9231dfb910.jsonl
+rollout_summary_file: 2026-07-24T06-02-46-CTIY-realtime_badge_fix_adversarial_review_partial.md
+
+description: Partial read-only review of OHO-1272 realtime unread/unresponded badge fix; live diff inspected but no final verdict was produced. Highest-value takeaways are strict evidence/read-only requirements, branch mismatch, and a possible count-state reset edge case.
+task: adversarial code review of smartchat/websocket realtime badge diff
+task_group: /Users/tualek/ohochat/oho-web-app realtime unread-unresponded badge review
+task_outcome: partial
+cwd: /Users/tualek/ohochat/oho-web-app/.claude-worktrees/oho-1272-realtime-badge
+keywords: code-review, OHO-1272, smartchat, websocket, unread_count, unresponded_count, is_read_by_me, is_unresponded, DEFAULT_UPDATE_FIELDS, optimistic-flag-count-tracker, Vuex, Vue 2
+
+### Task 1: Review realtime badge fix
+
+task: trace realtime unread/unresponded badge update diff and identify confirmed defects
+ task_group: frontend realtime badge review
+ task_outcome: partial
+
+Preference signals:
+- The user said “Read the actual files, do not guess” and required file:line grounding -> future reviews should inspect the live worktree and cite exact evidence.
+- The user requested a “read-only critical review” and prohibited edits, commits, and checkout -> do not modify the worktree during similar reviews.
+- The user required a one-line verdict, issue headings, and a concise “Checked, no issue” section -> preserve that exact output shape.
+
+Reusable knowledge:
+- `refreshChatRoomBadgeRealtime` is at `store/modules/smartchat.js:719-760`; it gates `rt_unread_feature_enabled` and `rt_unresponded_feature_enabled`, maps `contact_id` to `_id`, injects badge fields, and dispatches `handleSmartchatRealtimeUpdate` with `DEFAULT_UPDATE_FIELDS` and `is_fetch_contact: !in_list`.
+- `handleSmartchatRealtimeUpdate` matches by `_id` at `smartchat.js:779-783` and picks only requested fields at `:792`; `DEFAULT_UPDATE_FIELDS` contains `_id`, `is_unresponded`, and `is_read_by_me` (`constants/contact.js:3-28`).
+- Count transitions use `resolveOptimisticFlagTransition` (`smartchat.js:826-873`; tracker `utils/optimistic-flag-count-tracker.js:25-40`) and list replacement/pagination reconcile the tracking Sets (`smartchat.js:70-147`).
+- The four socket handlers preserve existing notifications and add badge dispatches at `store/modules/websocket.js:255-313`.
+
+Failures and how to do differently:
+- The requested branch was not active: live worktree branch was `tk-sprint-2615/develop`, while the user named `fix/oho-1272-unread-unresponded-realtime-badge`; `HEAD` and `origin/master` were both `619b6182`. Disclose this scope mismatch or stop before approval.
+- The rollout ended without a final verdict, so the six review points were not fully verified. Do not treat the implementation as approved.
+- Investigate `store/modules/smartchat.js:175-181`: `resetContactList` replaces `contact_list` with only `total`, `limit`, `skip`, and `data`, omitting `unread_count` and `unresponded_count` that exist in initial state at `:22-29`. This may create a Vue 2 reactivity/count reset edge case; it was not conclusively classified in this rollout.
+
+References:
+- `git -C /Users/tualek/ohochat/oho-web-app/.claude-worktrees/oho-1272-realtime-badge diff`
+- `store/modules/smartchat.js:719-760, 779-873, 175-181`
+- `store/modules/websocket.js:255-313`
+- `constants/contact.js:3-28`
+- `utils/optimistic-flag-count-tracker.js:25-40, 42-76`
+
+## Thread `019f92d6-2878-7423-a00f-1e523deebd71`
+updated_at: 2026-07-24T06:40:00+00:00
+cwd: /Users/tualek/ohochat/oho-api
+rollout_path: /Users/tualek/.codex/sessions/2026/07/24/rollout-2026-07-24T13-35-36-019f92d6-2878-7423-a00f-1e523deebd71.jsonl
+rollout_summary_file: 2026-07-24T06-35-36-jLZD-oho_1272_realtime_badge_read_only_review.md
+
+---
+description: Read-only adversarial review of Vue 2/Vuex realtime unread/unresponded badge fix; found fetch-merge badge/count desync and unconditional no-op dispatches
+task: review OHO-1272 realtime chat-list badge diff
+ task_group: frontend realtime badge code review
+task_outcome: success
+cwd: /Users/tualek/ohochat/oho-web-app/.claude-worktrees/oho-1272-realtime-badge
+keywords: Vue 2, Vuex, smartchat, realtime, unread_count, unresponded_count, reconcile Set, DEFAULT_UPDATE_FIELDS, feature flags, code review
+---
+
+### Task 1: Review OHO-1272 realtime badge fix
+
+task: adversarial read-only review of realtime unread/unresponded badge patch
+task_group: frontend realtime badge code review
+task_outcome: success
+
+Preference signals:
+- The user said “do not modify any files — review only” and requested “real defects, not style nits” -> similar reviews should stay read-only and focus on correctness defects.
+- The user requested six yes/no verdicts with `file:line` evidence and a final `VERDICT: LGTM` or issue count under ~400 words -> use a compact evidence-first review format.
+
+Reusable knowledge:
+- Existing-room repeated events do not double-count because `resolveOptimisticFlagTransition` consults the reconciliation Sets and prior row state (`store/modules/smartchat.js:826-873`).
+- New-room processing updates aggregate counts/Set before fetching complete contact data; merging `res.data[0]` afterward can overwrite the injected `is_unresponded`/`is_read_by_me` values, leaving the row inconsistent with counters (`store/modules/smartchat.js:927-940`). Fix by reapplying injected badge fields after the fetch merge or otherwise preserving them.
+- Both feature flags independently gate badge injection (`store/modules/smartchat.js:723-739`), but all four websocket handlers still dispatch the helper (`store/modules/websocket.js:267,282,296,311`). The helper returns before nested work when no badge is enabled, so external state is unchanged, but this is not literal byte-for-byte behavior; an outer feature-flag guard would eliminate the no-op dispatches.
+- `DEFAULT_UPDATE_FIELDS` excludes documented raw socket keys such as `business_id`, `contact_id`, `preview_message`, `platform`, `contact_name`, `channel_id`, `channel_name`, `contact_image_url`, and `is_team_notification`; only selected fields plus injected `_id` and badge fields are merged (`constants/contact.js:3-28`, `smartchat.js:744-757,792`).
+- `_id: contact_id` matches the existing row key and is used consistently for fetch, route/current-contact, and removal paths (`smartchat.js:779-783,930-933,947-963,1018-1023`).
+- Missing `updated_at` was not shown to cause a material defect for deterministic badge assertions; exact `skipUpdateChatRoom` behavior was outside the permitted source scope.
+- For a new room under an active filter, the action refetches the filtered list rather than directly inserting; nonmatching rooms are omitted (`smartchat.js:965-1007`).
+
+Failures and how to do differently:
+- Do not assume that “counts are updated through the shared action” guarantees row/count consistency: inspect later fetch merges for overwrites.
+- Distinguish semantic no-op behavior from literal byte-for-byte behavior: an unconditional Vuex dispatch still differs even if the helper immediately returns.
+
+References:
+- Diff path: `/private/tmp/claude-501/-Users-tualek-ohochat/e09208f3-facf-4303-8b26-c1c18904dc1b/scratchpad/oho1272.diff`
+- Worktree: `/Users/tualek/ohochat/oho-web-app/.claude-worktrees/oho-1272-realtime-badge`
+- Key evidence: `smartchat.js:826-873`, `927-940`, `965-1007`; `websocket.js:267,282,296,311`; `constants/contact.js:3-28`
+
 ## Thread `019f9319-959c-7630-8f42-e17b70c0d6ef`
 updated_at: 2026-07-24T07:53:27+00:00
 cwd: /Users/tualek/ohochat/oho-web-app
@@ -1851,4 +1936,61 @@ References:
 - `store/modules/smartchat.js:730-733,772-779,813-860,904-931,952-994`
 - `components/Smartchat/RoomList.vue:149-177,191-205`
 - Final verdict from the review: `VERDICT: 4 issues`.
+
+## Thread `019f98cc-014a-72d2-94c9-0a10127e2259`
+updated_at: 2026-07-25T10:38:58+00:00
+cwd: /Users/tualek/Documents/Codex/2026-07-25/new-chat
+rollout_path: /Users/tualek/.codex/sessions/2026/07/25/rollout-2026-07-25T17-22-14-019f98cc-014a-72d2-94c9-0a10127e2259.jsonl
+rollout_summary_file: 2026-07-25T10-22-14-ZNOx-thai_event_flow_google_docs_export.md
+
+---
+description: สร้าง flow งานพิธีภาษาไทยแบบตารางพร้อมพระนามเต็มและสคริปต์ แล้วส่งออกเป็น Google Docs สำเร็จ โดยตรวจข้อความและโครงสร้างตารางหลังนำเข้า
+ task: create_thai_event_flow_and_export_google_docs
+ task_group: thai-event-planning-documents
+ task_outcome: success
+ cwd: /Users/tualek/Documents/Codex/2026-07-25/new-chat
+ keywords: Thai, event-flow, ceremony-script, Google Docs, Google Drive, python-docx, title-sanitize, table-import
+---
+
+### Task 1: จัดทำ flow และสคริปต์พิธีการ
+
+task: create consolidated Thai event flow with full royal names and concise thank-you script
+task_group: thai-event-planning-documents
+task_outcome: success
+
+Preference signals:
+- เมื่อผู้ใช้ขอ “แทรกชื่อองค์ภาและพระพันปีชื่อเต็มพร้อมบทเข้าไว้อาลัย” -> งานพิธีการควรใช้พระนามเต็มและมีบทนำเข้าสู่ช่วงถวายความอาลัย
+- เมื่อผู้ใช้ขอ “บทพูดให้คุณแดนด้วยสั้นๆ” -> ควรเขียนสคริปต์คุณแดนให้สั้น ประมาณ 1 นาที
+- เมื่อผู้ใช้ขอ “รวมทั้งหมดรวบเดียว” -> ควรส่งมอบฉบับรวมเดียวในตารางที่พร้อมใช้งาน
+
+Reusable knowledge:
+- ลำดับสุดท้ายใช้เวลา 18.55–19.20 น. โดยมีบทเข้าสู่ไว้อาลัย ยืนสงบนิ่ง 1 นาที คุณแดนกล่าวขอบคุณ นายกและประธานที่ปรึกษากล่าวโอวาท นายกประกาศเปิดงาน และส่งต่อพิธีกรหลัก
+- ช่วงไว้อาลัยต้องปิดเพลง งดเสียงปรบมือ ใช้ไฟนิ่งโทนสุภาพ; เพลงสนุกและไฟสีสันเริ่มหลังคำว่า “ณ บัดนี้”
+
+Failures and how to do differently:
+- Local DOCX render แสดงอักษรไทยได้ไม่สมบูรณ์ แม้เปลี่ยนฟอนต์และใช้ `SAL_FONTPATH`; future agents should report visual QA as limited unless Thai glyph rendering is independently confirmed.
+
+References:
+- `/Users/tualek/Documents/Codex/2026-07-25/new-chat/outputs/Flow-กิจกรรม-แบ่งปันน้ำใจสู่สังคม.docx`
+
+### Task 2: ส่งออกเป็น Google Docs
+
+task: import the prepared DOCX as a native Google Docs document
+task_group: Google Drive document export
+ task_outcome: success
+
+Preference signals:
+- ผู้ใช้ขอ export เป็น Google Docs -> ควรสร้างเอกสาร native และส่งลิงก์ พร้อมตรวจเนื้อหาและตารางหลังนำเข้า
+
+Reusable knowledge:
+- Workflow ที่ใช้ได้: สร้าง DOCX ด้วย `python-docx` → รัน `google_docs_title_sanitize.py` → import ผ่าน Google Drive ด้วย `upload_mode: "native_google_docs"` → ตรวจ `_get_document_text` และ `_get_document_tables`
+- เอกสารที่สร้างสำเร็จมี ID `1NVjW2EBlV4WKJOjm7NN00CDBBBNczivck-cWSlbSeSo` และตาราง 16 แถว × 3 คอลัมน์
+
+Failures and how to do differently:
+- ตรวจยืนยันข้อความและโครงสร้างได้ แต่ไม่ได้ยืนยันภาพที่แสดงใน Google Docs โดยตรง; อย่าอ้าง visual QA เต็มรูปแบบจากหลักฐานนี้
+
+References:
+- `https://docs.google.com/document/d/1NVjW2EBlV4WKJOjm7NN00CDBBBNczivck-cWSlbSeSo/edit`
+- Sanitizer output: `[OK] no Google Docs title border/rule residue detected`
+- Import output included `converted:true` and `mimeType:"application/vnd.google-apps.document"`
 

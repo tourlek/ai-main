@@ -1,3 +1,35 @@
+# Task Group: /Users/tualek/Documents/Codex/2026-07-25/new-chat / Thai event planning and Google Docs export
+scope: Create one ready-to-use Thai ceremony flow/script and export it as a native Google Docs document; use when the user wants a consolidated ceremonial program, short speaking script, and verified document import.
+applies_to: cwd=/Users/tualek/Documents/Codex/2026-07-25/new-chat; reuse_rule=reuse the document-building and import verification workflow for similar Thai event documents, but treat the event sequence, royal names, file path, and document ID as task-specific.
+
+## Task 1: จัดทำ flow และสคริปต์พิธีการ แล้วส่งออกเป็น Google Docs สำเร็จ
+
+### rollout_summary_files
+
+- rollout_summaries/2026-07-25T10-22-14-ZNOx-thai_event_flow_google_docs_export.md (cwd=/Users/tualek/Documents/Codex/2026-07-25/new-chat, rollout_path=/Users/tualek/.codex/sessions/2026/07/25/rollout-2026-07-25T17-22-14-019f98cc-014a-72d2-94c9-0a10127e2259.jsonl, updated_at=2026-07-25T10:38:58+00:00, thread_id=019f98cc-014a-72d2-94c9-0a10127e2259, native Google Docs import succeeded; text and 16×3 table structure were checked)
+
+### keywords
+
+- Thai, event-flow, ceremony-script, Google Docs, Google Drive, python-docx, google_docs_title_sanitize.py, native_google_docs, table-import, 16×3, สคริปต์พิธีการ, รวมทั้งหมดรวบเดียว
+
+## User preferences
+
+- เมื่อผู้ใช้ขอ “แทรกชื่อองค์ภาและพระพันปีชื่อเต็มพร้อมบทเข้าไว้อาลัย” -> งานพิธีการควรใช้พระนามเต็มและเขียนบทนำเข้าสู่ช่วงถวายความอาลัยโดยตรง. [Task 1]
+- เมื่อผู้ใช้ขอ “บทพูดให้คุณแดนด้วยสั้นๆ” -> สคริปต์ของผู้กล่าวขอบคุณควรกระชับ ใช้เวลาประมาณ 1 นาที. [Task 1]
+- เมื่อผู้ใช้ขอ “รวมทั้งหมดรวบเดียว” -> ส่งมอบเอกสาร/คำตอบฉบับรวมเดียวในตารางที่พร้อมใช้งาน ไม่แยกส่วนให้ผู้ใช้ประกอบเอง. [Task 1]
+- เมื่อผู้ใช้ขอ “export เป็น googl docs ให้หน่อย” -> สร้าง Google Docs native ส่งลิงก์ และตรวจว่าข้อความกับตารางนำเข้าครบ. [Task 1]
+
+## Reusable knowledge
+
+- Workflow ที่ใช้ได้: สร้าง DOCX ด้วย `python-docx` → รัน `google_docs_title_sanitize.py` → import ผ่าน Google Drive ด้วย `upload_mode: "native_google_docs"` → ตรวจ `_get_document_text` และ `_get_document_tables`. [Task 1]
+- ช่วงไว้อาลัยใน flow นี้ใช้ไฟนิ่งโทนสุภาพ ปิดเพลง งดเสียงปรบมือ; เพลงสนุกและไฟสีสันเริ่มหลังคำว่า “ณ บัดนี้”. [Task 1]
+- Import ที่ยืนยันสำเร็จมี `converted:true`, `mimeType:application/vnd.google-apps.document`; ตรวจข้อความ พระนามเต็ม สคริปต์ ตารางเวลา และตาราง 16 แถว × 3 คอลัมน์แล้ว. [Task 1]
+
+## Failures and how to do differently
+
+- Symptom: local DOCX render ดูเหมือนตรวจแล้วแต่แสดงอักษรไทยไม่สมบูรณ์. Cause: ข้อจำกัดการ render ฟอนต์ไทยยังคงอยู่แม้เปลี่ยนฟอนต์และกำหนด `SAL_FONTPATH`. Fix/pivot: รายงาน visual QA ว่าจำกัด และอย่าอ้าง pixel-level verification หากยังไม่ได้ตรวจ glyph โดยอิสระ. [Task 1]
+- Symptom: import สำเร็จแต่ถูกอ้างว่าเห็นหน้าตาใน Google Docs แล้ว. Cause: หลักฐานยืนยันได้เพียงข้อความและโครงสร้างผ่าน connector. Fix/pivot: แยก content/table verification ออกจาก visual QA โดยตรง. [Task 1]
+
 # Task Group: /Users/tualek/ohochat / send-message and webhook source audits
 scope: Read-only, source-first audit memory for outbound `oho-api` send paths and inbound `oho-webhook` receipt/worker chains; use for latency, locking, retry, duplicate, silent-drop, early-ack, or sibling-route divergence reviews.
 applies_to: cwd=/Users/tualek/ohochat/oho-api + /Users/tualek/ohochat/oho-webhook; reuse_rule=reuse for similar static audits across these two repos, but pin the exact branch/SHA and retrace hooks, retries, and queue configuration before treating a finding as current.
@@ -311,15 +343,17 @@ applies_to: cwd=/Users/tualek/ohochat/oho-web-app; reuse_rule=reuse for similar 
 
 - Related skill: skills/oho-smartchat-debugging/SKILL.md
 
-## Task 2: Adversarial re-review of Vue 2/Vuex realtime badge fix, four defects found
+## Task 2: Iterative adversarial review of OHO-1272 Vue 2/Vuex realtime badge fix, final re-review found four defects
 
 ### rollout_summary_files
 
 - rollout_summaries/2026-07-24T07-49-15-1jYz-vue2_realtime_badge_recheck_four_issues.md (cwd=/Users/tualek/ohochat/oho-web-app, rollout_path=/Users/tualek/.codex/sessions/2026/07/24/rollout-2026-07-24T14-49-15-019f9319-959c-7630-8f42-e17b70c0d6ef.jsonl, updated_at=2026-07-24T07:53:27+00:00, thread_id=019f9319-959c-7630-8f42-e17b70c0d6ef, narrowly scoped re-review found synthetic-timestamp, pre-fetch aggregate, new-room, and stale-unresponded defects)
+- rollout_summaries/2026-07-24T06-35-36-jLZD-oho_1272_realtime_badge_read_only_review.md (cwd=/Users/tualek/ohochat/oho-api, rollout_path=/Users/tualek/.codex/sessions/2026/07/24/rollout-2026-07-24T13-35-36-019f92d6-2878-7423-a00f-1e523deebd71.jsonl, updated_at=2026-07-24T06:40:00+00:00, thread_id=019f92d6-2878-7423-a00f-1e523deebd71, earlier narrow review found fetched-row badge overwrite and no-op dispatch distinction)
+- rollout_summaries/2026-07-24T06-02-46-CTIY-realtime_badge_fix_adversarial_review_partial.md (cwd=/Users/tualek/ohochat/oho-api, rollout_path=/Users/tualek/.codex/sessions/2026/07/24/rollout-2026-07-24T13-02-46-019f92b8-19b7-75b3-bdd9-8d9231dfb910.jsonl, updated_at=2026-07-24T06:05:35+00:00, thread_id=019f92b8-19b7-75b3-bdd9-8d9231dfb910, partial review of the same worktree; branch mismatch and unfinished verdict limit confidence)
 
 ### keywords
 
-- Vue2, Vuex, smartchat.js, RoomList.vue, refreshChatRoomBadgeRealtime, handleSmartchatRealtimeUpdate, unread, unresponded, last_contact_date, already_read_locally, triggerFilteredListRefetch, is_show_reload_chat_list_btn
+- Vue2, Vuex, OHO-1272, smartchat.js, websocket.js, RoomList.vue, refreshChatRoomBadgeRealtime, handleSmartchatRealtimeUpdate, DEFAULT_UPDATE_FIELDS, optimistic-flag-count-tracker, unread_count, unresponded_count, last_contact_date, already_read_locally, triggerFilteredListRefetch, is_show_reload_chat_list_btn
 
 - Related skill: skills/oho-smartchat-debugging/SKILL.md
 
@@ -329,6 +363,7 @@ applies_to: cwd=/Users/tualek/ohochat/oho-web-app; reuse_rule=reuse for similar 
 - when the user says `Ground every claim in the actual diff content and the actual oho-websocket commit 9141805 content that you read yourself` -> cite exact file/line/field evidence and separate verified facts from inference. [Task 1]
 - when the user wants findings grouped by severity and a one-line merge verdict -> preserve that compact review shape instead of drifting into a generic essay. [Task 1]
 - when the user says `read ONLY these, do not explore the repo broadly` and asks for `yes/no verdict + file:line evidence` -> stay within the named files/line ranges, perform an adversarial defect search, and end with a compact, line-cited verdict. [Task 2]
+- when the user says “Read the actual files, do not guess” and asks for “real defects, not style nits” -> inspect the live named worktree, focus on correctness, and do not substitute a summary for source evidence. [Task 2]
 
 ## Reusable knowledge
 
@@ -341,6 +376,8 @@ applies_to: cwd=/Users/tualek/ohochat/oho-web-app; reuse_rule=reuse for similar 
 - New-room aggregate transitions occur before the post-event API fetch (`smartchat.js:779,813-860` before `915-927`), so final fetched `is_read_by_me` / `is_unresponded` cannot correct the counters. Calculate deltas only after final data is known. [Task 2]
 - New-room insertion can be skipped under `is_show_reload_chat_list_btn` or incomplete ascending pagination, while only active filtered lists refetch (`smartchat.js:966-994`); failed/empty fetches also leave incomplete socket-only rows (`904-931`). Queue/retry or authoritatively refetch rather than treating either path as a valid insertion. [Task 2]
 - `is_unresponded:true` injection for existing rooms has no causal ordering; a stale inbound event can reassert it after a bot/member reply cleared it. Require event ordering/version metadata or authoritative reconciliation. Feature flags are independently gated, so this is shared-event handling rather than a flag-combination hole. [Task 2]
+- `handleSmartchatRealtimeUpdate` finds rows by `_id` and then applies `_.pick(event_message, options.update_fields)`; `refreshChatRoomBadgeRealtime` must map `contact_id` to `_id` and pass `DEFAULT_UPDATE_FIELDS` so injected `is_unresponded` / `is_read_by_me` survive. The Set tracker makes repeated existing-room transitions idempotent, but it does not protect a later fetch merge. [Task 2]
+- For a new room, `res.data[0]` can overwrite injected badge fields after counts and reconciliation Sets were already updated (`smartchat.js:927-940` in the earlier review). Preserve/reapply final badge fields, or compute both row state and aggregate transitions only after the authoritative fetch. [Task 2]
 
 ## Failures and how to do differently
 
@@ -350,6 +387,7 @@ applies_to: cwd=/Users/tualek/ohochat/oho-web-app; reuse_rule=reuse for similar 
 - Symptom: a room falsely becomes unread after a delayed socket event. Cause: client `now` is substituted for the message's real timestamp and defeats the local-read comparison. Fix/pivot: preserve causal message ordering or discard/reconcile stale synthetic badge fields; do not equate synthetic time with socket ordering metadata. [Task 2]
 - Symptom: aggregate counters and new-room visibility drift despite a successful fetch. Cause: deltas run before authoritative fetch, insertion can be blocked without a recovery path, and failed fetches insert incomplete data. Fix/pivot: fetch final row state before counting, and queue/retry/refetch every blocked or incomplete new-room path. [Task 2]
 - Symptom: unresponded returns after it was cleared. Cause: stale inbound events have no ordering guard. Fix/pivot: gate merges on version/order or reconcile against authoritative state. [Task 2]
+- Symptom: a review is called an approval although the named branch was not checked out or the review ended before a verdict. Cause: the live worktree differed (`tk-sprint-2615/develop` rather than the requested branch) and the partial pass did not complete all six checks. Fix/pivot: verify branch/base before review and explicitly label conclusions as live-diff-only or incomplete. [Task 2]
 
 # Task Group: /Users/tualek/ohochat/script-oho / migrate-unread.ts correctness review
 scope: Read-only correctness-review memory for `unread-unresponded/migrate-unread.ts`, especially whether `unread_by` / `is_unresponded` can be reconstructed safely, what checkpoint/cleanup guarantees actually exist, and what migration plan is honest enough to ship.
