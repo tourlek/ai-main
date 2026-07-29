@@ -1994,3 +1994,42 @@ References:
 - Sanitizer output: `[OK] no Google Docs title border/rule residue detected`
 - Import output included `converted:true` and `mimeType:"application/vnd.google-apps.document"`
 
+## Thread `019fadbd-7acb-76b2-8d60-108475540831`
+updated_at: 2026-07-29T11:58:28+00:00
+cwd: /Users/tualek/ohochat/oho-web-app
+rollout_path: /Users/tualek/.codex/sessions/2026/07/29/rollout-2026-07-29T18-58-23-019fadbd-7acb-76b2-8d60-108475540831.jsonl
+rollout_summary_file: 2026-07-29T11-58-23-dnwJ-unread_unresponded_report_verification_request.md
+
+description: Read-only, line-cited independent review of unread/unresponded chat performance optimization report was requested; no inspection results were recorded
+ task: verify unread/unresponded optimization report against oho-api and oho-web-app
+ task_group: performance-review
+ task_outcome: uncertain
+ cwd: /Users/tualek/ohochat/oho-web-app
+ keywords: unread_by, is_unresponded, performance-review, maxTimeMS, N+1, socket-broadcast, Vuex, read-only
+
+### Task 1: Verify unread/unresponded optimization report
+
+task: independently audit report claims and proposals O1-O14 against source code
+task_group: performance-review
+task_outcome: uncertain
+
+Preference signals:
+- The user said “Every claim you make must cite an actual file path and line number I read in this session” -> future reviews must inspect source directly and cite exact paths/lines, not rely on report references.
+- The user said “Do not modify, stage, or commit any files” -> preserve strict read-only behavior.
+- The user requested output in a fixed order and “Be direct and concise” -> follow the required verdict/missed-findings/ranking/impact-audit structure.
+
+Reusable knowledge:
+- Review targets are `/Users/tualek/ohochat/unread-unresponded-optimize-review.md`, `/Users/tualek/ohochat/oho-api`, and `/Users/tualek/ohochat/oho-web-app`.
+- The review must check the five named claims plus missed hot-path costs: unbounded queries, N+1 queries, missing `maxTimeMS`, socket per-member fan-out, and Vuex event-driven store update costs.
+
+Failures and how to do differently:
+- The supplied rollout contains only the user request and no tool inspection or findings. Treat outcome as unverified; do not claim any report item was confirmed or disproved.
+
+References:
+- `oho-api/src/services/chat-session/group/search/search.class.js:112-116`
+- `oho-api/src/services/chat-session/hooks/emit-chat-session-event.js:47-128`
+- `oho-api/src/services/contact-send-message/contact-send-message.hooks.js:233-239`
+- `oho-api/src/services/member-send-message/member-send-message.hooks.js:667-684` and approximately line 1290
+- `badge-count-cache.ts`
+- Report proposals O1-O14, section 5
+

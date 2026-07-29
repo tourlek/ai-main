@@ -9,6 +9,7 @@ The user repeatedly uses Codex for evidence-first, read-only source/MR reviews a
 - For review-only work, do not edit, stage, commit, switch branches, run migrations, or otherwise drift into implementation unless explicitly asked.
 - Inspect the actual repo/worktree or exact MR head first; pin the reviewed branch/SHA and do not trust draft findings, reports, or summaries as proof.
 - Every verdict should cite exact `file:line` source evidence; say `cannot verify from repo` for unproven live/production claims.
+- For optimization-report audits, use the requested order (claim verdicts, missed findings, ranked proposals, impact audit) and keep report text as unverified until its cited lines are read.
 - When the user names files or says `read ONLY these, do not explore the repo broadly`, keep the review narrowly scoped, find real correctness defects rather than style nits, and give a compact yes/no, line-cited verdict.
 - Keep reviews compact and severity/ship-oriented. For claim audits, use explicit per-item verdicts; for rollout questions, give one concrete protocol rather than an open concern catalogue.
 - For blind audits, honor `Do NOT read any *.md report/plan files`; inventory the complete call chain and finish with a sweep for awaited/detached calls.
@@ -30,6 +31,14 @@ The user repeatedly uses Codex for evidence-first, read-only source/MR reviews a
 
 ## What's in Memory
 
+### /Users/tualek/ohochat/oho-web-app + /Users/tualek/ohochat/oho-api
+
+#### 2026-07-29
+
+- Unread/unresponded optimization report verification: unread-unresponded-optimize-review.md, O1-O14, unread_by, is_unresponded, maxTimeMS, socket-broadcast, Vuex
+  - desc: Search first when asked to independently audit the performance report across `cwd=/Users/tualek/ohochat/oho-web-app` and `oho-api`.
+  - learnings: This rollout contains only the request; inspect every report claim and named line before issuing any verdict, including N+1, cache, socket fan-out, and Vuex cost claims.
+
 ### /Users/tualek/Documents/Codex/2026-07-25/new-chat
 
 #### 2026-07-25
@@ -46,20 +55,17 @@ The user repeatedly uses Codex for evidence-first, read-only source/MR reviews a
   - desc: Search first for narrowly scoped OHO-1272 review evidence in `cwd=/Users/tualek/ohochat/oho-web-app`, including the earlier worktree passes and the final four-issue re-review.
   - learnings: Client-now timestamps cause false unread; fetched new-room data can overwrite injected badges after counters change; compute final deltas after authoritative fetch and recover blocked/failed insertion paths.
 
-### /Users/tualek/ohochat/oho-api + /Users/tualek/ohochat/oho-webhook
-
-#### 2026-07-22
-
-- Send-message and webhook source audits: member-send-message, contact:$1:chat_session, Cloud Tasks, Redis dedup, callWithStreamChatRetry, reference_id
-  - desc: Search first for read-only source audits of outbound `oho-api` sends and inbound `oho-webhook` receipt/worker chains, including early-ack, latency, duplicate, silent-drop, and sibling-route questions.
-  - learnings: Platform/Stream work sits inside the shared contact lock; 429 retry branches are dead; Facebook dedup is non-atomic and retries can collide with its dedup key; route names hide materially different failure semantics.
-
 ### Older Memory Topics
 
 #### /Users/tualek/ohochat
 
 - Cross-repo unread/unresponded deploy-gate reviews: mr-1285, message.read, buildCustomerMessageUnreadPayload, emitEligibilityScopedUnrespondedUpdate, optimistic-flag-count-tracker
   - desc: Use for deploy-gate audits spanning `oho-api`, `oho-websocket`, and `oho-web-app`; pin the exact revision and trace write, guard, broadcast audience, and frontend reconciliation end to end.
+
+#### /Users/tualek/ohochat/oho-api + /Users/tualek/ohochat/oho-webhook
+
+- Send-message and webhook source audits: member-send-message, contact:$1:chat_session, Cloud Tasks, Redis dedup, callWithStreamChatRetry, reference_id
+  - desc: Use for read-only source audits of outbound sends and inbound receipt/worker chains, including early-ack, latency, duplicate, silent-drop, and sibling-route questions in `cwd=/Users/tualek/ohochat/oho-api` + `oho-webhook`.
 
 #### /Users/tualek/ohochat/oho-api
 

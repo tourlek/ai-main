@@ -1,3 +1,32 @@
+# Task Group: /Users/tualek/ohochat / unread-unresponded optimization report verification
+scope: Read-only, source-first verification of an unread/unresponded performance report across `oho-api` and `oho-web-app`; use when a report proposes query, cache, socket, or Vuex optimization and every verdict must be independently line-cited.
+applies_to: cwd=/Users/tualek/ohochat/oho-web-app with /Users/tualek/ohochat/oho-api; reuse_rule=reuse the review protocol for similar cross-repo performance-report audits, but treat this rollout as request-only and re-inspect the live files and exact revision before asserting any report claim.
+
+## Task 1: Verify unread/unresponded optimization report, requested but unverified
+
+### rollout_summary_files
+
+- rollout_summaries/2026-07-29T11-58-23-dnwJ-unread_unresponded_report_verification_request.md (cwd=/Users/tualek/ohochat/oho-web-app, rollout_path=/Users/tualek/.codex/sessions/2026/07/29/rollout-2026-07-29T18-58-23-019fadbd-7acb-76b2-8d60-108475540831.jsonl, updated_at=2026-07-29T11:58:28+00:00, thread_id=019fadbd-7acb-76b2-8d60-108475540831, request only; no inspection results)
+
+### keywords
+
+- unread-unresponded-optimize-review.md, O1-O14, unread_by, is_unresponded, maxTimeMS, N+1, socket-broadcast, Vuex, badge-count-cache.ts, read-only, file:line
+
+## User preferences
+
+- when verifying a report, the user required “Every claim you make must cite an actual file path and line number I read in this session” -> open and independently re-verify every cited source line; do not promote report assertions into facts. [Task 1]
+- when the user said “Read-only review. Do not modify, stage, or commit” -> preserve repository state throughout the audit. [Task 1]
+- when the user requested claim verdicts, missed findings, ranked `O1–O14` opinion, then an impact-column audit, and said “Be direct and concise” -> follow that exact output order without padding. [Task 1]
+
+## Reusable knowledge
+
+- Start with `/Users/tualek/ohochat/unread-unresponded-optimize-review.md`, then independently trace the named API and web-app code. Investigation targets include unbounded polled-path `unread_by`/`is_unresponded` queries, N+1 patterns, missing `maxTimeMS`, per-member socket fan-out, and Vuex event/store-update cost. [Task 1]
+- The stated API tree was effectively the target branch minus `bbe0ac735`, while the web app matched the target branch; pin the actual checkout before comparing report proposals. [Task 1]
+
+## Failures and how to do differently
+
+- Symptom: a report review is presented as verified despite no source activity. Cause: the supplied rollout has no tool inspection, verdict, or final findings. Fix/pivot: retain the task only as a review protocol and treat all report conclusions as unverified until each source file and line is read. [Task 1]
+
 # Task Group: /Users/tualek/Documents/Codex/2026-07-25/new-chat / Thai event planning and Google Docs export
 scope: Create one ready-to-use Thai ceremony flow/script and export it as a native Google Docs document; use when the user wants a consolidated ceremonial program, short speaking script, and verified document import.
 applies_to: cwd=/Users/tualek/Documents/Codex/2026-07-25/new-chat; reuse_rule=reuse the document-building and import verification workflow for similar Thai event documents, but treat the event sequence, royal names, file path, and document ID as task-specific.
