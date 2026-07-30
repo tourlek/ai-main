@@ -80,3 +80,7 @@ consolidate: merge duplicates, drop obsolete ones, keep the rule one line each.
 ## 2026-07 — เชื่อ CLI success ของ replay ทั้งที่ pipeline ack 200 เสมอ
 - **Mistake**: `oho fix replay` รายงาน success 1,429/1,429 แต่ webhook ตอบ 200 แม้ process fail — ของจริงกู้ได้ 26; และก่อนรันได้ทำนายว่า "409 เป็น race ชั่วคราว replay แล้วจะผ่าน" โดยไม่เทสสัก event เดียว (แท้จริง 409 = LINE profile 404 user บล็อก OA, deterministic)
 - **Rule**: pipeline ที่ ack 200 เสมอ ห้ามใช้ HTTP success เป็นตัววัดผล — วัดจาก terminal state ใน datastore ก่อน/หลังเสมอ และก่อน replay จำนวนมาก ให้ replay 1-2 events แล้วตรวจ state จริงก่อนยิงทั้งชุด
+
+## 2026-07 — สร้าง ClickUp task ทั้งที่ user สั่ง "จดเป็น task" เฉยๆ
+- **Mistake**: user บอก `จดเป็น task แล้วทำ handoff ทิ้งไว้` ผมไปสร้าง task ใน ClickUp ด้วย — user แก้ว่า `ฉันหมายถึงสร้างไว้ใน folder ไม่ต้องไปทำใน clickup` ต้องลบทิ้ง
+- **Rule**: "จดเป็น task / จดไว้" หมายถึงไฟล์ .md ใน repo/folder เป็น default — สร้างของใน ClickUp เฉพาะเมื่อ user พูดถึง ClickUp ตรงๆ เท่านั้น

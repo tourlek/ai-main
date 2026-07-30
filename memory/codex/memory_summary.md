@@ -9,7 +9,7 @@ The user repeatedly uses Codex for evidence-first, read-only source/MR reviews a
 - For review-only work, do not edit, stage, commit, switch branches, run migrations, or otherwise drift into implementation unless explicitly asked.
 - Inspect the actual repo/worktree or exact MR head first; pin the reviewed branch/SHA and do not trust draft findings, reports, or summaries as proof.
 - Every verdict should cite exact `file:line` source evidence; say `cannot verify from repo` for unproven live/production claims.
-- For optimization-report audits, use the requested order (claim verdicts, missed findings, ranked proposals, impact audit) and keep report text as unverified until its cited lines are read.
+- For optimization-report audits, use the requested order (claim verdicts, missed findings, ranked proposals, impact audit); distinguish source-only structural findings from measured production claims.
 - When the user names files or says `read ONLY these, do not explore the repo broadly`, keep the review narrowly scoped, find real correctness defects rather than style nits, and give a compact yes/no, line-cited verdict.
 - Keep reviews compact and severity/ship-oriented. For claim audits, use explicit per-item verdicts; for rollout questions, give one concrete protocol rather than an open concern catalogue.
 - For blind audits, honor `Do NOT read any *.md report/plan files`; inventory the complete call chain and finish with a sweep for awaited/detached calls.
@@ -25,6 +25,7 @@ The user repeatedly uses Codex for evidence-first, read-only source/MR reviews a
 - For `script-oho` migration reviews, use `oho-api@master` as runtime truth. `unread_by` is reconstructible; historical `is_unresponded` is not. Require index-aligned paging plus fail-closed `explain()` / `hint()` checks.
 - For send/webhook audits, calculate actual timeout × attempts × serial accumulation, and distinguish awaited customer-visible work from fire-and-forget observability. Retry helper names are not evidence.
 - For Redis cache reviews, separately check scope/key isolation, `0`-as-hit, timeout cancellation, offline queue late writes, and single-flight/stampede behavior.
+- For single-flight cache fixes, install the whole cache-read-plus-compute flight before the first await; a timeout must gate late side effects, not merely reject joiners.
 - For Smartchat realtime badges, trace real message ordering through `RoomList` and Vuex; preserve final fetched badge fields, calculate counters after authoritative new-room fetches, and cover blocked/failed insertion plus stale-event reassertion.
 - Native Google Docs verification can prove converted import, text, and table structure; local Thai DOCX rendering does not by itself prove visual fidelity.
 - Use the matching local skill for repeated OHO unread review, `migrate-unread`, Smartchat, JERA, web-app branching, commit, or MR-description workflows.
@@ -35,9 +36,17 @@ The user repeatedly uses Codex for evidence-first, read-only source/MR reviews a
 
 #### 2026-07-29
 
-- Unread/unresponded optimization report verification: unread-unresponded-optimize-review.md, O1-O14, unread_by, is_unresponded, maxTimeMS, socket-broadcast, Vuex
-  - desc: Search first when asked to independently audit the performance report across `cwd=/Users/tualek/ohochat/oho-web-app` and `oho-api`.
-  - learnings: This rollout contains only the request; inspect every report claim and named line before issuing any verdict, including N+1, cache, socket fan-out, and Vuex cost claims.
+- Unread/unresponded optimization report verification: unread-unresponded-optimize-review.md, O1-O14, countDocuments, Stream, Redlock, channel-eligible-members, contact_default
+  - desc: Search first for the completed read-only audit across `cwd=/Users/tualek/ohochat/oho-web-app` and `oho-api`, including claim verdicts and O1–O14 decisions.
+  - learnings: Source-only NO-SHIP as reviewed: delivery can precede a failing clear/Stream path, bulk send detaches work after `{ok:true}`; call `countDocuments` time-bounded, not literally unbounded.
+
+### /Users/tualek/ohochat/oho-api/.claude-worktrees/oho-1272-realtime-badge
+
+#### 2026-07-29
+
+- Final OHO-1272 badge-cache flight verification: badge-count-cache, single-flight, staggered-GET, Promise.race, expired, Bluebird
+  - desc: Search for the exact-worktree final review of the cache admission, timeout, and stale-write redesign.
+  - learnings: Ship in the reviewed worktree: synchronously register the full flight, gate late writes with `expired`, clean timers/map in `finally`; static/spec plus Promise probe, not a full-suite run.
 
 ### /Users/tualek/Documents/Codex/2026-07-25/new-chat
 
@@ -98,5 +107,5 @@ The user repeatedly uses Codex for evidence-first, read-only source/MR reviews a
 
 #### /Users/tualek/.codex/memories/skills
 
-- Reusable OHO workflows: oho-cross-repo-unread-review, script-oho-migrate-unread-review, oho-smartchat-debugging, oho-jera-integration-debugging, oho-web-app-git-branch-workflow
+- Reusable OHO workflows: oho-badge-cache-review, oho-cross-repo-unread-review, script-oho-migrate-unread-review, oho-smartchat-debugging, oho-jera-integration-debugging, oho-web-app-git-branch-workflow
   - desc: Open the matching `skills/*/SKILL.md` for the established workflow rather than rebuilding its checklist.

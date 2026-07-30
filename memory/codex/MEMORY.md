@@ -1,16 +1,19 @@
 # Task Group: /Users/tualek/ohochat / unread-unresponded optimization report verification
 scope: Read-only, source-first verification of an unread/unresponded performance report across `oho-api` and `oho-web-app`; use when a report proposes query, cache, socket, or Vuex optimization and every verdict must be independently line-cited.
-applies_to: cwd=/Users/tualek/ohochat/oho-web-app with /Users/tualek/ohochat/oho-api; reuse_rule=reuse the review protocol for similar cross-repo performance-report audits, but treat this rollout as request-only and re-inspect the live files and exact revision before asserting any report claim.
+applies_to: cwd=/Users/tualek/ohochat/oho-web-app with /Users/tualek/ohochat/oho-api; reuse_rule=reuse the review protocol for similar cross-repo performance-report audits, but re-inspect the live files and exact revision before treating these source-only findings or proposal verdicts as current.
 
-## Task 1: Verify unread/unresponded optimization report, requested but unverified
+## Task 1: Verify unread/unresponded optimization report against live API and web code; partial claim confirmation, NO-SHIP as-is
 
 ### rollout_summary_files
 
 - rollout_summaries/2026-07-29T11-58-23-dnwJ-unread_unresponded_report_verification_request.md (cwd=/Users/tualek/ohochat/oho-web-app, rollout_path=/Users/tualek/.codex/sessions/2026/07/29/rollout-2026-07-29T18-58-23-019fadbd-7acb-76b2-8d60-108475540831.jsonl, updated_at=2026-07-29T11:58:28+00:00, thread_id=019fadbd-7acb-76b2-8d60-108475540831, request only; no inspection results)
+- rollout_summaries/2026-07-29T11-59-38-K1iF-unread_unresponded_optimization_report_verification.md (cwd=/Users/tualek/ohochat/oho-web-app, rollout_path=/Users/tualek/.codex/sessions/2026/07/29/rollout-2026-07-29T18-59-38-019fadbe-9f4b-7e81-955d-a4ab24c396a9.jsonl, updated_at=2026-07-29T12:13:38+00:00, thread_id=019fadbe-9f4b-7e81-955d-a4ab24c396a9, source-only verification; final NO-SHIP as-is)
 
 ### keywords
 
-- unread-unresponded-optimize-review.md, O1-O14, unread_by, is_unresponded, maxTimeMS, N+1, socket-broadcast, Vuex, badge-count-cache.ts, read-only, file:line
+- unread-unresponded-optimize-review.md, O1-O14, countDocuments, maxTimeMS, emitChatSessionStatusUpdatedEvent, Redlock, Stream, badge-count-cache, channel-eligible-members, getContactChatById, contact_default, read-only, file:line
+
+- Related skill: skills/oho-badge-cache-review/SKILL.md
 
 ## User preferences
 
@@ -20,12 +23,15 @@ applies_to: cwd=/Users/tualek/ohochat/oho-web-app with /Users/tualek/ohochat/oho
 
 ## Reusable knowledge
 
-- Start with `/Users/tualek/ohochat/unread-unresponded-optimize-review.md`, then independently trace the named API and web-app code. Investigation targets include unbounded polled-path `unread_by`/`is_unresponded` queries, N+1 patterns, missing `maxTimeMS`, per-member socket fan-out, and Vuex event/store-update cost. [Task 1]
-- The stated API tree was effectively the target branch minus `bbe0ac735`, while the web app matched the target branch; pin the actual checkout before comparing report proposals. [Task 1]
+- The completed audit found group `countDocuments` and `$facet.metadata.$count` have no cardinality cap/cache but do have `maxTimeMS` and a 75s service timeout: say bounded-by-time, not literally unbounded. It also found `emitChatSessionStatusUpdatedEvent` performs a populated snapshot plus audience resolution before the feature-flag check, so flag-off still pays most emitter cost. [Task 1]
+- Customer delivery happens before member after-hooks; clear writes/emitters precede Stream persistence inside Redlock. A clear-write error can therefore return an error after customer delivery while the message is absent from Stream. Bulk send also returns `{ok:true}` before detached platform handlers settle; both semantics blocked ship in the reviewed revision. [Task 1]
+- Keep socket and fallback claims precise: Socket.IO emits once with `io.to(channelNames).emit()`, although room construction/delivery scale with eligible members; only qualifying fallback realtime events call heavyweight `getContactChatById`, which has no debounce/cancellation/in-flight coalescing. [Task 1]
+- The stated API tree was effectively the target branch minus `bbe0ac735`, while the web app matched the target branch. No benchmark, explain, production cardinality, or latency telemetry was run; all findings are structural/source-only. [Task 1]
 
 ## Failures and how to do differently
 
-- Symptom: a report review is presented as verified despite no source activity. Cause: the supplied rollout has no tool inspection, verdict, or final findings. Fix/pivot: retain the task only as a review protocol and treat all report conclusions as unverified until each source file and line is read. [Task 1]
+- Symptom: `countDocuments` is called “unbounded,” every socket event is said to fetch, or Remote Config is said to block page open. Cause: result-cardinality, event qualification, and fire-and-forget behavior were conflated. Fix/pivot: distinguish time bounds from result caps, qualifying fallback events from in-list/stale events, and possible network activity from page-open blocking. [Task 1]
+- Symptom: a proposal is approved as a quick optimization. Cause: it silently changes ordering, legacy field-absence semantics, or authoritative reconciliation. Fix/pivot: do not use raw fire-and-forget emits, a simple merged update removing `$exists`, off-list skip-fetch, or timestamp-only O12 optimization; treat O10/O14 as one Remote Config authority/refresh design. [Task 1]
 
 # Task Group: /Users/tualek/Documents/Codex/2026-07-25/new-chat / Thai event planning and Google Docs export
 scope: Create one ready-to-use Thai ceremony flow/script and export it as a native Google Docs document; use when the user wants a consolidated ceremonial program, short speaking script, and verified document import.
@@ -263,6 +269,18 @@ applies_to: cwd=/Users/tualek/ohochat; reuse_rule=reuse for similar cross-repo r
 scope: Review-only memory for `oho-api` unread/unresponded diffs, especially query composition, flag-off contract checks, service boot safety, coverage-loss judgment, and review reporting style; use when the user asks whether backend changes are okay, not when they ask for direct implementation.
 applies_to: cwd=/Users/tualek/ohochat/oho-api; reuse_rule=reuse for similar code reviews in this repo or nearby search-hook work, but re-verify exact query shape, failing tests, and worktree-specific files before treating any blocker as still open.
 
+## Task 7: Final OHO-1272 badge-cache single-flight timeout/write verification, ship in the reviewed worktree
+
+### rollout_summary_files
+
+- rollout_summaries/2026-07-29T17-36-04-EvVz-oho_1272_final_single_flight_timeout_verification.md (cwd=/Users/tualek/ohochat/oho-api/.claude-worktrees/oho-1272-realtime-badge, rollout_path=/Users/tualek/.codex/sessions/2026/07/30/rollout-2026-07-30T00-36-04-019faef2-a12e-78c2-b951-01d71a1deffd.jsonl, updated_at=2026-07-29T18:06:31+00:00, thread_id=019faef2-a12e-78c2-b951-01d71a1deffd, static/spec verification plus Promise probe; VERDICT: ship)
+
+### keywords
+
+- oho-1272, badge-count-cache, single-flight, staggered-GET, Promise.race, Bluebird, wall-clock-timeout, expired, stale-cache-write, Jest, getOrComputeBadgeCount
+
+- Related skill: skills/oho-badge-cache-review/SKILL.md
+
 ## Task 1: Review an 8s Redis cache for unread/unresponded badge counts, key isolation checked but stale-write/stampede risks remained
 
 ### rollout_summary_files
@@ -330,6 +348,7 @@ applies_to: cwd=/Users/tualek/ohochat/oho-api; reuse_rule=reuse for similar code
 
 - when the user says `do NOT modify files` or `This is a REVIEW ONLY task. Do not edit any files.` -> keep similar `oho-api` reviews strictly read-only. [Task 1][Task 2]
 - when the user asks for `findings ranked by severity with file:line references` and an `overall verdict` -> provide concise, judgmental, evidence-backed output with an explicit ship/needs-fix/block recommendation. [Task 1][Task 2]
+- when a final concurrency re-review asks for `ship`/`no-ship`, event-loop ordering, Promise interop, and test timing -> inspect current files and regression tests directly; prove the claimed race rather than trusting the fix description. [Task 7]
 - when the user says `run git status/git diff` and `verify with actual code inspection (not assumption)` -> inspect the live repo state first, not summaries or stale worktree assumptions. [Task 2][Task 3]
 - when the user calls out pre-existing failing suites that must not be blamed on the diff -> separate environment/repo noise from a diff-caused regression. [Task 2]
 - when the user asked `review oho-api ที่มีการแก้ไขให้หน่อยว่าโอเคไหม` -> future similar review responses should be direct, Thai, and judgmental instead of generic or hedged. [Task 3][Task 4][Task 6]
@@ -345,16 +364,20 @@ applies_to: cwd=/Users/tualek/ohochat/oho-api; reuse_rule=reuse for similar code
 - `convertUnreadUnrespondedQuery.ts` has a special both-flags path; trace the full lifecycle through `countBaseQuery`, `TYPED_FILTER_FIELDS`, parser coercion, and later visibility rewrites. Any query shape that adds `$or` / `$and` needs matching parser/converter updates. [Task 4][Task 6]
 - `buildClearUnreadUnrespondedPayload` is intentionally unconditional on the clear-write side so feature toggles do not leave stuck `is_unresponded` / unread state. [Task 3]
 - `bulk.class.js`, `compute-badge-counts.ts`, `channel-eligible-members.ts`, and `cache/index.js` affect propagation and failure behavior; `cache/index.js` uses a 3s race timeout. [Task 4][Task 5]
+- In the OHO-1272 worktree, `getOrComputeBadgeCount` synchronously registers the complete cache-read-plus-compute lifecycle before its first await. A local `expired` flag is set before timeout rejection and checked immediately before `setCachedBadgeCount`; `Promise.race(...).finally(...)` clears the timer and deletes the flight on every settlement path. This closes staggered-GET admission and late-success stale-write races. [Task 7]
+- The reviewed specs cover concurrent one-read/one-compute, pending-GET joining, timeout then fresh retry, and a first computation resolving after timeout without overwriting the second flight's cached `7`. Production uses Bluebird as `global.Promise`; a focused probe confirmed native async promise assimilation and `.finally()`. [Task 7]
 
 ## Failures and how to do differently
 
 - Symptom: a short-TTL Redis cache times out but a stale value appears later. Cause: `raceCommandTimeout()` does not cancel the command and Redis 3.x has `enable_offline_queue` on by default, so a timed-out `SETEX` may replay after reconnect. Fix/pivot: treat `timeout does not cancel command + offline queue enabled` as a serious bounded-staleness risk; distinguish it from key-isolation concerns. [Task 1]
 - Symptom: cache mitigation still recreates DB load on concurrent misses. Cause: no single-flight/distributed lock around `computeBadgeCounts`. Fix/pivot: audit miss burst/stampede behavior separately from TTL and correctness. [Task 1]
+- Symptom: a timeout rejects joiners but a late compute still writes stale cache state, or staggered callers each enter Redis/compute. Cause: lifecycle registration occurred after an await, or a wall-clock timeout was mistaken for cancellation. Fix/pivot: synchronously install the entire flight before Redis I/O, bound it independently of Mongo `maxTimeMS`, and gate every post-compute side effect on flight-local expiration. [Task 7]
 - Symptom: cache specs look sufficient but hide boundary failures. Cause: `badge-count-cache` is mocked, so orchestration tests do not exercise serialization or Redis behavior. Fix/pivot: inspect the real helper boundary and use targeted runtime probes; `ObjectId` stringification was verified not to be the collision source. [Task 1]
 - Symptom: removing a helper export looks like safe cleanup but the service fails at boot. Cause: whole-module hook registration sees an extra export as an invalid hook type. Fix/pivot: inspect `service.hooks(hooks)` bootstrap semantics before approving hook-module cleanup. [Task 2]
 - Symptom: deleted tests look redundant by file name but real coverage drops. Cause: payload-helper specs do not replace service-boot assertions, hook-registration coverage, or exact write-shape / ordering assertions. Fix/pivot: compare deleted assertions against surviving tests branch by branch. [Task 2]
 - Symptom: unread/unresponded filter breaks with `search` or sale visibility. Cause: typed-filter coercion and `addVisibilityFilter()` can rebuild `context.params.query`. Fix/pivot: audit the full hook chain, not only the injection helper. [Task 4][Task 6]
 - Symptom: sandboxed Jest failures are misattributed to the diff. Cause: duplicate-worktree mocks and haste-map write `EPERM`; repo-wide typecheck may also contain unrelated errors. Fix/pivot: report the exact blocker and use static tracing/targeted probes rather than claim behavioral proof. [Task 1][Task 2][Task 4][Task 5]
+- Symptom: a final review claims the full suite passed. Cause: known Node 24/config incompatibility and pre-existing TypeScript errors prevented independent Jest/tsc runs. Fix/pivot: describe the OHO-1272 result as static/spec verification plus focused Promise probe, not full-suite validation. [Task 7]
 
 # Task Group: /Users/tualek/ohochat/oho-web-app / realtime unread-unresponded badge review
 scope: Read-only review memory for frontend unread/unresponded badge diffs in `oho-web-app`, especially contract checks against `oho-websocket`, Vue 2 reactivity boundaries, and merge-safety of optimistic/realtime counter updates.

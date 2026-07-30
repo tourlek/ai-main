@@ -2033,3 +2033,101 @@ References:
 - `badge-count-cache.ts`
 - Report proposals O1-O14, section 5
 
+## Thread `019fadbe-9f4b-7e81-955d-a4ab24c396a9`
+updated_at: 2026-07-29T12:13:38+00:00
+cwd: /Users/tualek/ohochat/oho-web-app
+rollout_path: /Users/tualek/.codex/sessions/2026/07/29/rollout-2026-07-29T18-59-38-019fadbe-9f4b-7e81-955d-a4ab24c396a9.jsonl
+rollout_summary_file: 2026-07-29T11-59-38-K1iF-unread_unresponded_optimization_report_verification.md
+
+description: Read-only cross-repo audit of unread/unresponded performance report; found bounded-but-uncapped group totals, inline populate/audience fan-out, a customer-delivered/Stream-missing failure window, frontend fallback fetch amplification, and unsafe optimization proposals.
+task: verify unread/unresponded optimization report claims and O1-O14 against live oho-api/oho-web-app code
+task_group: cross-repo unread-unresponded performance review
+task_outcome: partial
+cwd: /Users/tualek/ohochat/oho-web-app
+keywords: unread, unresponded, countDocuments, maxTimeMS, populate, sendMessage, Stream, Redlock, badge-count-cache, channel-eligible-members, Remote Config, refreshChatRoomBadgeRealtime, bulk-send, Vuex
+
+### Task 1: Verify performance claims and deploy safety
+task: audit report claims (a)-(g), missed query/fan-out risks, and optimization proposals O1-O14
+task_group: cross-repo unread-unresponded deploy-gate review
+task_outcome: partial
+
+Preference signals:
+- when the user says “READ-ONLY review” and “Do not modify any files” -> inspect live repositories and report findings only; do not patch, stage, or commit.
+- when the user requires “Cite file:line for every claim” and an exact section contract -> produce structured, judgmental, evidence-first verdicts with explicit CONFIRMED/WRONG/PARTIAL labels.
+- when the task spans API and web, the user expects the full chain: query/write cost, socket audience, frontend merge/fetch cost, and behavior preservation—not isolated file review.
+
+Reusable knowledge:
+- `group/search/search.class.js:110-114` runs unbounded `countDocuments(findQueryPayload)` but applies `maxTimeMS`; service timeout is 75s. It is frequently refetched by UI watchers, not proven to be timer-polled.
+- `emit-chat-session-event.js:47-128` has one `findOne`, nine top-level populates, nested team populates, and no query-level maxTimeMS. Audience resolution can add team/member reads at `socket.io.js:359-417`. Contact inbound awaits emit hooks through `promiseAll`; member reply awaits full and narrow emitters sequentially.
+- `contact-send-message.hooks.js:220-243` split one update into two sequential writes. The writes are error-unguarded, but the second has an ordering guard on `last_contact_date`.
+- Critical failure window: platform delivery completes before after-hooks (`member-send-message.class.js:26-64`); clear writes at `member-send-message.hooks.js:667-686` run before `sendMessagesToChatStream()` at `:1289`, all inside Redlock `:1250-1310`. A clear-write failure can return an error after customer delivery while skipping Stream persistence.
+- `badge-count-cache.ts:18-25` lacks environment/service prefix, but `channel-eligible-members.ts:8-9` also lacks one. Do not claim cross-environment collision without shared-Redis evidence.
+- Web Remote Config `minimumFetchIntervalMillis=0` is configured at `plugins/firebase-remote-config.js:16-17`; plugin fetch is fire-and-forget at `:85-89`, so “network on every page load” is possible but not proven to block page open.
+- `smartchat.js:706-763,927-948` only fetches contact details for qualifying fallback realtime events; there is no debounce, cancellation, or in-flight coalescing in `services/contact-api-service.js:54-66`.
+- Bulk send starts platform handlers without awaiting and returns `{ok:true}` at `member-send-message/bulk/bulk.class.js:31-68`; serial contact loops and awaited per-contact writes/emits can fail-stop after the HTTP response succeeds.
+- Flag-off does not avoid emitter cost: flag evaluation occurs after read/populate/audience work at `emit-chat-session-event.js:47-200`; only the payload field is removed at `:201-203`.
+- Eligible-member cache misses have no single-flight (`channel-eligible-members.ts:50-76`) and accepted writes can carry up to 2,000 IDs into `unread_by` (`:10-18,74-78`).
+- Socket.IO uses one `io.to(channelNames).emit()` call (`socket.io.js:420-440`), but recipient fan-out and room construction scale with eligible members; inbound bubbles add B message emits plus status emits.
+- Web fallback uses the heavyweight `query_params.contact_default` population set (`smartchat.js:927-936`, `api/query-params.js:2-68`); realtime list/store paths perform multiple O(n) scans and rendering passes.
+
+Failures and how to do differently:
+- Do not describe `countDocuments` as literally unbounded when a timeout exists; distinguish work/cardinality bound from time bound.
+- Do not label every socket event as causing a fallback fetch; separate qualifying fallback events from timestamped in-list and stale events.
+- Do not approve raw fire-and-forget emits: it changes ordering, permits cross-request state races, and can lose events on shutdown.
+- Do not merge clear writes by simply removing the `$exists` guard; legacy documents without `is_unresponded` require preserving field-absence semantics.
+- Do not skip off-list fallback fetches without an authoritative polling/reconciliation path; this can leave rooms absent or counters stale.
+- Treat O10/O14 as one Remote Config authority/refresh design, not independent quick fixes.
+- Label conclusions as structural/source-only when no benchmark, explain, or production telemetry was run.
+
+References:
+- `/Users/tualek/ohochat/unread-unresponded-optimize-review.md`
+- API revision: `5971ebf5673a838010ac5c9ca810e6d76163f555`; web revision: `5fc4ef224814aec240b55891ef36664e0abce5cd`; timestamp commit: `bbe0ac735`.
+- `oho-api/src/services/member-send-message/member-send-message.hooks.js:667-686,1281-1289`
+- `oho-api/src/services/chat-session/hooks/emit-chat-session-event.js:47-128,239-289`
+- `oho-api/src/utils/badge-count-cache.ts:18-25`
+- `oho-api/src/utils/channel-eligible-members.ts:50-76`
+- `oho-api/src/services/member-send-message/bulk/bulk.class.js:31-68`
+- `oho-web-app/store/modules/smartchat.js:706-763,927-948`
+- `oho-web-app/plugins/firebase-remote-config.js:16-17,85-89`
+- No tests or benchmarks were run; review was read-only/source-only.
+
+## Thread `019faef2-a12e-78c2-b951-01d71a1deffd`
+updated_at: 2026-07-29T18:06:31+00:00
+cwd: /Users/tualek/ohochat/oho-api/.claude-worktrees/oho-1272-realtime-badge
+rollout_path: /Users/tualek/.codex/sessions/2026/07/30/rollout-2026-07-30T00-36-04-019faef2-a12e-78c2-b951-01d71a1deffd.jsonl
+rollout_summary_file: 2026-07-29T17-36-04-EvVz-oho_1272_final_single_flight_timeout_verification.md
+
+description: Final read-only verification of OHO-1272 unread/unresponded worktree; final single-flight timeout/write redesign passed and overall verdict was ship.
+task: review uncommitted unread/unresponded badge fixes and single-flight cache concurrency
+ task_group: /Users/tualek/ohochat/oho-api / unread-unresponded code reviews
+task_outcome: success
+cwd: /Users/tualek/ohochat/oho-api/.claude-worktrees/oho-1272-realtime-badge
+keywords: oho-1272, badge-count-cache, single-flight, staggered-GET, Promise.race, Bluebird, wall-clock-timeout, expired-flag, stale-cache-write, Jest
+
+### Task 1: Final single-flight timeout/write verification
+
+task: verify final cache-flight redesign and full changeset readiness
+task_group: oho-api unread/unresponded code review
+task_outcome: success
+
+Preference signals:
+- The user required a read-only review with actual current-file inspection and exact file:line evidence -> similar reviews should not rely on summaries or claimed deltas.
+- The user requested a decisive ship/no-ship conclusion and explicit concurrency/test-timing analysis -> proactively validate race windows, timer cleanup, and whether regression tests truly exercise them.
+
+Reusable knowledge:
+- `getOrComputeBadgeCount` now registers the whole cache-read-plus-compute lifecycle synchronously: the outer function is non-async, checks the map, starts `run()`, constructs the bounded flight, and sets the map without an outer await (`src/utils/badge-count-cache.ts:63-111`). This closes the staggered-GET admission race.
+- Each flight has a local `expired` flag (`:73`); the timeout callback sets it before rejecting (`:95-103`), and `run()` checks it immediately before `setCachedBadgeCount` (`:80-86`). A computation resolving after timeout cannot perform a stale late cache write.
+- `Promise.race(...).finally(...)` clears the timer and deletes the in-flight map entry on all settlement paths (`:106-109`). Joiners return the existing flight without creating additional timers (`:69-71`).
+- Production sets `global.Promise` to Bluebird (`src/index.js:12-13`); a focused runtime probe confirmed Bluebird `Promise.race` assimilates native async promises and supports `.finally()`.
+- Final specs directly cover concurrent one-read/one-compute behavior (`src/utils/badge-count-cache.spec.ts:200-225`), pending-GET join (`:228-250`), timeout and fresh retry (`:253-280`), and late-success-after-timeout stale-write prevention (`:311-347`).
+
+Failures and how to do differently:
+- Earlier review rounds identified the admission race, missing wall-clock bound, and stale late-write bug. The durable prevention rule is: register the complete lifecycle before the first await, bound the flight independently of Mongo `maxTimeMS`, and gate all post-compute side effects after timeout.
+- Jest and TypeScript were not independently rerun in this environment due known Node 24/config incompatibility and pre-existing type errors; report this as static/spec verification plus a focused Promise probe, not full suite validation.
+
+References:
+- `src/utils/badge-count-cache.ts:63-111`
+- `src/utils/badge-count-cache.spec.ts:228-250,311-347`
+- `src/index.js:12-13`
+- Final review verdict: `VERDICT: ship`
+
