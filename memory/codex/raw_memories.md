@@ -2131,6 +2131,304 @@ References:
 - `src/index.js:12-13`
 - Final review verdict: `VERDICT: ship`
 
+## Thread `019fb213-6e6a-7ca2-9032-29a514b9a891`
+updated_at: 2026-07-30T08:16:29+00:00
+cwd: /Users/tualek/ohochat/oho-web-app
+rollout_path: /Users/tualek/.codex/sessions/2026/07/30/rollout-2026-07-30T15-10-45-019fb213-6e6a-7ca2-9032-29a514b9a891.jsonl
+rollout_summary_file: 2026-07-30T08-10-45-wXG9-firebase_remote_config_multitab_race_review.md
+
+---
+description: Read-only cross-repo review found a real same-origin multi-tab Firebase Remote Config cache collision; recommend removing the browser fetch path after server flags are verified.
+task: analyze web Firebase Remote Config caching, multi-tab business-signal race, and mobile-pattern port
+ task_group: oho-web-app/firebase-remote-config-design
+task_outcome: success
+cwd: /Users/tualek/ohochat/oho-web-app
+keywords: Firebase Remote Config, minimumFetchIntervalMillis, onConfigUpdate, onConfigUpdated, IndexedDB, custom signals, multi-tab, feature_flags_api_keys, JERA
+---
+
+### Task 1: Evaluate multi-tab cache race and web implementation strategy
+
+task: determine whether a large web minimum fetch interval can reuse another tab’s business-evaluated config, inspect Flutter cache reset behavior, verify JS real-time support, and recommend whether to port mobile behavior.
+task_group: Firebase Remote Config design review
+task_outcome: success
+
+Preference signals:
+- When the user required “Design consultation only. Do NOT modify any files” -> keep future reviews read-only and do not edit, stage, or commit.
+- When the user required every SDK claim to be tagged as actual source/typings or documented-architecture reasoning -> cite exact local SDK paths/lines and label external documentation separately.
+- When the user specified a fixed six-part output order and asked for a direct verdict -> preserve that structure and provide a concrete recommendation rather than a generic pros/cons list.
+
+Reusable knowledge:
+- Installed `@firebase/remote-config@0.8.0` uses IndexedDB database `firebase_remote_config`. Its composite key is app ID, app name, namespace, and record key; custom-signal values are not part of the key (`node_modules/@firebase/remote-config/dist/index.cjs.js:1024-1040,1253-1256`).
+- `active_config`, `last_successful_fetch_response`, fetch timestamp, and `custom_signals` are single records per app/namespace (`:1081-1121`). Cache freshness checks timestamp only (`:586-610`), so a Tab A for business X can consume Tab B’s recently evaluated business-Y blob. This makes the multi-tab race real.
+- Flutter starts with a 12-hour interval (`oho-flutter-mobile/lib/core/services/remote_config_service.dart:21-23`), but `clearRemoteConfigCache()` sets `Duration.zero`, fetches, and never restores 12 hours (`:62-75`). The first signal update therefore leaves that instance permanently unthrottled.
+- The JS SDK supports `onConfigUpdate`, documented in installed typings (`node_modules/@firebase/remote-config/dist/remote-config-public.d.ts:289-304`) and implemented at `index.cjs.js:523-545`. Real-time fetches use cache age zero (`:1788-1805`) and callbacks require explicit `activate()` (`:1820-1830`). Real-time does not isolate per-business cached values.
+- Server-side correctness is already primary: login adds four evaluated flags (`oho-api/.claude-worktrees/jera-tab-is-missing/src/services/authentication-member/login/login.hooks.js:119-140,175-187`), while Vuex marks API-set keys authoritative and filters later browser values (`oho-web-app/store/index.js:103-128,502-512`).
+- Recommended strategy is the simpler safer variant: after verifying rollout, remove automatic browser initialization/custom-signal setting/fetch/activate fallback from `plugins/firebase-remote-config.js`; retain synchronous Vuex getters, E2E overrides, API bootstrap, and fail-closed defaults. Do not port interval bypass or real-time listeners.
+
+Failures and how to do differently:
+- Do not assume Firebase cache entries are keyed by custom-signal combinations; local SDK source shows they are not.
+- Do not claim the exact behavior is always “reactivation”: a fresh tab may load the shared active config, and `activate()` can return false when the shared ETag is already active (`index.cjs.js:290-315`).
+- Do not infer OHO fetch volume. The review found no repository measurement; inspect Firebase usage dashboards before prioritizing cleanup.
+
+References:
+- `oho-web-app/plugins/firebase-remote-config.js:16-17,36-41,52-57,85-89`
+- `oho-web-app/components/SwitchBusiness.vue:202-215`
+- `node_modules/@firebase/remote-config/package.json` reports `@firebase/remote-config` version `0.8.0`.
+- Firebase pricing/quota documentation reviewed: 100,000 fetches/day free under announced September 1, 2026 model; real-time connection itself is not a continuous series of fetches, but invalidation-triggered downloads count.
+- Suggested validation: two same-origin tabs on different businesses, alternating hard reloads, verify each tab’s flags against its own login response; simulate server Remote Config failure and ensure authentication succeeds with false defaults.
+
+## Thread `019fb230-e359-7f60-893d-3467569eb66b`
+updated_at: 2026-07-30T08:50:25+00:00
+cwd: /Users/tualek/ohochat/oho-web-app
+rollout_path: /Users/tualek/.codex/sessions/2026/07/30/rollout-2026-07-30T15-42-56-019fb230-e359-7f60-893d-3467569eb66b.jsonl
+rollout_summary_file: 2026-07-30T08-42-56-lECv-oho_api_jera_login_feature_flags_review.md
+
+description: Read-only review of JERA login feature-flag diff found original export/rejection fixes valid but a new cold-start Firebase outage blocker; focused tests passed only via sandbox cache workaround
+ task: review jera login feature flags and hook fail-soft behavior
+ task_group: /Users/tualek/ohochat/oho-api/.claude-worktrees/jera-tab-is-missing code review
+ task_outcome: partial
+ cwd: /Users/tualek/ohochat/oho-api/.claude-worktrees/jera-tab-is-missing
+ keywords: jera, feature_flags, firebase-remote-config, addFeatureFlagsToResult, Promise.all, Feathers hooks, warnWithOptions, Jest, EPERM, Node 20
+
+### Task 1: Review JERA feature-flag login diff
+
+task: verify hook export shape, fail-soft behavior, logger contract, standards, tests, and worktree residue
+ task_group: oho-api read-only code review
+ task_outcome: partial
+
+Preference signals:
+- when the user asked for a “fresh thread, not a resume,” required live `git diff`/`git status`, and said “Review only — do not edit any files” -> pin the actual worktree and keep similar reviews strictly read-only; do not trust claimed fixes until verified against source and commands.
+- when the user required every claim to have quoted file/path evidence and a structured verdict -> provide compact, severity-ranked, line-cited findings rather than general commentary.
+
+Reusable knowledge:
+- The invalid Feathers hook export is fixed in `src/services/authentication-member/login/login.hooks.js`: `module.exports` contains only `before`, `after`, and `error`; `addFeatureFlagsToResult()` is wired only in `after.create`. The regression guard `Object.keys(loginHooks).sort()` equals `['after', 'before', 'error']`.
+- The Promise rejection path is fail-soft: `addFeatureFlagsToResult` wraps `Promise.all` in `try/catch`, calls `logger.warnWithOptions({ metadata: { businessId, error: error?.message } }, message)`, and returns `context`. `src/logger.js:339-357` defines and exports `warnWithOptions` with that signature.
+- Important failure shield: Firebase fetch failure is swallowed in `src/firebase-remote-config.js:40-52`; missing template becomes `{ value: false, configLoaded: false }` at `:124-129`, but `getBoolean()` discards `configLoaded` at `:140-142`. Since `isJeraFeatureEnabled()` calls `getBoolean(..., false, businessSignal(businessId))`, a cold-start outage resolves as false rather than rejecting. The login hook therefore attaches false flags, and the frontend’s `setFeatureFlags` records them as API-authoritative (`oho-web-app/store/index.js:103-114`), while `setRemoteConfigFeatureFlags` refuses to overwrite API keys (`:122-128`). Future reviews must check that unavailable config remains distinguishable from an evaluated false before server flags become authoritative.
+- The hook test’s `mockRejectedValue(new Error('Remote Config unavailable'))` validates only artificial promise rejection, not the real `fetchServerTemplate` outage path.
+- Repository standards in `CLAUDE.md` require DRY/SOLID, no dead code/TODOs, deterministic fixture-derived tests, and preference for TypeScript. The diff had no material DRY/SOLID/dead-code/TODO violation, but the new `.js` spec is not TypeScript, generates `new Types.ObjectId()` at runtime instead of using fixtures, and has Prettier/ESLint errors.
+
+Failures and how to do differently:
+- Standard Jest command under Node 20 could not start because the sandbox denied writes to `/T/jest_dx/*` with `EPERM`; do not report this as a code test failure. A read-only process-level cache/persistence shim allowed the same focused suites to run.
+- Do not treat `11/11` passing as sufficient: those tests mock the Firebase helpers and miss the cold-start outage-to-authoritative-false behavior. Add a regression test that models `fetchServerTemplate()` failure and verifies unavailable config does not produce authoritative false flags.
+
+References:
+- Branch/HEAD: `tk-sprint-2616/featurn/jera-tab-is-missing`, `ebfb71e1232797c973f6c7720acf33482db004de`.
+- Focused test result: `Test Suites: 2 passed, 2 total; Tests: 11 passed, 11 total` under Node `v20.20.2` using a read-only Jest cache workaround.
+- Final status: `M src/firebase-remote-config.js`, `M src/services/authentication-member/login/login.hooks.js`, `?? src/services/authentication-member/login/login.hooks.spec.js`; no `node_modules` entry or symlink.
+- Blocker evidence: `src/firebase-remote-config.js:40-42`, `:124-142`, `:228-229`; `src/services/authentication-member/login/login.hooks.js:122-148`; `oho-web-app/store/index.js:103-128`.
+
+## Thread `019fb235-7d01-7910-8c06-037d382b4d1e`
+updated_at: 2026-07-30T08:56:35+00:00
+cwd: /Users/tualek/ohochat/oho-web-app/.claude-worktrees/jera-tab-is-missing
+rollout_path: /Users/tualek/.codex/sessions/2026/07/30/rollout-2026-07-30T15-47-57-019fb235-7d01-7910-8c06-037d382b4d1e.jsonl
+rollout_summary_file: 2026-07-30T08-47-57-M3ng-firebase_remote_config_tab_cache_review.md
+
+---
+description: Read-only review of Firebase Remote Config per-tab cache found three ship-blocking cross-tab correctness flaws and weak tests.
+task: review firebase remote config session cache and realtime listener
+task_group: oho-web-app frontend code review
+task_outcome: fail
+cwd: /Users/tualek/ohochat/oho-web-app/.claude-worktrees/jera-tab-is-missing
+keywords: firebase-remote-config, sessionStorage, IndexedDB, business_id, onConfigUpdate, activate, custom-signals, cross-tab-race, Jest, EPERM
+---
+
+### Task 1: Review Firebase Remote Config cache change
+
+task: review uncommitted plugins/firebase-remote-config.js and test/plugins/firebase-remote-config.spec.js
+task_group: oho-web-app frontend code review
+task_outcome: fail
+
+Preference signals:
+- When the user said “Review-only (do not edit files)” -> keep the worktree strictly read-only; do not edit, stage, commit, or run mutating commands.
+- When the user required claims grounded in “actual diff output and actual file contents” with `file:line` citations -> inspect live source and cite exact evidence, not summaries or assumptions.
+- When the user required a verdict section first and per-test verdicts -> use compact, blocker-oriented structured reporting.
+
+Reusable knowledge:
+- `sessionStorage` is partitioned by origin and top-level browser tab. An opener may initially copy storage, but subsequent stores are independent; the plugin’s business-id equality check rejects copied entries for another business.
+- Firebase Remote Config 0.8.0 persists custom signals and `last_successful_fetch_response` in shared IndexedDB. `fetchConfig()` writes the response, while `activate()` later rereads the shared response, so activation is not intrinsically bound to the response fetched by the current tab.
+- The cache-hit branch at `plugins/firebase-remote-config.js:109-115` returns before `setCustomSignals()` at `:118-124`, yet registers realtime. Realtime fetch uses SDK-persisted signals, allowing another business’s signal to be used and cached under the current business.
+- SDK `setCustomSignals()` catches storage errors (`index.esm.js:512-517`); the plugin logs/continues and can then write an untrustworthy result to sessionStorage. Signal-application failure must disable trusted per-business caching.
+- `degradedToSharedCache` correctly prevents writing the explicit `activate()` fallback result (`plugins/firebase-remote-config.js:143-156`), but does not protect successful-path activation races or failed custom-signal application.
+- `onConfigUpdate` has the correct two-argument signature. Runtime invokes observer `next` and propagates `error`; it does not invoke `complete`, despite the declaration containing all three callbacks.
+- Normal cache hits enforce a five-minute TTL at `plugins/firebase-remote-config.js:109-115`; fetch-failure fallback intentionally accepts any-age same-business cache at `:137-141`.
+- API-authoritative flags are preserved by `store/index.js:122-128`, which filters browser Remote Config commits using `feature_flags_api_keys`.
+
+Failures and how to do differently:
+- Blocker: establish current business custom signals before any cache-hit return or realtime listener registration.
+- Blocker: avoid relying on SDK `activate()` as proof that the current tab’s fetch result was activated; prevent shared-response races before writing the supposedly safe session cache.
+- Blocker: distinguish successful, business-scoped fetches from fetches where custom-signal storage failed; never cache the latter under `business_id`.
+- Tests mock Firebase completely, so they cannot expose shared IndexedDB races. Add tests for current-signal setup before listener registration, failed/ineffective signal application, and interleaved shared response overwrite.
+- The no-business-id test does not spy on `sessionStorage.getItem`, so it proves no observable write but not “never reads.” The stale-cache test proves fetch but not refreshed cache contents/timestamp.
+- Jest could not run because the sandbox denied temp haste-map writes (`EPERM`); report syntax/diff checks as shallow validation only.
+
+References:
+- `plugins/firebase-remote-config.js:64-70,95,109-159,169-192`.
+- `test/plugins/firebase-remote-config.spec.js:76-244`.
+- SDK evidence: `/Users/tualek/ohochat/oho-web-app/node_modules/@firebase/remote-config/dist/esm/index.esm.js:286-310,351-369,597-624,1343-1388,1761-1826`; declarations `dist/src/api.d.ts:144` and `dist/src/public_types.d.ts:239-252`.
+- Worktree had no local `node_modules`; parent SDK was `@firebase/remote-config@0.8.0`, matching `package-lock.json:3933-3947`.
+- `git diff --check` and `node --check` passed; targeted Jest failed with `EPERM`.
+
+## Thread `019fb245-30e8-7533-a6c3-ba67f1a607a4`
+updated_at: 2026-07-30T09:14:18+00:00
+cwd: /Users/tualek/ohochat/oho-web-app/.claude-worktrees/jera-tab-is-missing
+rollout_path: /Users/tualek/.codex/sessions/2026/07/30/rollout-2026-07-30T16-05-06-019fb245-30e8-7533-a6c3-ba67f1a607a4.jsonl
+rollout_summary_file: 2026-07-30T09-05-06-mY16-oho_api_jera_login_feature_flags_review.md
+
+description: Read-only review of oho-api JERA login feature-flag fix; P1 closed, 13 targeted tests passed, with cache-boundary comment and unused helper as non-blocking issues
+task: review firebase remote config login feature flags
+task_group: /Users/tualek/ohochat/oho-api code review
+task_outcome: success
+cwd: /Users/tualek/ohochat/oho-api/.claude-worktrees/jera-tab-is-missing
+keywords: oho-api, firebase-remote-config, getLoginFeatureFlags, getBooleanWithState, cold-start, configLoaded, feature_flags, Jest, Node 20, TTL boundary, review-only
+
+### Task 1: Review JERA login feature-flag fix
+
+task: verify cold-start safety, mapping, regressions, tests, and ship verdict
+task_group: oho-api code review
+task_outcome: success
+
+Preference signals:
+- when the user said “review only, do not edit files” and requested exact lines, real test counts, and a ship verdict -> keep similar reviews strictly read-only and provide concise, evidence-backed, severity-ranked conclusions.
+
+Reusable knowledge:
+- Cold-start path is safe: `fetchServerTemplate()` catches fetch errors and returns null; `evaluateServerConfig()` returns null; `getBooleanWithState()` returns `{ value: false, configLoaded: false }`; `getLoginFeatureFlags()` only copies entries with `configLoaded === true`, returning `{}` instead of false-valued keys. The hook assigns that object directly.
+- Mapping at `src/firebase-remote-config.js:153-186` is correct: JERA/unread/unresponded use business signals; search optimization uses `{}`; all defaults are false.
+- Existing exported flag functions and external callers were unchanged. `isJeraFeatureEnabled` is newly added at `src/firebase-remote-config.js:272-273` but has no caller, a non-blocking dead-code issue.
+- The claim that partial loading is impossible is false: shared cache state can be observed across a TTL boundary during one `Promise.all`, yielding mixed loaded/unloaded results. The implementation remains safe because unloaded keys are omitted.
+- The signal test’s 3/1 count does not identify search optimization as the no-signal check; add per-key/context assertions in future.
+
+Failures and how to do differently:
+- Ordinary Jest execution was blocked by sandbox `EPERM` while writing haste-map/transform caches. A no-write launcher successfully ran the tests; distinguish environment failure from test failure.
+
+References:
+- Branch/SHA: `tk-sprint-2616/featurn/jera-tab-is-missing`, `ebfb71e1232797c973f6c7720acf33482db004de`
+- Cold-start evidence: `src/firebase-remote-config.js:35-52,55-71,79-85,119-130,172-186`
+- Hook wiring: `src/services/authentication-member/login/login.hooks.js:117-129,152-168`
+- Tests: `2 passed / 2 suites`, `13 passed / 13 tests`, Node `v20.20.2`
+- Final worktree had only the intended modified files plus untracked `src/services/authentication-member/login/login.hooks.spec.js`; no `node_modules` symlink remained.
+
+## Thread `019fb245-9645-7471-8e1c-d06b902e573f`
+updated_at: 2026-07-30T09:07:28+00:00
+cwd: /Users/tualek/ohochat/oho-web-app/.claude-worktrees/jera-tab-is-missing
+rollout_path: /Users/tualek/.codex/sessions/2026/07/30/rollout-2026-07-30T16-05-32-019fb245-9645-7471-8e1c-d06b902e573f.jsonl
+rollout_summary_file: 2026-07-30T09-05-32-HGYT-firebase_remote_config_review_partial_jest_blocked.md
+
+description: Partial read-only re-review of Firebase Remote Config cache-hit signal fix; code-path evidence was gathered, but Jest could not run due sandbox EPERM and the review had no final verdict.
+task: review firebase remote-config cache-hit signal ordering
+task_group: oho-web-app frontend code review
+task_outcome: partial
+cwd: /Users/tualek/ohochat/oho-web-app/.claude-worktrees/jera-tab-is-missing
+keywords: firebase-remote-config, setCustomSignals, onConfigUpdate, invocationCallOrder, Jest, EPERM, sessionStorage, degradedToSharedCache
+
+### Task 1: Review cache-hit signal ordering
+
+task: verify `setCustomSignals()` runs before all listener registration paths and validate the regression test
+task_group: oho-web-app frontend code review
+task_outcome: partial
+
+Preference signals:
+- The user said “do NOT edit any files” and required actual `git diff`, exact file:line evidence, and a real test run -> future reviews should stay strictly read-only, verify the live worktree, and clearly separate confirmed code facts from unverified conclusions.
+- The user said not to re-litigate accepted SDK residual risks #2/#3 -> future reviews should mention them as accepted unless evidence shows a materially worse or new issue.
+
+Reusable knowledge:
+- In the reviewed working tree, `await setCustomSignals(remoteConfig, signals)` is at `plugins/firebase-remote-config.js:125-131`, before listener registration at lines 137, 156, and 175. This structurally covers cache-hit, same-business fallback, and normal paths.
+- The cache-hit regression test asserts `business_id: "biz_1"` and compares `mockSetCustomSignals.mock.invocationCallOrder[0]` against `mockOnConfigUpdate.mock.invocationCallOrder[0]` at `test/plugins/firebase-remote-config.spec.js:100-105`.
+- Installed Jest typings and implementation confirm `invocationCallOrder` is valid and records mock calls in global invocation order.
+- The plugin still visibly retains `minimumFetchIntervalMillis = 0` (line 105), the test feature override (185-190), missing-apiKey early return (202), fire-and-forget call (204-208), and `degradedToSharedCache` guard (147-160).
+
+Failures and how to do differently:
+- The Jest command failed before test execution because the sandbox denied writing Jest’s haste-map cache: `EPERM: operation not permitted, open .../T/jest_dx/haste-map-...`. Do not report any pass/fail count or claim the test passed.
+- The captured rollout did not complete the requested full review, final verdict, or symlink cleanup/verification. A future agent must resume from the live worktree and re-check status before concluding.
+
+References:
+- `git diff -- plugins/firebase-remote-config.js test/plugins/firebase-remote-config.spec.js`
+- `plugins/firebase-remote-config.js:16-24` accepted residual-risk comment
+- `plugins/firebase-remote-config.js:125-131`, `:137`, `:156`, `:175`
+- `test/plugins/firebase-remote-config.spec.js:100-105`
+- `npm test -- test/plugins/firebase-remote-config.spec.js --runInBand --no-cache`
+- Error: `EPERM: operation not permitted` writing Jest haste-map cache
+
+## Thread `019fb247-9cdc-76a3-a098-2b88906c3dc1`
+updated_at: 2026-07-30T09:16:07+00:00
+cwd: /Users/tualek/ohochat/oho-web-app/.claude-worktrees/jera-tab-is-missing
+rollout_path: /Users/tualek/.codex/sessions/2026/07/30/rollout-2026-07-30T16-07-45-019fb247-9cdc-76a3-a098-2b88906c3dc1.jsonl
+rollout_summary_file: 2026-07-30T09-07-45-YIjD-firebase_remote_config_cache_hit_rereview.md
+
+description: Read-only re-review confirmed the Firebase Remote Config cache-hit signal-ordering fix and 9 passing Jest tests; no new blockers found.
+task: review firebase-remote-config cache-hit signal ordering
+task_group: oho-web-app frontend code review
+task_outcome: success
+cwd: /Users/tualek/ohochat/oho-web-app/.claude-worktrees/jera-tab-is-missing
+keywords: firebase-remote-config, setCustomSignals, invocationCallOrder, Jest, sessionStorage, degradedToSharedCache, EPERM, read-only review
+
+### Task 1: Verify cache-hit signal ordering
+
+task: review firebase-remote-config cache-hit signal ordering
+task_group: oho-web-app frontend code review
+task_outcome: success
+
+Preference signals:
+- When the user says “review-only” and “Do NOT edit any files,” keep the review strictly read-only and verify every claim against the live worktree.
+- When the user requests a verdict up front, exact `file:line` evidence, separate nice-to-haves, and actual test counts, use a compact structured, evidence-first report.
+- When the user says accepted risks are not to be re-litigated, do not re-flag them unless the current code makes them worse or reveals a genuinely new mitigation.
+
+Reusable knowledge:
+- In the final snapshot, `setCustomSignals()` is awaited at `plugins/firebase-remote-config.js:115-121`, before all listener registrations: cache hit `:123-128`, fetch-failure cache fallback `:141-145`, and normal/shared-cache completion `:137-163`.
+- The regression assertion at `test/plugins/firebase-remote-config.spec.js:96-101` checks the correct `business_id` and `mockSetCustomSignals` invocation before `mockOnConfigUpdate`; Jest 27 supports `mock.invocationCallOrder`, and the assertion would fail against the old cache-hit bug.
+- Accepted SDK risks are documented at `plugins/firebase-remote-config.js:7-17`; the code still uses `fetchAndActivate()` and `activate()`, so the risk characterization remains applicable.
+- Verified invariants remain at `:98` (minimum fetch interval 0), `:173-178` (test override), `:180-190` (missing API key return), `:192-196` (fire-and-forget), and `:132-160` (`degradedToSharedCache`).
+- Final test result was 1 suite passed, 9 tests passed, 0 failures, 0 snapshots. The successful run used repository Jest dependencies with `NODE_ENV=test`, `NODE_PATH`, `--runInBand --cache=false --coverage=false`, while suppressing sandbox-rejected cache/coverage filesystem writes in memory.
+
+Failures and how to do differently:
+- Direct Jest attempts initially failed before test collection due to sandbox `EPERM` writes to temp haste/transform caches. Distinguish these infrastructure failures from actual test failures and use a controlled in-memory cache-write workaround when permitted.
+- The worktree changed concurrently during review. Re-read the latest files, re-run tests, and capture final hashes before issuing a verdict.
+- `test/plugins/firebase-remote-config.spec.js` was untracked, so the requested `git diff` did not include it; ensure it is added before commit/MR.
+
+References:
+- Worktree: `/Users/tualek/ohochat/oho-web-app/.claude-worktrees/jera-tab-is-missing`
+- Final plugin SHA-256: `0274d13dc3b82cf6a46cdf9628a9ba6a25c27f9fb3d70c00046ed564335f4a4f`
+- Final test SHA-256: `b99dafda71d6a067848e11a5a9bf96594da162572a8810bdeddef8fb3c752419`
+- No `node_modules` symlink remained in the worktree.
+
+## Thread `019fb24c-796b-7f70-87ac-e3cbecc0fb7e`
+updated_at: 2026-07-30T09:21:40+00:00
+cwd: /Users/tualek/ohochat/oho-api/.claude-worktrees/jera-tab-is-missing
+rollout_path: /Users/tualek/.codex/sessions/2026/07/30/rollout-2026-07-30T16-13-04-019fb24c-796b-7f70-87ac-e3cbecc0fb7e.jsonl
+rollout_summary_file: 2026-07-30T09-13-04-OoVw-firebase_remote_config_comment_trimming_review.md
+
+description: Read-only review verified Firebase Remote Config comment trimming preserved executable behavior and load-bearing rationale; all 9 tests passed, with one non-blocking historical-wording concern in a test comment.
+task: review firebase remote config comment-only cleanup
+task_group: /Users/tualek/ohochat/oho-web-app/.claude-worktrees/jera-tab-is-missing
+task_outcome: success
+cwd: /Users/tualek/ohochat/oho-web-app/.claude-worktrees/jera-tab-is-missing
+keywords: firebase-remote-config, comment-only, AST, sessionStorage, IndexedDB, setCustomSignals, degradedToSharedCache, Jest, NODE_PATH
+
+### Task 1: Review comment trimming
+
+task: verify comment-only cleanup and rerun Firebase Remote Config tests
+task_group: frontend code review
+ task_outcome: success
+
+Preference signals:
+- The user required “Review-only (do not edit files),” actual diff and test evidence, minimal WHY-only comments, and asked not to re-raise two accepted SDK limitations as new bugs -> future reviews should remain tightly scoped, read-only, evidence-based, and distinguish accepted residual risk from regressions.
+
+Reusable knowledge:
+- Executable Babel AST comparison with comments/locations removed reported `executable AST identical=true` for both `plugins/firebase-remote-config.js` and `test/plugins/firebase-remote-config.spec.js` against pre-trim snapshots.
+- The full `HEAD` diff is intentionally not comments-only because it contains the earlier feature implementation; the untracked test requires `git diff --no-index /dev/null test/plugins/firebase-remote-config.spec.js` for inspection.
+- Load-bearing comments remained adequate at the header, the pre-cache-hit `setCustomSignals` ordering note, and the `degradedToSharedCache` note. The header explicitly labels fetch/activate non-atomicity and swallowed signal-storage failures as `Accepted residual risk`.
+- Direct Jest writes failed with sandbox `EPERM`; using the main checkout’s dependencies via `NODE_PATH=/Users/tualek/ohochat/oho-web-app/node_modules` and disabling cache/coverage persistence allowed the real test file to run.
+- Final test output was `Test Suites: 1 passed, 1 total` and `Tests: 9 passed, 9 total`. Final checks showed `node_modules: absent`; no temporary symlink remained.
+
+Failures and how to do differently:
+- Test comment lines 94-95 still say `Regression guard` and `was originally only called`, which narrates historical fix context and is mildly inconsistent with the repository’s timeless WHY-only convention. It was assessed as non-blocking; future cleanup should replace it with a concise rationale for signal ordering.
+
+References:
+- `plugins/firebase-remote-config.js:7-18, 113-115, 133-135`
+- `test/plugins/firebase-remote-config.spec.js:94-95`
+- AST result strings: `plugins/firebase-remote-config.js: executable AST identical=true`; `test/plugins/firebase-remote-config.spec.js: executable AST identical=true`
+- Test result: `Tests: 9 passed, 9 total`
+- Worktree check: `node_modules: absent`
+
 ## Thread `019fb24c-cc6f-7c03-b144-34394eac4620`
 updated_at: 2026-07-30T09:22:45+00:00
 cwd: /Users/tualek/ohochat/oho-api/.claude-worktrees/jera-tab-is-missing
@@ -2215,4 +2513,98 @@ References:
 - `src/services/authentication-member/login/login.hooks.spec.js:48-118`
 - Exact validation result: `Test Suites: 2 passed, 2 total; Tests: 14 passed, 14 total`.
 - Final status: intended modified files only; no `node_modules` symlink; `git diff --check` clean.
+
+## Thread `019fb713-0b24-7323-941a-c766d20f9d78`
+updated_at: 2026-07-31T07:56:34+00:00
+cwd: /Users/tualek/ohochat
+rollout_path: /Users/tualek/.codex/sessions/2026/07/31/rollout-2026-07-31T14-28-26-019fb713-0b24-7323-941a-c766d20f9d78.jsonl
+rollout_summary_file: 2026-07-31T07-28-26-vltS-mr872_realtime_badge_final_merge_review.md
+
+---
+description: Final read-only review of oho-web-app MR !872; prior raw badge-field and open-room blockers were fixed, and the MR was verified mergeable with focused tests passing.
+task: review GitLab MR !872 merge readiness
+ task_group: /Users/tualek/ohochat/oho-web-app / realtime smartchat badge reviews
+task_outcome: success
+cwd: /Users/tualek/ohochat/oho-web-app
+keywords: MR-872, 8150150f, smartchat, refreshChatRoomBadgeRealtime, is_read_by_me, is_unresponded, feature-flags, open-room, Vuex, websocket, mergeable, Jest
+---
+
+### Task 1: Final MR !872 merge review
+
+task: determine whether MR !872 can merge after iterative fixes
+task_group: oho-web-app realtime unread/unresponded badge review
+task_outcome: success
+
+Preference signals:
+- The user asked whether the MR could merge and repeatedly requested another check -> future reviews should re-fetch current GitLab metadata and re-review the latest exact head, not rely on prior conclusions.
+- The review was explicitly read-only and avoided a dirty main checkout -> preserve user worktrees and inspect the MR via GitLab or an isolated clean worktree.
+
+Reusable knowledge:
+- `refreshChatRoomBadgeRealtime` spreads raw socket payloads before `handleSmartchatRealtimeUpdate` picks `DEFAULT_UPDATE_FIELDS`; feature flags must strip raw `is_unresponded` and `is_read_by_me`, not only gate synthesized fields.
+- Final fix computes `is_open_room` before the optimistic/fallback split and strips `is_read_by_me` when `!is_unread_enabled || is_open_room`; this protects the contract that open-room read state is owned by `markRoomRead`.
+- Final MR head `8150150f4fc9955cb7816288c90e511ff28a28b8` is based directly on `develop` `897245556ae6062ba6146996d527e212e5d334ce`; GitLab reported mergeable, conflict-free, zero divergence, and resolved discussions.
+- Focused validation passed on Node `22.23.1`: `test/store/modules/smartchat.spec.js` and `test/store/modules/websocket.spec.js`, 2 suites and 79 tests.
+
+Failures and how to do differently:
+- Earlier heads had two real blockers: raw badge fields bypassed disabled flags; then raw `is_read_by_me:false` bypassed the open-room guard. Always test raw payload fields for both optimistic and fallback paths, including open-room behavior.
+- No GitLab pipeline or manual QA was available; merge approval should state those limitations explicitly.
+
+References:
+- Final MR state: `sha=8150150f4fc9955cb7816288c90e511ff28a28b8`, `detailed_merge_status=mergeable`, `has_conflicts=false`, `diverged_commits_count=0`, `head_pipeline=null`.
+- Test command: `rtk /Users/tualek/.nvm/versions/node/v22.23.1/bin/node /Users/tualek/.nvm/versions/node/v22.23.1/lib/node_modules/npm/bin/npm-cli.js test -- --runInBand --no-cache test/store/modules/smartchat.spec.js test/store/modules/websocket.spec.js`
+- Result: `Test Suites: 2 passed, Tests: 79 passed`.
+- Code: `store/modules/smartchat.js:798,815,837-848`.
+- Tests: `test/store/modules/smartchat.spec.js:1832-1896`.
+
+## Thread `019fb73d-b08e-7d42-947c-493c374ac7c0`
+updated_at: 2026-07-31T08:25:23+00:00
+cwd: /Users/tualek/ohochat/oho-api
+rollout_path: /Users/tualek/.codex/sessions/2026/07/31/rollout-2026-07-31T15-15-01-019fb73d-b08e-7d42-947c-493c374ac7c0.jsonl
+rollout_summary_file: 2026-07-31T08-15-01-Mjxm-rev2_unread_unresponded_refactor_plan_adversarial_review.md
+
+description: Read-only adversarial review of rev.2 unread/unresponded one-sprint refactor plan; verdict NEEDS-CHANGES. Highest-value takeaway: land OHO-1272 and establish production-safe measurement/data-contract/rollout foundations before implementing dark state dual-write.
+task: review-rev2-unread-unresponded-one-sprint-refactor-plan
+task_group: /Users/tualek/ohochat/oho-api unread-unresponded code/design review
+task_outcome: success
+cwd: /Users/tualek/ohochat/oho-api
+keywords: unread-unresponded, contact_chat_states, dark-write, dark-verify, badge-counts, countBaseQuery, feature-flags, eligible-members, last_contact_date, OHO-1272, applyClearUnreadUnrespondedWrites, Atlas Search, production-canary
+
+### Task 1: Review rev.2 and prioritize a two-week production-enablement backlog
+
+task: review-rev2-unread-unresponded-one-sprint-refactor-plan
+task_group: oho-api read-only architecture and performance review
+task_outcome: success
+
+Preference signals:
+- The user required an “Adversarial review round 2,” asked to challenge scope aggressively, and requested “verdict ... numbered findings with file:line evidence ... prioritized 2-week backlog with explicit cut-line” -> similar reviews should be concise, judgmental, source-cited, and end with a hard scope boundary.
+- The user required branch/worktree verification and “read-only, do NOT modify” -> pin revisions, inspect live diffs, and never edit/stage/commit during review.
+
+Reusable knowledge:
+- `buildCustomerMessageUnreadPayload` resolves eligible members only when `rt_unread_feature_enabled` is enabled (`src/utils/build-customer-message-unread-payload.ts:28-37`). CLEAR and mark-read remain unconditional by design (`src/utils/build-clear-unread-unresponded-payload.ts:18-20`, `src/webhook/stream.js:94-160`). A Track B shadow write therefore needs its own kill switch and must not silently run whenever existing flags are off.
+- Badge counts preserve the current tab/search scope. `buildCountBaseQuery` strips pagination/meta and badge filters but keeps other query fields (`src/services/contact/chat-search/build-count-base-query.ts:17-21`); the integration contract explicitly covers status, assignment, starred, tags, and visibility (`test/integration/chat-search-badge-count-scope.test.ts:4-18`). State with only business/channel/spam/unread fields cannot reproduce current counts without a contract change or additional join/mirror design.
+- Existing customer SET uses `last_contact_date` as an ordering guard (`src/services/contact-send-message/contact-send-message.hooks.js:230-239`). A copied timestamp alone does not establish cross-collection ordering when old/new writes race or fail independently; use a monotonic event timestamp/sequence and reject stale events.
+- Search currently computes badge counts before returning data (`src/services/contact/chat-search/chat-search.class.js:96-115`). An API-only separate badge endpoint produces no performance win until web stops requesting inline counts; group search has a separate model/path and starred-scope behavior (`src/services/chat-session/group/search/search.hooks.js:92-147`, `search.class.js:69-98`).
+- OHO-1272's uncommitted worktree centralizes clear writes through `src/utils/apply-clear-unread-unresponded-writes.ts:28-57` across eight call sites. `origin/develop` overlaps six relevant files after `bbe0ac735`; land/rebase this work before adding Track B.
+- Exact raw `diff = 0` is unsuitable for dark verification because dual writes can interleave and fail-soft writes intentionally tolerate stale badges. Compare normalized semantics, track mismatch age, repair old mismatches, and require zero persistent aged mismatches over repeated scans.
+- Existing feature-flag infrastructure supports per-business canary and emergency rollback (`docs/feature-flags.md:370-379`); reuse it for a dedicated dark-write flag rather than coupling state writes to customer-facing flags.
+
+Failures and how to do differently:
+- Do not treat rev.2's Track B scope as automatically justified. The plan's own reference phase says to measure eligible-member distribution, document size, and SET latency before deciding whether collection separation is worthwhile (`plan:237-240`). Make that measurement a prerequisite.
+- Do not accept an API-only Track A as a performance deliverable. Add a minimal web consumer that disables inline counts, or remove Track A from the sprint.
+- Do not use a snapshot exact-zero dark-verify gate. Use semantic normalization, grace windows, repair, mismatch age/error metrics, and repeated scans.
+- Do not implement Track B before the OHO-1272 clear-write consolidation; overlapping uncommitted/current-develop changes create conflict and can regress fail-soft semantics.
+- Do not place a nonessential shadow write inside close-case transactions during dark phase: state failure can abort the existing business transaction. Atomic cross-collection transactions belong when state becomes authoritative.
+
+References:
+- `/Users/tualek/ohochat/docs/unread-unresponded/unread-unresponded-consolidated-refactor-plan.md:107-151,237-240`
+- `src/utils/build-customer-message-unread-payload.ts:28-37`
+- `src/services/contact-send-message/contact-send-message.hooks.js:213-239`
+- `src/utils/build-clear-unread-unresponded-payload.ts:18-20`
+- `src/services/contact/chat-search/build-count-base-query.ts:17-21`
+- `test/integration/chat-search-badge-count-scope.test.ts:4-18`
+- `src/services/contact/chat-search/chat-search.class.js:96-115`
+- `src/utils/apply-clear-unread-unresponded-writes.ts:28-57`
+- `src/webhook/stream.js:135-160`
+- `docs/feature-flags.md:370-379`
+- Review revisions: local `develop@fadce8537`, `origin/develop@a98fb25a`, OHO-1272 worktree `bbe0ac735`.
 

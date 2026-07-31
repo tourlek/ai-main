@@ -8,6 +8,8 @@ applies_to: cwd=/Users/tualek/ohochat/oho-api/.claude-worktrees/jera-tab-is-miss
 
 - rollout_summaries/2026-07-30T09-25-01-qjNc-final_read_only_jera_login_feature_flags_review.md (cwd=/Users/tualek/ohochat/oho-api/.claude-worktrees/jera-tab-is-missing, rollout_path=/Users/tualek/.codex/sessions/2026/07/30/rollout-2026-07-30T16-25-02-019fb257-6da8-7681-aa63-4c62263ee116.jsonl, updated_at=2026-07-30T09:33:14+00:00, thread_id=019fb257-6da8-7681-aa63-4c62263ee116, final live-diff review: 2 suites / 14 tests passed; no ship blockers)
 - rollout_summaries/2026-07-30T09-13-25-kdFe-review_comment_cleanup_jera_tab.md (cwd=/Users/tualek/ohochat/oho-api/.claude-worktrees/jera-tab-is-missing, rollout_path=/Users/tualek/.codex/sessions/2026/07/30/rollout-2026-07-30T16-13-25-019fb24c-cc6f-7c03-b144-34394eac4620.jsonl, updated_at=2026-07-30T09:22:45+00:00, thread_id=019fb24c-cc6f-7c03-b144-34394eac4620, earlier review found comments-only scope drift and worktree movement)
+- rollout_summaries/2026-07-30T09-05-06-mY16-oho_api_jera_login_feature_flags_review.md (cwd=/Users/tualek/ohochat/oho-web-app/.claude-worktrees/jera-tab-is-missing, rollout_path=/Users/tualek/.codex/sessions/2026/07/30/rollout-2026-07-30T16-05-06-019fb245-30e8-7533-a6c3-ba67f1a607a4.jsonl, updated_at=2026-07-30T09:14:18+00:00, thread_id=019fb245-30e8-7533-a6c3-ba67f1a607a4, earlier live review: cold-start P1 was closed; 13 targeted tests passed)
+- rollout_summaries/2026-07-30T08-42-56-lECv-oho_api_jera_login_feature_flags_review.md (cwd=/Users/tualek/ohochat/oho-web-app, rollout_path=/Users/tualek/.codex/sessions/2026/07/30/rollout-2026-07-30T15-42-56-019fb230-e359-7f60-893d-3467569eb66b.jsonl, updated_at=2026-07-30T08:50:25+00:00, thread_id=019fb230-e359-7f60-893d-3467569eb66b, initial review found the cold-start authoritative-false blocker later fixed)
 
 ### keywords
 
@@ -31,6 +33,54 @@ applies_to: cwd=/Users/tualek/ohochat/oho-api/.claude-worktrees/jera-tab-is-miss
 - Symptom: a requested comments-only cleanup appears behaviorally equivalent. Cause: executable tuple/consumer changes or test behavior were bundled with comment edits. Fix/pivot: compare normalized code/AST as well as prose, flag executable scope drift, then stabilize the worktree and retest the exact final snapshot. [Task 1]
 - Symptom: a TTL comment says all four checks “always resolve configLoaded together.” Cause: independent clock reads can cross the TTL boundary. Fix/pivot: retain partial-loading semantics and test them deterministically; use named timing constants and avoid depending on private array order. [Task 1]
 - Symptom: Jest fails with `EPERM` before tests execute. Cause: the restricted sandbox blocks haste/transform cache writes. Fix/pivot: report an environment limitation rather than a code failure; use a narrowly isolated cache-write workaround only when necessary and disclose it. [Task 1]
+
+# Task Group: /Users/tualek/ohochat/oho-web-app / Firebase Remote Config multi-tab and session-cache review
+scope: Read-only design and live-diff review of web Firebase Remote Config business flags, shared SDK storage, session-cache isolation, and listener ordering; use for JERA/browser flag authority or per-tab cache changes.
+applies_to: cwd=/Users/tualek/ohochat/oho-web-app and /Users/tualek/ohochat/oho-web-app/.claude-worktrees/jera-tab-is-missing; reuse_rule=reuse the source-inspection and cache-safety rules for this SDK/version family, but re-check installed SDK behavior, the current worktree, and whether server login flags remain authoritative.
+
+## Task 1: Analyze same-origin multi-tab Remote Config cache collision; browser fetch path was not safe to mirror from mobile
+
+### rollout_summary_files
+
+- rollout_summaries/2026-07-30T08-10-45-wXG9-firebase_remote_config_multitab_race_review.md (cwd=/Users/tualek/ohochat/oho-web-app, rollout_path=/Users/tualek/.codex/sessions/2026/07/30/rollout-2026-07-30T15-10-45-019fb213-6e6a-7ca2-9032-29a514b9a891.jsonl, updated_at=2026-07-30T08:16:29+00:00, thread_id=019fb213-6e6a-7ca2-9032-29a514b9a891, source-grounded multi-tab design verdict)
+
+### keywords
+
+- Firebase Remote Config, @firebase/remote-config@0.8.0, firebase_remote_config, IndexedDB, custom_signals, last_successful_fetch_response, minimumFetchIntervalMillis, onConfigUpdate, custom signals, multi-tab, feature_flags_api_keys, JERA
+
+## Task 2: Iterate cache-hit signal ordering and comments-only review; final targeted browser test passed
+
+### rollout_summary_files
+
+- rollout_summaries/2026-07-30T09-13-04-OoVw-firebase_remote_config_comment_trimming_review.md (cwd=/Users/tualek/ohochat/oho-api/.claude-worktrees/jera-tab-is-missing, rollout_path=/Users/tualek/.codex/sessions/2026/07/30/rollout-2026-07-30T16-13-04-019fb24c-796b-7f70-87ac-e3cbecc0fb7e.jsonl, updated_at=2026-07-30T09:21:40+00:00, thread_id=019fb24c-796b-7f70-87ac-e3cbecc0fb7e, AST-identical comment trim; 1 suite / 9 tests passed)
+- rollout_summaries/2026-07-30T09-07-45-YIjD-firebase_remote_config_cache_hit_rereview.md (cwd=/Users/tualek/ohochat/oho-web-app/.claude-worktrees/jera-tab-is-missing, rollout_path=/Users/tualek/.codex/sessions/2026/07/30/rollout-2026-07-30T16-07-45-019fb247-9cdc-76a3-a098-2b88906c3dc1.jsonl, updated_at=2026-07-30T09:16:07+00:00, thread_id=019fb247-9cdc-76a3-a098-2b88906c3dc1, final signal-ordering review; 9 tests passed)
+- rollout_summaries/2026-07-30T09-05-32-HGYT-firebase_remote_config_review_partial_jest_blocked.md (cwd=/Users/tualek/ohochat/oho-web-app/.claude-worktrees/jera-tab-is-missing, rollout_path=/Users/tualek/.codex/sessions/2026/07/30/rollout-2026-07-30T16-05-32-019fb245-9645-7471-8e1c-d06b902e573f.jsonl, updated_at=2026-07-30T09:07:28+00:00, thread_id=019fb245-9645-7471-8e1c-d06b902e573f, partial re-review superseded by the successful final run)
+- rollout_summaries/2026-07-30T08-47-57-M3ng-firebase_remote_config_tab_cache_review.md (cwd=/Users/tualek/ohochat/oho-web-app/.claude-worktrees/jera-tab-is-missing, rollout_path=/Users/tualek/.codex/sessions/2026/07/30/rollout-2026-07-30T15-47-57-019fb235-7d01-7910-8c06-037d382b4d1e.jsonl, updated_at=2026-07-30T08:56:35+00:00, thread_id=019fb235-7d01-7910-8c06-037d382b4d1e, earlier review found cross-tab blockers; signal-ordering fix later verified)
+
+### keywords
+
+- plugins/firebase-remote-config.js, sessionStorage, business_id, setCustomSignals, invocationCallOrder, onConfigUpdate, activate, degradedToSharedCache, Accepted residual risk, executable AST identical, Jest, NODE_PATH, EPERM
+
+## User preferences
+
+- when the user requires “Design consultation only. Do NOT modify any files” or “Review-only” -> keep the checkout strictly read-only and do not stage, commit, or leave dependency artifacts. [Task 1][Task 2]
+- when the user demands every SDK claim be actual source/typings or documented-architecture reasoning, with a direct verdict in a fixed order -> inspect installed SDK paths/typings, label source versus documentation, and give the concrete recommendation rather than generic pros/cons. [Task 1]
+- when the user says accepted risks are not to be re-litigated -> distinguish accepted residual risk from a regression; re-raise it only if current code worsens it or loses a mitigation. [Task 2]
+
+## Reusable knowledge
+
+- In installed `@firebase/remote-config@0.8.0`, IndexedDB `firebase_remote_config` records are keyed by app/name/namespace/record key, not custom-signal values. `active_config`, `last_successful_fetch_response`, and `custom_signals` are shared per app/namespace; timestamp-only freshness permits a tab for business A to use a recently evaluated business-B blob. [Task 1]
+- API bootstrap is the primary authority: login supplies evaluated flags and Vuex records API keys as authoritative, filtering later browser Remote Config values via `feature_flags_api_keys`. The safer design recommendation was to remove automatic browser initialization/custom-signal/fetch/activate fallback after rollout verification, while retaining synchronous getters, E2E overrides, API bootstrap, and fail-closed defaults. [Task 1]
+- Do not port Flutter's interval reset: `clearRemoteConfigCache()` sets `Duration.zero`, fetches, and never restores the initial 12-hour interval. `onConfigUpdate` exists in JS typings/runtime but uses cache age zero and still shares storage, so it does not create business isolation. [Task 1]
+- For the reviewed per-tab session cache, await `setCustomSignals()` before every cache-hit return or listener registration; the final test asserts its `invocationCallOrder` before `onConfigUpdate`. `sessionStorage` is tab-scoped, but it cannot make a shared SDK response safe by itself. [Task 2]
+- `fetchAndActivate()` / `activate()` are non-atomic against shared IndexedDB response writes, and SDK signal-storage failures are swallowed. Preserve the documented `degradedToSharedCache` boundary and never label a cache business-safe merely because activation returned successfully. [Task 2]
+- A true comments-only check should compare executable AST/normalized code. The final cleanup had `executable AST identical=true`; inspect untracked tests with `git diff --no-index /dev/null test/plugins/firebase-remote-config.spec.js`. [Task 2]
+
+## Failures and how to do differently
+
+- Symptom: a cache hit or real-time callback stores wrong-business flags under the current `business_id`. Cause: listener registration/fetch used previously persisted shared custom signals, or `activate()` reread another tab's shared response. Fix/pivot: establish current signals before every listener/cache branch, treat successful fetch/activation as insufficient proof of business isolation, and prefer server-authoritative flags. [Task 1][Task 2]
+- Symptom: direct Jest fails before collection with temp haste/transform `EPERM`. Cause: restricted sandbox cache/coverage writes. Fix/pivot: report infrastructure separately; when allowed, use main-checkout dependencies via `NODE_PATH` and suppress persistence only, then report the actual executed suite/test count. [Task 2]
+- Symptom: a “comments-only” cleanup hides behavior changes or a requested `git diff` omits a new test. Cause: HEAD includes earlier implementation and untracked files are excluded. Fix/pivot: use AST comparison for the claimed cleanup and `git diff --no-index` for untracked files. [Task 2]
 
 # Task Group: /Users/tualek/ohochat / unread-unresponded optimization report verification
 scope: Read-only, source-first verification of an unread/unresponded performance report across `oho-api` and `oho-web-app`; use when a report proposes query, cache, socket, or Vuex optimization and every verdict must be independently line-cited.
@@ -303,6 +353,16 @@ applies_to: cwd=/Users/tualek/ohochat; reuse_rule=reuse for similar cross-repo r
 scope: Review-only memory for `oho-api` unread/unresponded diffs, especially query composition, flag-off contract checks, service boot safety, coverage-loss judgment, and review reporting style; use when the user asks whether backend changes are okay, not when they ask for direct implementation.
 applies_to: cwd=/Users/tualek/ohochat/oho-api; reuse_rule=reuse for similar code reviews in this repo or nearby search-hook work, but re-verify exact query shape, failing tests, and worktree-specific files before treating any blocker as still open.
 
+## Task 8: Adversarial review of rev.2 unread/unresponded one-sprint refactor plan; NEEDS-CHANGES before dark state dual-write
+
+### rollout_summary_files
+
+- rollout_summaries/2026-07-31T08-15-01-Mjxm-rev2_unread_unresponded_refactor_plan_adversarial_review.md (cwd=/Users/tualek/ohochat/oho-api, rollout_path=/Users/tualek/.codex/sessions/2026/07/31/rollout-2026-07-31T15-15-01-019fb73d-b08e-7d42-947c-493c374ac7c0.jsonl, updated_at=2026-07-31T08:25:23+00:00, thread_id=019fb73d-b08e-7d42-947c-493c374ac7c0, production-enablement backlog and explicit Track B cut-line)
+
+### keywords
+
+- unread-unresponded, contact_chat_states, dark-write, dark-verify, buildCountBaseQuery, feature-flags, eligible-members, last_contact_date, OHO-1272, applyClearUnreadUnrespondedWrites, Atlas Search, production-canary, Track A, Track B
+
 ## Task 7: Final OHO-1272 badge-cache single-flight timeout/write verification, ship in the reviewed worktree
 
 ### rollout_summary_files
@@ -388,6 +448,7 @@ applies_to: cwd=/Users/tualek/ohochat/oho-api; reuse_rule=reuse for similar code
 - when the user asked `review oho-api ที่มีการแก้ไขให้หน่อยว่าโอเคไหม` -> future similar review responses should be direct, Thai, and judgmental instead of generic or hedged. [Task 3][Task 4][Task 6]
 - when the user emphasized `correctness bugs (especially cross-member cache poisoning)` -> prioritize scope isolation, member identity, and stale-data correctness before style or minor test coverage. [Task 1]
 - when the user asked `ถ้าปิด flag แล้วต้องหมายความว่า feature นี้ต้องไม่ทำงานแต่ feature อื่นๆ ก็ไม่กระทบด้วยเช่นกันต้องใช้งานได้เหมือนเดิม` -> review against the contract `feature off = no behavior + no collateral impact`, not just whether the flag is referenced somewhere. [Task 3]
+- when the user asks for an “Adversarial review round 2” with “verdict ... numbered findings with file:line evidence ... prioritized 2-week backlog with explicit cut-line” -> challenge scope aggressively, pin revisions, and finish with a hard production-enablement boundary rather than rubber-stamping a revised plan. [Task 8]
 
 ## Reusable knowledge
 
@@ -400,6 +461,10 @@ applies_to: cwd=/Users/tualek/ohochat/oho-api; reuse_rule=reuse for similar code
 - `bulk.class.js`, `compute-badge-counts.ts`, `channel-eligible-members.ts`, and `cache/index.js` affect propagation and failure behavior; `cache/index.js` uses a 3s race timeout. [Task 4][Task 5]
 - In the OHO-1272 worktree, `getOrComputeBadgeCount` synchronously registers the complete cache-read-plus-compute lifecycle before its first await. A local `expired` flag is set before timeout rejection and checked immediately before `setCachedBadgeCount`; `Promise.race(...).finally(...)` clears the timer and deletes the flight on every settlement path. This closes staggered-GET admission and late-success stale-write races. [Task 7]
 - The reviewed specs cover concurrent one-read/one-compute, pending-GET joining, timeout then fresh retry, and a first computation resolving after timeout without overwriting the second flight's cached `7`. Production uses Bluebird as `global.Promise`; a focused probe confirmed native async promise assimilation and `.finally()`. [Task 7]
+- `buildCountBaseQuery()` preserves tab/search filters such as status, assignment, starred, tags, and visibility after stripping pagination/meta and badge filters. A state collection containing only business/channel/spam/unread fields cannot reproduce present badge counts without a contract change or join/mirror design. [Task 8]
+- Existing unread feature flags gate customer payload/eligible-member resolution, but CLEAR and mark-read stay unconditional by design. A dark write needs its own per-business kill switch, timeout/maxTimeMS, fail-soft behavior, metrics, repair path, and canary; it must not run simply because customer-facing flags are off. [Task 8]
+- `last_contact_date` alone does not order cross-collection writes. Use a monotonic event timestamp/sequence plus conditional updates that reject older events; backfill must not overwrite newer live state. [Task 8]
+- API-only badge endpoints do not improve performance until web stops requesting inline counts. Land/rebase OHO-1272 clear-write consolidation before Track B because the worktree overlaps current `origin/develop` in six relevant files. [Task 8]
 
 ## Failures and how to do differently
 
@@ -412,6 +477,8 @@ applies_to: cwd=/Users/tualek/ohochat/oho-api; reuse_rule=reuse for similar code
 - Symptom: unread/unresponded filter breaks with `search` or sale visibility. Cause: typed-filter coercion and `addVisibilityFilter()` can rebuild `context.params.query`. Fix/pivot: audit the full hook chain, not only the injection helper. [Task 4][Task 6]
 - Symptom: sandboxed Jest failures are misattributed to the diff. Cause: duplicate-worktree mocks and haste-map write `EPERM`; repo-wide typecheck may also contain unrelated errors. Fix/pivot: report the exact blocker and use static tracing/targeted probes rather than claim behavioral proof. [Task 1][Task 2][Task 4][Task 5]
 - Symptom: a final review claims the full suite passed. Cause: known Node 24/config incompatibility and pre-existing TypeScript errors prevented independent Jest/tsc runs. Fix/pivot: describe the OHO-1272 result as static/spec verification plus focused Promise probe, not full-suite validation. [Task 7]
+- Symptom: Track B dual-write is scheduled as a one-sprint default. Cause: no prerequisite measurement of eligible-member distribution, document/index size, or SET latency; its proposed state cannot satisfy the existing badge contract. Fix/pivot: first land OHO-1272, decide historical semantics, build dry-run-default/resumable migration tooling, verify Atlas indexes with `explain()`, then measure/canary existing storage before approving the design. [Task 8]
+- Symptom: dark verification uses snapshot `diff = 0`, or Track A ships API-only. Cause: dual writes interleave/fail-soft and the web still triggers inline count work. Fix/pivot: compare normalized semantics with mismatch-age grace windows, repair and repeated scans; ship a minimal web consumer that disables inline counts or drop Track A. [Task 8]
 
 # Task Group: /Users/tualek/ohochat/oho-web-app / realtime unread-unresponded badge review
 scope: Read-only review memory for frontend unread/unresponded badge diffs in `oho-web-app`, especially contract checks against `oho-websocket`, Vue 2 reactivity boundaries, and merge-safety of optimistic/realtime counter updates.
@@ -443,6 +510,18 @@ applies_to: cwd=/Users/tualek/ohochat/oho-web-app; reuse_rule=reuse for similar 
 
 - Related skill: skills/oho-smartchat-debugging/SKILL.md
 
+## Task 3: Final GitLab MR !872 merge review; earlier raw-field blockers fixed and MR was mergeable
+
+### rollout_summary_files
+
+- rollout_summaries/2026-07-31T07-28-26-vltS-mr872_realtime_badge_final_merge_review.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/07/31/rollout-2026-07-31T14-28-26-019fb713-0b24-7323-941a-c766d20f9d78.jsonl, updated_at=2026-07-31T07:56:34+00:00, thread_id=019fb713-0b24-7323-941a-c766d20f9d78, final head mergeable; 2 focused suites / 79 tests passed)
+
+### keywords
+
+- MR-872, 8150150f, smartchat, refreshChatRoomBadgeRealtime, DEFAULT_UPDATE_FIELDS, is_read_by_me, is_unresponded, feature-flags, open-room, markRoomRead, GitLab mergeable, websocket, Node-22, Jest
+
+- Related skill: skills/oho-smartchat-debugging/SKILL.md
+
 ## User preferences
 
 - when the user says `This is a review-only request. Do not fix anything, do not edit any files. Only report findings.` -> stay read-only and avoid proposing or applying patches unless explicitly asked. [Task 1]
@@ -450,6 +529,7 @@ applies_to: cwd=/Users/tualek/ohochat/oho-web-app; reuse_rule=reuse for similar 
 - when the user wants findings grouped by severity and a one-line merge verdict -> preserve that compact review shape instead of drifting into a generic essay. [Task 1]
 - when the user says `read ONLY these, do not explore the repo broadly` and asks for `yes/no verdict + file:line evidence` -> stay within the named files/line ranges, perform an adversarial defect search, and end with a compact, line-cited verdict. [Task 2]
 - when the user says “Read the actual files, do not guess” and asks for “real defects, not style nits” -> inspect the live named worktree, focus on correctness, and do not substitute a summary for source evidence. [Task 2]
+- when the user asks whether an MR can merge and asks for another check -> re-fetch GitLab metadata and re-review the latest exact head; use GitLab or an isolated clean worktree rather than touching a dirty main checkout. [Task 3]
 
 ## Reusable knowledge
 
@@ -464,6 +544,8 @@ applies_to: cwd=/Users/tualek/ohochat/oho-web-app; reuse_rule=reuse for similar 
 - `is_unresponded:true` injection for existing rooms has no causal ordering; a stale inbound event can reassert it after a bot/member reply cleared it. Require event ordering/version metadata or authoritative reconciliation. Feature flags are independently gated, so this is shared-event handling rather than a flag-combination hole. [Task 2]
 - `handleSmartchatRealtimeUpdate` finds rows by `_id` and then applies `_.pick(event_message, options.update_fields)`; `refreshChatRoomBadgeRealtime` must map `contact_id` to `_id` and pass `DEFAULT_UPDATE_FIELDS` so injected `is_unresponded` / `is_read_by_me` survive. The Set tracker makes repeated existing-room transitions idempotent, but it does not protect a later fetch merge. [Task 2]
 - For a new room, `res.data[0]` can overwrite injected badge fields after counts and reconciliation Sets were already updated (`smartchat.js:927-940` in the earlier review). Preserve/reapply final badge fields, or compute both row state and aggregate transitions only after the authoritative fetch. [Task 2]
+- `refreshChatRoomBadgeRealtime` spreads raw socket payloads before `handleSmartchatRealtimeUpdate` applies `DEFAULT_UPDATE_FIELDS`; feature gates must remove raw `is_unresponded` / `is_read_by_me`, not merely skip synthesized fields. For open rooms, remove `is_read_by_me` when `!is_unread_enabled || is_open_room`, because `Conversation.vue` `markRoomRead` owns open-room read state. [Task 3]
+- MR !872's final reviewed state was `8150150f4fc9955cb7816288c90e511ff28a28b8` directly on `develop` `897245556ae6062ba6146996d527e212e5d334ce`: mergeable, conflict-free, zero divergence, discussions resolved; Node 22 focused smartchat/websocket suites passed 79 tests. This is snapshot-specific; no pipeline or manual QA was available. [Task 3]
 
 ## Failures and how to do differently
 
@@ -474,6 +556,8 @@ applies_to: cwd=/Users/tualek/ohochat/oho-web-app; reuse_rule=reuse for similar 
 - Symptom: aggregate counters and new-room visibility drift despite a successful fetch. Cause: deltas run before authoritative fetch, insertion can be blocked without a recovery path, and failed fetches insert incomplete data. Fix/pivot: fetch final row state before counting, and queue/retry/refetch every blocked or incomplete new-room path. [Task 2]
 - Symptom: unresponded returns after it was cleared. Cause: stale inbound events have no ordering guard. Fix/pivot: gate merges on version/order or reconcile against authoritative state. [Task 2]
 - Symptom: a review is called an approval although the named branch was not checked out or the review ended before a verdict. Cause: the live worktree differed (`tk-sprint-2615/develop` rather than the requested branch) and the partial pass did not complete all six checks. Fix/pivot: verify branch/base before review and explicitly label conclusions as live-diff-only or incomplete. [Task 2]
+- Symptom: disabled features or an open room receive false raw badge state even though synthetic-field gates look correct. Cause: raw socket fields were already in the spread payload; the first fix did not strip `is_read_by_me:false` for open rooms. Fix/pivot: test raw fields in optimistic and fallback paths, with flags disabled and open-room behavior, before approving. [Task 3]
+- Symptom: passing focused tests are treated as full merge approval. Cause: GitLab conflicts/pipeline/manual QA were not checked. Fix/pivot: report exact MR merge metadata and disclose missing pipeline/manual QA separately from source/test evidence. [Task 3]
 
 # Task Group: /Users/tualek/ohochat/script-oho / migrate-unread.ts correctness review
 scope: Read-only correctness-review memory for `unread-unresponded/migrate-unread.ts`, especially whether `unread_by` / `is_unresponded` can be reconstructed safely, what checkpoint/cleanup guarantees actually exist, and what migration plan is honest enough to ship.
