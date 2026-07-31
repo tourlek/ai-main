@@ -2131,3 +2131,88 @@ References:
 - `src/index.js:12-13`
 - Final review verdict: `VERDICT: ship`
 
+## Thread `019fb24c-cc6f-7c03-b144-34394eac4620`
+updated_at: 2026-07-30T09:22:45+00:00
+cwd: /Users/tualek/ohochat/oho-api/.claude-worktrees/jera-tab-is-missing
+rollout_path: /Users/tualek/.codex/sessions/2026/07/30/rollout-2026-07-30T16-13-25-019fb24c-cc6f-7c03-b144-34394eac4620.jsonl
+rollout_summary_file: 2026-07-30T09-13-25-kdFe-review_comment_cleanup_jera_tab.md
+
+description: Read-only review of a supposedly comments-only cleanup found executable scope drift and validated the final snapshot with Node 20.
+task: review-uncommitted-comment-cleanup
+ task_group: oho-api-read-only-code-review
+task_outcome: partial
+cwd: /Users/tualek/ohochat/oho-api/.claude-worktrees/jera-tab-is-missing
+keywords: git-diff, read-only-review, comments-only, firebase-remote-config, getLoginFeatureFlags, TTL-boundary, Jest, Node-20, worktree-drift
+
+### Task 1: Review comment-only cleanup
+
+task: verify comment-only diff and run targeted specs
+task_group: oho-api-read-only-code-review
+task_outcome: partial
+
+Preference signals:
+- when the user said “Review-only (do not edit files, read-only)” -> keep similar reviews strictly non-mutating; temporary dependency symlinks must be removed and status rechecked.
+- when the user required “Run git diff there” and exact `file:line` citations -> inspect the live worktree and ground every finding in quoted source, not prior summaries.
+- when the user requested a verdict up front and concise numbered answers -> lead with `SHIP-BLOCKING ISSUES FOUND` or `NONE FOUND`, then answer each requested item directly.
+
+Reusable knowledge:
+- Worktree drift matters: the branch changed during review. Final verification was pinned to diff hash `a1b199252c9664f6605a803ac72c17a6fabe7d396468e4033392e5c938cd2c39`; future reviews should capture a final diff hash/status before reporting.
+- `getLoginFeatureFlags` preserves the P1 safety rationale at `src/firebase-remote-config.js:154-160`: only include loaded keys because frontend-present keys are session-authoritative; cold-start/outage must omit keys instead of returning confidently false values.
+- `addFeatureFlagsToResult` preserves fail-soft behavior at `src/services/authentication-member/login/login.hooks.js:102-105`; Remote Config failure is caught/logged and must not fail login.
+- Independent `Date.now()` calls in `getCachedServerTemplate()` can straddle the TTL boundary. The prior comment claiming all four checks “always resolve configLoaded together” was false; the added test at `src/firebase-remote-config.spec.ts:274-314` demonstrated a partial result.
+- Node 20 targeted validation passed: 2 suites and 14 tests. The temporary `node_modules` symlink was removed successfully.
+
+Failures and how to do differently:
+- The requested comments-only cleanup was not actually comments-only: `src/firebase-remote-config.js:147-168` changed executable tuple shape/consumer, and `isJeraFeatureEnabled()` was removed. Future reviewers should compare executable AST or normalized code and flag any executable drift even when behavior appears equivalent.
+- The test file gained executable behavior while the review was in progress, changing expected validation from 13 to 14 tests. Re-run tests only after confirming the worktree has stabilized and report the exact snapshot tested.
+- The new TTL test uses magic clock values and private array order; future changes should use named timing constants and avoid coupling tests to private implementation ordering where possible.
+
+References:
+- Final diff hash: `a1b199252c9664f6605a803ac72c17a6fabe7d396468e4033392e5c938cd2c39`.
+- Verification command shape: `nvm use 20 && npx jest src/firebase-remote-config.spec.ts src/services/authentication-member/login/login.hooks.spec.js --runInBand`.
+- Final result: `Test Suites: 2 passed, 2 total; Tests: 14 passed, 14 total`.
+- Final status had only the three intended modified files plus the untracked hook spec; no `node_modules` symlink remained.
+
+## Thread `019fb257-6da8-7681-aa63-4c62263ee116`
+updated_at: 2026-07-30T09:33:14+00:00
+cwd: /Users/tualek/ohochat/oho-api/.claude-worktrees/jera-tab-is-missing
+rollout_path: /Users/tualek/.codex/sessions/2026/07/30/rollout-2026-07-30T16-25-02-019fb257-6da8-7681-aa63-4c62263ee116.jsonl
+rollout_summary_file: 2026-07-30T09-25-01-qjNc-final_read_only_jera_login_feature_flags_review.md
+
+description: Final read-only review of oho-api JERA login feature-flag diff; implementation passed behavioral checks and all 14 tests, with only non-blocking test-quality/style nits.
+task: review-uncommitted-login-feature-flags-diff
+task_group: oho-api-read-only-code-review
+task_outcome: success
+cwd: /Users/tualek/ohochat/oho-api/.claude-worktrees/jera-tab-is-missing
+keywords: git-diff, read-only-review, firebase-remote-config, getLoginFeatureFlags, configLoaded, cold-start, TTL-boundary, Feathers-hooks, isJeraFeatureEnabled, Jest, Node-20, EPERM
+
+### Task 1: Review JERA login feature flags
+
+task: verify-final-uncommitted-diff-and-run-specs
+task_group: oho-api-read-only-code-review
+task_outcome: success
+
+Preference signals:
+- when the user said to run `git diff` yourself and not trust the prior-round summary -> independently verify the live worktree, line-numbered final files, and all claimed fixes before reporting.
+- when the user required read-only review and removal of any temporary symlink -> do not edit, stage, commit, or leave filesystem artifacts; confirm final git status.
+- when the user requested an explicit verdict, exact file:line evidence, and real pass/fail counts -> give a compact evidence-first report with separate ship blockers and non-blocking nits.
+
+Reusable knowledge:
+- `getLoginFeatureFlags()` evaluates the four flags using `[key, usesBusinessSignal]` pairs and uses the same key for Remote Config evaluation and returned object keys (`src/firebase-remote-config.js:147-175`). The constants are identical to their Remote Config/result names.
+- Cold-start failure is fail-safe: fetch failure leaves `cachedTemplate` null (`src/firebase-remote-config.js:35-52`), `getBooleanWithState()` returns `{ value: false, configLoaded: false }` (`:119-130`), and the reducer excludes unloaded keys (`:172-175`).
+- Login feature-flag enrichment is auxiliary and fail-soft: the after-hook catches errors, logs with `warnWithOptions`, leaves `feature_flags` unset, and returns the login context (`src/services/authentication-member/login/login.hooks.js:102-118`).
+- Whole-repo searches found zero `isJeraFeatureEnabled` references. The hook module exports only Feathers lifecycle keys, verified by the new spec.
+- Under Node `v20.20.2`, both specs passed: 2 suites and 14 tests, 0 failures. The sandbox blocked Jest cache writes with `EPERM`; an in-process filesystem shim suppressed only Jest cache persistence so actual transforms/tests ran.
+
+Failures and how to do differently:
+- Standard Jest invocation could not write its haste/transform cache in the restricted sandbox and failed before tests ran. Report this as an environment limitation, not a test failure; if using a cache-write workaround, disclose it.
+- Non-blocking cleanup opportunities: prefer TypeScript for `login.hooks.spec.js`; derive the repeated four-flag fixture from one named object; name remaining timing margins; rename `mod` to a meaningful module variable; remove the remaining WHAT-only comment.
+
+References:
+- `src/firebase-remote-config.js:35-52,119-130,147-175`
+- `src/firebase-remote-config.spec.ts:274-317`
+- `src/services/authentication-member/login/login.hooks.js:102-118,121-172`
+- `src/services/authentication-member/login/login.hooks.spec.js:48-118`
+- Exact validation result: `Test Suites: 2 passed, 2 total; Tests: 14 passed, 14 total`.
+- Final status: intended modified files only; no `node_modules` symlink; `git diff --check` clean.
+

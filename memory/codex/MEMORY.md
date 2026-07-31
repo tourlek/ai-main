@@ -1,3 +1,37 @@
+# Task Group: /Users/tualek/ohochat/oho-api/.claude-worktrees/jera-tab-is-missing / JERA login feature-flag read-only review
+scope: Read-only review of the uncommitted JERA login Remote Config feature-flag diff, including comments-only scope checks, cold-start semantics, Feathers hook behavior, and targeted Node 20 Jest validation.
+applies_to: cwd=/Users/tualek/ohochat/oho-api/.claude-worktrees/jera-tab-is-missing; reuse_rule=reuse the review protocol for similar `oho-api` JERA login feature-flag changes, but treat the verified implementation, diff hash, test counts, and branch state as checkout-specific and re-inspect the live tracked and untracked diff.
+
+## Task 1: Review comments-only cleanup then final JERA login feature-flag diff; final verdict no ship-blocking issues
+
+### rollout_summary_files
+
+- rollout_summaries/2026-07-30T09-25-01-qjNc-final_read_only_jera_login_feature_flags_review.md (cwd=/Users/tualek/ohochat/oho-api/.claude-worktrees/jera-tab-is-missing, rollout_path=/Users/tualek/.codex/sessions/2026/07/30/rollout-2026-07-30T16-25-02-019fb257-6da8-7681-aa63-4c62263ee116.jsonl, updated_at=2026-07-30T09:33:14+00:00, thread_id=019fb257-6da8-7681-aa63-4c62263ee116, final live-diff review: 2 suites / 14 tests passed; no ship blockers)
+- rollout_summaries/2026-07-30T09-13-25-kdFe-review_comment_cleanup_jera_tab.md (cwd=/Users/tualek/ohochat/oho-api/.claude-worktrees/jera-tab-is-missing, rollout_path=/Users/tualek/.codex/sessions/2026/07/30/rollout-2026-07-30T16-13-25-019fb24c-cc6f-7c03-b144-34394eac4620.jsonl, updated_at=2026-07-30T09:22:45+00:00, thread_id=019fb24c-cc6f-7c03-b144-34394eac4620, earlier review found comments-only scope drift and worktree movement)
+
+### keywords
+
+- JERA, git diff, read-only-review, comments-only, firebase-remote-config, getLoginFeatureFlags, configLoaded, cold-start, TTL-boundary, addFeatureFlagsToResult, Feathers-hooks, isJeraFeatureEnabled, Jest, Node-20, EPERM, worktree-drift
+
+## User preferences
+
+- when the user says “Review-only (do not edit files, read-only)” or requires removal of any temporary symlink -> do not edit, stage, commit, or leave filesystem artifacts; confirm final `git status`. [Task 1]
+- when the user says to run `git diff` yourself and not trust a prior-round summary -> independently inspect the live tracked and untracked diff, line-numbered final files, whole-repo dead references, and every claimed fix; pin final status/diff when the worktree is active. [Task 1]
+- when the user asks for an explicit verdict, exact `file:line` evidence, and real pass/fail counts -> lead with ship blockers or `NONE FOUND`, keep numbered answers concise, and separate non-blocking nits and environment limits from code failures. [Task 1]
+
+## Reusable knowledge
+
+- For the JERA login contract, presence of `feature_flags` is authoritative client-side. A cold start or Remote Config outage must omit unloaded keys, not return confidently false values: failed fetch leaves `cachedTemplate` null, `getBooleanWithState()` returns `configLoaded: false`, and `getLoginFeatureFlags()` excludes those entries. [Task 1]
+- `getLoginFeatureFlags()` evaluates the four flags as `[key, usesBusinessSignal]` pairs and reuses the same key for Remote Config evaluation and returned object names (`src/firebase-remote-config.js:147-175`). `addFeatureFlagsToResult` is auxiliary/fail-soft: it catches/logs Remote Config errors, leaves `feature_flags` unset, and returns the login context. [Task 1]
+- Independent `Date.now()` calls in `getCachedServerTemplate()` can straddle a TTL boundary; partial `configLoaded` output is possible. The regression test must control the relevant calls rather than assert all checks always resolve together. [Task 1]
+- The final review found zero `isJeraFeatureEnabled` references; the hook module exports only Feathers lifecycle keys. Under Node `v20.20.2`, both targeted specs passed: 2 suites, 14 tests, 0 failures; `git diff --check` was clean. [Task 1]
+
+## Failures and how to do differently
+
+- Symptom: a requested comments-only cleanup appears behaviorally equivalent. Cause: executable tuple/consumer changes or test behavior were bundled with comment edits. Fix/pivot: compare normalized code/AST as well as prose, flag executable scope drift, then stabilize the worktree and retest the exact final snapshot. [Task 1]
+- Symptom: a TTL comment says all four checks “always resolve configLoaded together.” Cause: independent clock reads can cross the TTL boundary. Fix/pivot: retain partial-loading semantics and test them deterministically; use named timing constants and avoid depending on private array order. [Task 1]
+- Symptom: Jest fails with `EPERM` before tests execute. Cause: the restricted sandbox blocks haste/transform cache writes. Fix/pivot: report an environment limitation rather than a code failure; use a narrowly isolated cache-write workaround only when necessary and disclose it. [Task 1]
+
 # Task Group: /Users/tualek/ohochat / unread-unresponded optimization report verification
 scope: Read-only, source-first verification of an unread/unresponded performance report across `oho-api` and `oho-web-app`; use when a report proposes query, cache, socket, or Vuex optimization and every verdict must be independently line-cited.
 applies_to: cwd=/Users/tualek/ohochat/oho-web-app with /Users/tualek/ohochat/oho-api; reuse_rule=reuse the review protocol for similar cross-repo performance-report audits, but re-inspect the live files and exact revision before treating these source-only findings or proposal verdicts as current.
