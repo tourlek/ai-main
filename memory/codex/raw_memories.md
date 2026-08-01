@@ -2131,6 +2131,95 @@ References:
 - `src/index.js:12-13`
 - Final review verdict: `VERDICT: ship`
 
+## Thread `019fb1c7-36c8-7a02-92cc-6ab6c74fcc58`
+updated_at: 2026-07-30T06:56:14+00:00
+cwd: /Users/tualek/ohochat/oho-api/.claude-worktrees/jera-tab-is-missing
+rollout_path: /Users/tualek/.codex/sessions/2026/07/30/rollout-2026-07-30T13-47-30-019fb1c7-36c8-7a02-92cc-6ab6c74fcc58.jsonl
+rollout_summary_file: 2026-07-30T06-47-30-iE0E-cross_repo_jera_tab_fix_review_ship_blockers.md
+
+description: Read-only cross-repo review of JERA tab race fix found a Feathers hook-registration startup blocker, fail-open login failure semantics, and weak direct-unit-test coverage; frontend contact-change regression was not reintroduced.
+task: review uncommitted JERA tab race fix across oho-web-app and oho-api
+task_group: cross-repo code review
+task_outcome: fail
+cwd: /Users/tualek/ohochat/oho-api/.claude-worktrees/jera-tab-is-missing
+keywords: JERA, MaxPanel, feature_flags, Firebase Remote Config, Feathers hooks, service.hooks, Promise.all, contact_id, EPERM, Jest
+
+### Task 1: Review oho-api login feature-flag hook
+
+task: inspect login hook wiring, security, failure semantics, DRY, and tests
+task_group: oho-api login feature flags
+task_outcome: fail
+
+Preference signals:
+- The user requested a strictly review-only task across two separate worktrees and required every claim to cite actual file lines -> future reviews should inspect live diffs and avoid edits or unsupported speculation.
+- The user explicitly required checking whether `e70f8a8a` contact-change refetch behavior was reintroduced -> always compare current watcher/call paths against the removed behavior, not just search for matching text.
+
+Reusable knowledge:
+- `login.service.js:16` calls `service.hooks(hooks)`, and Feathers treats every enumerable top-level export as a hook namespace. Exporting `addFeatureFlagsToResult` alongside `before/after/error` causes an invalid hook type and blocks service registration.
+- `addFeatureFlagsToResult` reads `context.params.member.business_id` only after authentication, membership lookup, and member refresh (`login.hooks.js:36-70,146-150`), so the business ID is database-derived at that point rather than freely attacker-supplied.
+- `Promise.all` at `login.hooks.js:121-126` rejects the entire after-hook when any flag helper rejects; `error.create` has no recovery. Remote Config fetch errors are caught, but `template.evaluate()` is outside that catch (`firebase-remote-config.js:35-52,79-85`).
+- The helper reuses `businessSignal()` and `getBoolean()`; the semantic wrappers for unread, unresponded, and JERA do not require another abstraction.
+- New login tests mock all Remote Config functions and directly invoke the exported helper. They therefore do not validate Feathers registration, production after-chain wiring, rejection handling, or the real JERA implementation. The handcrafted business ID/context also conflicts with the repo’s fixture-derived test standard.
+
+Failures and how to do differently:
+- Do not export helper functions as enumerable properties from a Feathers hook module passed wholesale to `service.hooks()`. Keep helpers non-exported, attach them safely for tests, or test through service registration.
+- Do not let auxiliary feature-flag evaluation abort authentication. Use per-flag fail-soft defaults/logging or an explicitly validated fallback policy.
+- Add a service-registration test and a rejected-helper test; direct helper tests alone miss the startup blocker and login availability regression.
+
+References:
+- `src/services/authentication-member/login/login.hooks.js:121-145,164-180,186-193`
+- `src/services/authentication-member/login/login.service.js:3,16`
+- `node_modules/@feathersjs/commons/lib/hooks.js:142-147`
+- `src/firebase-remote-config.js:35-52,79-85,198-229`
+- `src/services/authentication-member/login/login.hooks.spec.js:24-32,42-48,55-127`
+
+### Task 2: Review oho-web-app MaxPanel fix
+
+task: inspect race closure, retry behavior, and contact-change regression
+task_group: oho-web-app JERA MaxPanel
+task_outcome: partial
+
+Preference signals:
+- The user asked for test-by-test assessment, including whether a test would still pass if the fix were reverted -> future reviews should mentally revert each relevant production change and distinguish branch tests from integration proof.
+
+Reusable knowledge:
+- `MaxPanel.vue:361-374` watches the reactive feature flag with `immediate: true`; this covers both initial true state and a late browser/API flag transition.
+- `MaxPanel.vue:375-383` retries only on focus when the flag is enabled, no fetch is active, and the previous attempt errored. `fetchJeraPartnerConnections()` sets the in-flight guard before awaiting and records errors at `:725-753`.
+- The hotfix behavior from `e70f8a8a` remains removed: `contact_id` watcher only sets `active_profile_source` (`:402-406`). Fetch triggers are flag/focus watchers and explicit connect/disconnect methods (`:361-383,754-760`).
+- MaxPanel tests directly invoke watcher handlers. They cover branches but not actual Vuex reactivity, watcher scheduling, `immediate: true`, visibility-change propagation, or simultaneous triggers.
+
+Failures and how to do differently:
+- Treat direct watcher-handler tests as partial coverage, not proof of the race fix. Add a mounted/component test that changes Vuex state from false to true and verifies the API fetch, plus an in-flight concurrency test.
+- The “flag re-evaluates true” test is artificial because a Vue boolean watcher does not naturally rerun for `true → true`; focus retry is the realistic retry path.
+
+References:
+- `components/MaxPanel.vue:361-383,402-412,447-449,725-753,754-760`
+- `test/components/MaxPanel.spec.js:251-340`
+- `layouts/default.vue:468-480`
+- `e70f8a8a` removed the old contact-change fetch from the `contact_id` watcher.
+
+### Task 3: Assess frontend/backend interaction
+
+task: trace login flags, browser Remote Config precedence, and double-fetch risk
+task_group: cross-repo feature-flag integration
+task_outcome: partial
+
+Reusable knowledge:
+- `nuxtServerInit` awaits `authOhoMember`, which commits `res.feature_flags` into Vuex (`store/index.js:300-302,502-512`); MaxPanel reads `state.feature_flags.rt_jera_feature_enabled` (`MaxPanel.vue:447-448`).
+- `setFeatureFlags` records API-authoritative keys and `setRemoteConfigFeatureFlags` filters those keys (`store/index.js:103-128`), so normal API/browser resolution ordering should not overwrite server decisions.
+- MaxPanel’s nonempty-result and in-flight guards prevent ordinary duplicate JERA fetches (`MaxPanel.vue:363-370,725-735`).
+- If server Remote Config cold-start evaluation returns default false (`firebase-remote-config.js:35-52,119-129`), that false becomes authoritative and later browser true is discarded, leaving a possible session-level hidden-tab failure.
+
+Failures and how to do differently:
+- Review API-authoritative flag systems for both overwrite safety and recovery semantics. Preventing browser overwrite can also suppress recovery from a transient server-side flag-evaluation failure.
+- Targeted tests were not executable in this sandbox: both Jest commands failed with `EPERM` writing haste-map files. Record this as unverified rather than claiming tests passed.
+
+References:
+- `store/index.js:103-128,300-302,502-512`
+- `plugins/firebase-remote-config.js:43-56,85-89`
+- `src/firebase-remote-config.js:35-52,119-129`
+- Test error: `EPERM: operation not permitted, open .../jest_dx/haste-map-...`
+
 ## Thread `019fb213-6e6a-7ca2-9032-29a514b9a891`
 updated_at: 2026-07-30T08:16:29+00:00
 cwd: /Users/tualek/ohochat/oho-web-app
@@ -2514,6 +2603,142 @@ References:
 - Exact validation result: `Test Suites: 2 passed, 2 total; Tests: 14 passed, 14 total`.
 - Final status: intended modified files only; no `node_modules` symlink; `git diff --check` clean.
 
+## Thread `019fb663-2d39-79b3-9364-4845f05664c6`
+updated_at: 2026-07-31T04:25:57+00:00
+cwd: /Users/tualek/ohochat
+rollout_path: /Users/tualek/.codex/sessions/2026/07/31/rollout-2026-07-31T11-16-20-019fb663-2d39-79b3-9364-4845f05664c6.jsonl
+rollout_summary_file: 2026-07-31T04-16-20-SFMO-cross_repo_review_mr872_mr1291_realtime_badge_blockers.md
+
+description: Read-only cross-repo review of realtime unread/unresponded badge MRs; API timestamp change passed, frontend consumer remained blocked by count reconciliation, equal-timestamp, and duplicate insertion risks
+ task: review oho-web-app !872 and oho-api !1291 merge readiness
+ task_group: /Users/tualek/ohochat / cross-repo unread-unresponded MR review
+ task_outcome: partial
+ cwd: /Users/tualek/ohochat
+ keywords: oho-web-app, oho-api, MR-872, MR-1291, refreshChatRoomBadgeRealtime, handleSmartchatRealtimeUpdate, oho_created_at, last_contact_date, unread_count, unresponded_count, equal-timestamp, duplicate-fetch, Vuex
+
+### Task 1: Review oho-web-app !872
+
+task: determine whether frontend realtime badge MR is safe to merge
+ task_group: cross-repo unread/unresponded frontend review
+ task_outcome: fail
+
+Preference signals:
+- The user asked whether the two MRs had anything blocking merge; similar reviews should remain read-only, inspect the exact MR head, and give concrete merge blockers with `file:line` evidence rather than edit files.
+
+Reusable knowledge:
+- `refreshChatRoomBadgeRealtime` computes optimistic aggregate transitions before the optional authoritative fetch. In the reviewed head, count transitions occur at `store/modules/smartchat.js:829-875`, while fetched data is merged later at `:931-943`; final `is_read_by_me` / `is_unresponded` values do not reconcile `unread_count` or `unresponded_count`.
+- The equal-timestamp stale guard at `smartchat.js:737-743` uses `<=` and returns before injecting `is_read_by_me:false` at `:745-752`. A `chat-session/status updated` payload may carry `last_contact_date` and `is_unresponded` but no unread field, so a same-timestamp customer-message event can fail to mark unread.
+- Missing-room/timestamp-less events can fetch concurrently. The insertion mutations at `smartchat.js:128-159` use blind `push`/`unshift`; `RoomList`'s `uniqBy` only hides duplicates visually and does not repair pagination or aggregate state.
+- API emits one customer-message socket event per bubble (`oho-api/src/services/contact-send-message/contact-send-message.hooks.js:386-422`), making concurrent duplicate-fetch exposure realistic.
+
+Failures and how to do differently:
+- Symptom: quick-filter red-dot totals remain stale after fallback fetch. Cause: aggregate transition happens before authoritative row merge. Fix: reconcile counts from the final fetched row, or defer transition calculation until after fetch.
+- Symptom: unread is missed when status and message events share a timestamp. Cause: `<=` guard drops the message before unread injection. Fix: distinguish status freshness from customer-message unread freshness, or use an event/version contract that preserves unread transitions.
+- Symptom: duplicate rows/pagination drift during event bursts. Cause: multiple handlers fetch and insert the same missing room without in-flight dedupe or identity checks. Fix: single-flight per contact and deduplicate before insertion.
+
+References:
+- MR head: `5fc4ef224814aec240b55891ef36664e0abce5cd`; base: `619b618208f8643cdd5a7c4cd624eeab1b394f9c`.
+- `store/modules/smartchat.js:718,728-743,745-763,829-875,931-943,986-1009`.
+- GitLab status: `detailed_merge_status: mergeable`, `has_conflicts: false`, `pipeline: null`, `head_pipeline: null`, `blocking_discussions_resolved: true`.
+
+### Task 2: Review oho-api !1291
+
+task: determine whether backend timestamp payload MR is safe to merge
+ task_group: cross-repo unread/unresponded API review
+ task_outcome: success
+
+Reusable knowledge:
+- `oho_created_at` is populated from the Stream message payload and reused as the timestamp for `last_contact_date` under the guarded update in `src/services/contact-send-message/contact-send-message.hooks.js:164,230-236,296,402-415`.
+- The field is additive to socket message payloads and does not alter existing client behavior for clients that ignore it.
+- The same payload object is later passed to push notification code (`:428-443`), so adding a socket-specific field also expands the push payload contract; this was judged low-severity scope creep, not a merge blocker.
+
+Failures and how to do differently:
+- No code blocker was found in !1291 itself. Before merge, confirm downstream push-notification consumers tolerate the additive `oho_created_at` field.
+
+References:
+- MR head: `bbe0ac735634caf91cbe43c91eb18c5578c1d185`; base: `5971ebf5673a838010ac5c9ca810e6d76163f555`.
+- Changed file: `src/services/contact-send-message/contact-send-message.hooks.js`.
+- GitLab status: `detailed_merge_status: mergeable`, `has_conflicts: false`, `pipeline: null`, `head_pipeline: null`, `blocking_discussions_resolved: true`.
+- Both MR diffs passed `git diff --check`; functional suites were not run because local worktrees were not checked out at the MR heads.
+
+## Thread `019fb6c7-39c5-7110-9c61-b4878f375e66`
+updated_at: 2026-07-31T06:35:27+00:00
+cwd: /Users/tualek/ohochat/oho-web-app/.claude-worktrees/oho-1272-realtime-badge
+rollout_path: /Users/tualek/.codex/sessions/2026/07/31/rollout-2026-07-31T13-05-37-019fb6c7-39c5-7110-9c61-b4878f375e66.jsonl
+rollout_summary_file: 2026-07-31T06-05-37-BMns-oho_1272_second_round_realtime_badge_review.md
+
+---
+description: Second-round read-only verification of OHO-1272 realtime badge fixes; correctness blockers fixed, but formatting and a vacuous visibility test caused NO-SHIP
+ task: review-uncommitted-smartchat-realtime-badge-fixes
+ task_group: oho-web-app-smartchat-code-review
+ task_outcome: partial
+ cwd: /Users/tualek/ohochat/oho-web-app/.claude-worktrees/oho-1272-realtime-badge
+ keywords: OHO-1272, smartchat.js, addRealtimeContactToList, is_unresponded, equal-timestamp, dedupe, Jest, Prettier, EPERM, UAT
+---
+
+### Task 1: Equal-timestamp raw badge contract
+
+task: verify equal-timestamp realtime event handling
+task_group: smartchat realtime badge review
+task_outcome: success
+
+Preference signals:
+- The user required a read-only review with actual file:line citations and specifically asked to verify raw `is_unresponded` stripping; future reviews should inspect the live diff and prove the raw-payload contract, not rely on synthesized-field reasoning.
+
+Reusable knowledge:
+- `refreshChatRoomBadgeRealtime` now deletes `event_message.is_unresponded` only when `is_equal_timestamp` is true (`store/modules/smartchat.js:775-805`). Newer events still synthesize `is_unresponded:true` (`:791-797`).
+- Equal events retain `is_read_by_me:false` and `last_contact_date`, allowing the downstream local-read cursor guard to run.
+
+Failures and how to do differently:
+- The earlier version only avoided synthesizing `is_unresponded`; raw payload fields could still survive. The corrected implementation strips the raw field after the spread.
+
+References:
+- `store/modules/smartchat.js:775-805`
+- `test/store/modules/smartchat.spec.js:1394-1420`
+
+### Task 2: Atomic realtime dedupe and cap handling
+
+task: verify duplicate-row fix and capped-list behavior
+task_group: smartchat realtime insertion
+ task_outcome: success
+
+Reusable knowledge:
+- `addRealtimeContactToList` performs dedupe first, then optional tail pop, then head/tail insertion and Set reconciliation in one synchronous mutation (`store/modules/smartchat.js:172-201`). This prevents the prior await-separated pop/insert race that could lose an unrelated tail row.
+- Realtime insertion maps `from_head: sort_chat_list !== 1` (`store/modules/smartchat.js:1048-1055`), preserving normal unshift behavior and oldest-sort push behavior.
+- Repo-wide grep found no executable `handleLimitContactList` or `removeLastContact` references; only the explanatory comment at `smartchat.js:174` remains.
+- Pagination still uses `addContactListData`/`addContactListDataFromHead`, which retain dedupe but intentionally do not add cap-pop behavior.
+
+References:
+- `store/modules/smartchat.js:178-201`
+- `store/modules/smartchat.js:1048-1055`
+- `test/store/modules/smartchat.spec.js:1434-1488`
+
+### Task 3: Test and formatting validation
+
+task: validate store/full test results and formatting
+task_group: smartchat verification and UAT gate
+task_outcome: partial
+
+Preference signals:
+- The user asked for decisive UAT gating and explicit separation of unrelated full-suite failures from changed-code failures; future reviews should report exact suite/test counts and causality.
+
+Reusable knowledge:
+- Store scope passed 61/61 (`smartchat.spec.js` + `websocket.spec.js`) under a narrowly scoped Jest cache-write workaround. Direct Jest execution otherwise failed before tests due sandbox `EPERM` writes under `/private/var/folders/.../jest_dx`.
+- Full test run: 53 suites passed, 4 failed; failures were in unchanged JERA/media suites: `MaxPanel`, `IntegrationExternal`, `MaxPanelJeraProfilePanel`, and media-library `_type`. Changed files were only the Smartchat store/test files.
+- Direct installed `./node_modules/.bin/prettier --check` (Prettier 2.8.8) flagged both changed files. An earlier `rtk npx prettier --check` clean result was a proxy false positive; use the repository binary for formatting verification.
+- The visibility-negative test is weak/vacuous: it mocks visibility false but leaves `getAvailableMenusForChatRoom` returning `[]` while the active menu is `all`, so insertion is blocked regardless (`test/store/modules/smartchat.spec.js:492-515`; `__mocks__/mock-plugin.js:53-57`; `__mocks__/mock-store.js:41-43`). Set available menus to `['all']` to genuinely exercise visibility.
+- No direct test covers `from_head:false` at the cap; implementation was statically verified but this remains a non-blocking coverage gap.
+
+Failures and how to do differently:
+- Do not accept formatter validation from optimized wrapper output when it conflicts with the installed binary. Run `./node_modules/.bin/prettier --check` directly.
+- Do not treat a negative assertion as meaningful unless other branch predicates are configured to allow the behavior under test.
+
+References:
+- Store validation: `smartchat.spec.js` + `websocket.spec.js`, 61 passed.
+- Full validation: 53 passed, 4 failed; 702 passed, 25 failed, 2 skipped.
+- Formatting command: `./node_modules/.bin/prettier --check store/modules/smartchat.js test/store/modules/smartchat.spec.js`
+- Final verdict: `NO-SHIP` until formatting is clean and the visibility test is non-vacuous.
+
 ## Thread `019fb713-0b24-7323-941a-c766d20f9d78`
 updated_at: 2026-07-31T07:56:34+00:00
 cwd: /Users/tualek/ohochat
@@ -2555,6 +2780,107 @@ References:
 - Result: `Test Suites: 2 passed, Tests: 79 passed`.
 - Code: `store/modules/smartchat.js:798,815,837-848`.
 - Tests: `test/store/modules/smartchat.spec.js:1832-1896`.
+
+## Thread `019fb71f-7572-71d1-b82a-670541b3921c`
+updated_at: 2026-07-31T07:51:34+00:00
+cwd: /Users/tualek/ohochat
+rollout_path: /Users/tualek/.codex/sessions/2026/07/31/rollout-2026-07-31T14-42-00-019fb71f-7572-71d1-b82a-670541b3921c.jsonl
+rollout_summary_file: 2026-07-31T07-42-00-B5iQ-read_only_review_contact_chat_states_refactor_plan.md
+
+---
+description: Read-only audit rejected direct migration of unread_by/is_unresponded into contact_chat_states within one sprint; key takeaway is that ordering, search, authorization, emitters, groups, and cross-repo writes are coupled.
+task: audit one-sprint contact_chat_states refactor against live oho-api code
+task_group: /Users/tualek/ohochat/oho-api unread-unresponded architecture review
+task_outcome: success
+cwd: /Users/tualek/ohochat
+akeywords: unread_by, is_unresponded, contact_chat_states, Atlas Search, last_contact_date, last_active_at, message.read, oho-websocket, NO-SHIP
+---
+
+### Task 1: Review contact_chat_states refactor plan
+
+task: Verify an 8-point refactor plan against live oho-api and related repositories without edits.
+task_group: unread-unresponded architecture/code review
+task_outcome: success
+
+Preference signals:
+- When the user required “READ-ONLY — do not modify any files,” preserve all repo state and use only inspection commands.
+- When the user required every finding to cite an actual `file:line` and a verdict-first numbered format, independently verify source lines and keep the final report compact and evidence-first.
+
+Reusable knowledge:
+- `contact-send-message.hooks.js:230-239` atomically guards unread SET writes with `last_contact_date: {$lte: timestamp}` and updates the timestamp plus unread payload together. A separate state collection needs its own ordering timestamp and synchronized/atomic semantics.
+- `last_active_at` is not `last_contact_date`: `contact.model.js:223-224` defines both, while `update-contact-last-active-at.js:12-14` and many workflows update `last_active_at` independently. A state collection sorted by `last_active_at` needs broad mirror maintenance.
+- `emit-chat-session-event.js:47-120` re-queries and populates the contact, including `is_unresponded`; `:248-289` re-queries for eligibility-scoped emits. Existing write sites often discard update results, so a “no extra query” emitter design is not present.
+- Atlas Search applies typed unread filters against storedSource before lookup/pagination (`chat-session/utils/search-query-converter.ts:149-195`; contact search pipelines `search-payload-original.js:123-138` and `search-payload-optimized.js:317-332`). State-first paging cannot safely handle keyword filters without joining/filtering before skip/limit.
+- Sale visibility is mandatory contact-side authorization (`shared-hooks.js:373-404, 557-601`); channel permission intersects allowed channels and may force `$limit=0` (`validate-member-channel-permission.js:17-28`). State-first pagination can underfill or expose incorrect results.
+- `build-count-base-query.ts:17-21` removes only pagination and unread fields, while `compute-badge-counts.ts:78-95` executes the remaining filters directly against the selected model. Counts require mirrored contact fields or a join after migration.
+- Group sessions use a separate collection, separate index shapes, and domain `type: messaging|group` (`chat-session.model.js:31-36, 128-153`). A shared state collection needs a non-conflicting discriminator and collision-safe identity.
+- Mark-read writes exist in both `oho-api/src/webhook/stream.js:137-150` and `oho-websocket/src/webhook/stream.js:169-199`; websocket also has strict mirror models at `oho-websocket/src/models/contact.model.js:14-17` and `chat-session.model.js:16-19`.
+- Production grep found no `unread_by`/`is_unresponded` matches in `oho-cronjob` or `oho-developer-api`.
+
+Failures and how to do differently:
+- Do not equate `last_active_at` with `last_contact_date`.
+- Do not page state IDs before applying contact keyword, sale-visibility, and permission filters.
+- Do not assume emitters receive write results; inspect their actual context and query behavior.
+- Do not scope the migration to two builders: include bulk/group clears, both mark-read repos, Atlas indexes/pipelines, model mirrors, deletion cleanup, badge counts, and auth hooks.
+
+References:
+- Plan: `/Users/tualek/ohochat/docs/unread-unresponded/unread-unresponded-consolidated-refactor-plan.md:99-228`.
+- Final verdict: `NO-SHIP`.
+- oho-api revision reviewed: `fadce85370eb42828570b91edb1649b401a424a1`.
+
+## Thread `019fb720-b89a-7483-ad06-486d9c12dd1e`
+updated_at: 2026-07-31T07:53:55+00:00
+cwd: /Users/tualek/ohochat/oho-api
+rollout_path: /Users/tualek/.codex/sessions/2026/07/31/rollout-2026-07-31T14-43-22-019fb720-b89a-7483-ad06-486d9c12dd1e.jsonl
+rollout_summary_file: 2026-07-31T07-43-22-cSLQ-no_ship_contact_chat_states_refactor_plan_audit.md
+
+---
+description: Read-only cross-repo audit of the proposed one-sprint migration of unread_by/is_unresponded into contact_chat_states; verdict NO-SHIP due to missing ordering state, incompatible search/count/filter design, incomplete synchronization, and unrealistic scope
+task: audit unread-unresponded contact_chat_states refactor plan against develop
+ task_group: /Users/tualek/ohochat/oho-api unread-unresponded architecture review
+task_outcome: success
+cwd: /Users/tualek/ohochat/oho-api
+keywords: contact_chat_states, unread_by, is_unresponded, last_contact_date, last_active_at, Atlas Search, pagination, countBaseQuery, sale visibility, mark-read, oho-websocket, read-only, NO-SHIP
+---
+
+### Task 1: Audit one-sprint state-collection refactor
+
+task: Review section 5 of the unread/unresponded refactor plan against pinned develop source across oho-api and oho-websocket.
+task_group: unread-unresponded cross-repo plan review
+task_outcome: success
+
+Preference signals:
+- when the user required “read-only — do NOT modify anything” -> pin branch/object state and preserve all repositories; do not edit, stage, commit, checkout, or fetch.
+- when the user required “SHIP/NEEDS-CHANGES/NO-SHIP + numbered findings with file:line and severity” -> produce a direct severity-ranked verdict with exact evidence, not a generic design discussion.
+- when the user asked to verify all eight concerns, cross-repo writers, call-site count, and omitted tasks -> trace the full SET -> guard -> storage -> realtime -> search/count/filter contract and enumerate direct writers.
+
+Reusable knowledge:
+- Existing SET writes guard on `last_contact_date: {$lte: timestamp}`; CLEAR and mark-read paths use the same ordering field. `last_active_at` is separate and advances for non-customer actions, so a new state document needs both fields plus explicit initialization.
+- `contact_chat_states` cannot safely support state-first page-of-20 pagination with current sale-visibility, assignment, tag, label, and keyword filtering. Filtering contacts after selecting 20 state IDs causes skipped/underfilled pages; `$in` also loses state sort order.
+- Atlas Search currently relies on `unread_by`/`is_unresponded` in storedSource before `$lookup` in contact and group pipelines. Removing those fields requires redesigning all contact legacy, contact optimized, and group keyword paths.
+- `buildCountBaseQuery()` strips only metadata and typed unread fields, while preserving tab and contact visibility filters; `computeBadgeCounts()` sends the resulting filter to `countDocuments`. It cannot be applied directly to a lean state collection lacking contact fields.
+- Generic and eligibility emitters re-query contact/session documents and several writes ignore update results or use `updateOne`; there is no universal “write returns state doc” contract.
+- Close-case’s second collection write is transaction-compatible only if the new model uses the same app DB connection and receives the existing session. Add rollback tests for both collections.
+- `chat-session.type` already means `messaging | group`; using `contact | group` in the new collection is ambiguous. Use an explicit entity discriminator or preserve existing room vocabulary.
+- Cross-repo mark-read must update both service models and deployment/test coordination. `oho-cronjob` and `oho-developer-api` had no unread/unresponded references in the checked develop trees.
+- The stated prod facts (flags off, no backfill, only canary data) were accepted from user context, not verified from source. They may justify skipping old-field dual-write, but do not remove ordering/scope synchronization requirements.
+
+Failures and how to do differently:
+- CodeGraph was unavailable because `/Users/tualek/ohochat/oho-api` had no `.codegraph` index; pivot to `git grep`, `git show`, and pinned remote objects.
+- Git emitted macOS temp/cache permission warnings; treat the review as source/structural verification only, not full behavioral or production validation.
+- Do not trust plan claims that writes are centralized or that emitters can use write results until every direct model write and returned value is enumerated.
+
+References:
+- Plan: `/Users/tualek/ohochat/docs/unread-unresponded/unread-unresponded-consolidated-refactor-plan.md:99-159`.
+- API target: `origin/develop@6d85562a41dd438ae00fb68409ca484cbcb53e12`.
+- Websocket target: `origin/develop@2c766c62da63ab1693a8bff928bdb78eceb64c80`.
+- Ordering SET: `src/services/contact-send-message/contact-send-message.hooks.js:230-239`; group SET: `src/services/chat-session/group/contact-user/send-message/send-message.class.js:25-37`.
+- Search: `src/services/chat-session/utils/search-query-converter.ts:149-195`; contact search setup: `src/services/contact/chat-search/chat-search.hooks.js:78-105`.
+- Count scope: `src/services/contact/chat-search/build-count-base-query.ts:14-21`; `src/utils/compute-badge-counts.ts:71-95`.
+- Visibility/pagination: `src/services/contact/chat-search/shared-hooks.js:373-404,557-601`; channel permission: `src/hooks/validate-member-channel-permission.js:8-29`.
+- Transaction: `src/services/contact/helper-hook/prepare-close-case-contact-update-data.ts:51-69`; callers `end-case.class.js:17-38`, `no-case.class.js:17-42`.
+- Emitters: `src/services/chat-session/hooks/emit-chat-session-event.js:47-128,218-289`.
+- Mark-read: `src/webhook/stream.js:127-170`; websocket: `/Users/tualek/ohochat/oho-websocket/src/webhook/stream.js:143-205`.
 
 ## Thread `019fb73d-b08e-7d42-947c-493c374ac7c0`
 updated_at: 2026-07-31T08:25:23+00:00
@@ -2607,4 +2933,94 @@ References:
 - `src/webhook/stream.js:135-160`
 - `docs/feature-flags.md:370-379`
 - Review revisions: local `develop@fadce8537`, `origin/develop@a98fb25a`, OHO-1272 worktree `bbe0ac735`.
+
+## Thread `019fb951-ea5f-7483-bc82-456377b2d2df`
+updated_at: 2026-07-31T18:07:44+00:00
+cwd: /Users/tualek/ohochat/oho-backoffice
+rollout_path: /Users/tualek/.codex/sessions/2026/08/01/rollout-2026-08-01T00-56-21-019fb951-ea5f-7483-bc82-456377b2d2df.jsonl
+rollout_summary_file: 2026-07-31T17-56-21-UeF9-round_2_react_migration_plan_review_partial.md
+
+---
+description: Partial round-2 audit of the Nuxt-to-React migration plan found a stale baseline SHA, incorrect component/dependency inventory, unresolved active-menu/query normalization risk, incomplete navigation-boundary coverage, and unsettled decisions.
+task: review revised backoffice React migration plan against live Nuxt repository
+task_group: /Users/tualek/ohochat/oho-backoffice migration-plan-review
+task_outcome: partial
+cwd: /Users/tualek/ohochat/oho-backoffice
+keywords: react-migration, nuxt2, sha-mismatch, inventory, active-menu, zod-passthrough, tanstack-router, query-serialization, shadcn, element-ui, cutover, MIGRATED_PATHS
+---
+
+### Task 1: Round-2 migration plan audit
+
+task: Independently verify revised migration plan claims against the live `oho-backoffice` source.
+task_group: migration-plan-review
+task_outcome: partial
+
+Preference signals:
+- The user required: “SHA check result first,” a cited pass/fail list for all 18 fixes, explicit labeled answers to scrutiny points a-e, and a plainly stated final verdict. Similar future reviews should follow that exact output order and remain read-only.
+- The user locked React migration, visual parity, and fully settled/non-contradictory decisions; future reviews should verify compliance rather than reopen those strategic choices.
+
+Reusable knowledge:
+- Live repo SHA is `2f01fc94e906c8a33ff3634f65eaa648d2974ef1`, matching the round-1 SHA and differing from the plan baseline `27d674156fe47d402ed0fefa0bf168aee3b9dc08`. The SHA gap contains the external-message feature additions, so §5’s “verified @ baseline SHA” statement is invalid for the current checkout.
+- Live component count is 35 (`find components -type f -name '*.vue' | wc -l`), while plan §5.2 says 34.
+- `v-clipboard` is stale: `components/Business/ApiList.vue` and `ChannelTable.vue` use `navigator.clipboard.writeText`; there is no active `v-clipboard` import. Plan §5.5’s dependency status is wrong.
+- Plan §7.4’s raw query-string active-menu comparison (`layouts/default.vue:65-83`, `components/SubMenu.vue:121-131`) is not automatically compatible with TanStack Router plus Zod passthrough. Passthrough preserves unknown keys but does not guarantee raw query ordering/string preservation. Require either raw-query preservation or canonical order-independent comparison, with tests for reordered/unknown keys.
+- Navigation boundary coverage in §13.2 is incomplete. Search found route changes in `components/MyProfileDialog.vue`, `components/Business/QuotaTable.vue`, `components/Business/ApiList.vue`, `pages/payment-history/_id.vue`, `pages/create-api/_id.vue`, `components/ExternalMessage/WhitelistAppChecklist.vue`, `components/Payment/Dialog.vue`, `Sidenav.vue`, `SubMenu.vue`, and page methods. A shared `MIGRATED_PATHS` config must cover all internal links and programmatic navigation, including child-path flips.
+- The live app uses a 488KB Element theme and many Element controls (`el-table`, `el-date-picker`, `el-upload`, `el-dialog`, `el-select`, `el-pagination`, etc.). Shadcn/Radix re-skinning is possible but high risk for strict visual/behavior parity; token copying alone is insufficient. The date-range picker/sidebar, table geometry, upload, select, dialog, pagination, and loading behavior require dedicated wrappers and screenshot/interaction gates.
+- Plan §5.3 inventories endpoint constants, not all operation-level contracts. Call sites construct additional paths such as payment approval, quota update, API-key operations, webhook operations, file upload/delete, and business/payment mutations. Future review should inventory method + path + body + query at call sites.
+- Proposed three Zustand fields are not the whole active shared-state surface: `business`, `partners`, `api_keys`, and `api_keys_biz_id` are used across business detail, create-api, and API-list flows; `platforms.js`/`icon.js` provide active getters/assets. Treat these as unresolved until audited.
+- The plan still contains open work/decisions despite the locked-stack requirement: theme extraction, widget/Web App/GTM decisions, dead-state audits, cookie production verification, and Appendix B’s `refetchOnWindowFocus` behavior.
+- Phase 5’s 3–4 week estimate may be optimistic: ten top-level cutovers with 2–3 day production soaks already consume 20–30 working days, before implementation, parity testing, UAT, bug bash, and rollback rehearsals. State whether soaks overlap and provide a resource-based schedule.
+
+Failures and how to do differently:
+- This rollout did not reach the requested final deliverable: it stopped after evidence collection and did not complete all 18 pass/fail items, scrutiny answers a-e, or the final APPROVE/blocker verdict. Future agents should reserve time to synthesize the required response.
+- Do not treat exploratory web research or assistant proposals as verified repo facts; cite the actual plan section and source file:line for every acceptance claim.
+
+References:
+- Plan: `/Users/tualek/ohochat/docs/react-migration/backoffice-react-v2-plan.md` (833 lines).
+- Git evidence: `git rev-parse HEAD` → `2f01fc94e906c8a33ff3634f65eaa648d2974ef1`.
+- Inventory evidence: `find components -type f -name '*.vue' | wc -l` → `35`; `find pages -type f -name '*.vue' | wc -l` → `12`.
+- Relevant files: `layouts/default.vue:65-83`, `components/SubMenu.vue:121-131`, `components/Sidenav.vue`, `components/MyProfileDialog.vue`, `components/Business/QuotaTable.vue`, `components/Business/ApiList.vue`, `pages/payment-history/_id.vue`, `pages/create-api/_id.vue`, `components/ExternalMessage/WhitelistAppChecklist.vue`, `components/Payment/Dialog.vue`, `plugins/axios.js`, `store/index.js`, `api/endpoint.js`, `assets/style/index.scss`, `assets/style/oho-theme/theme/index.css`.
+
+## Thread `019fb976-370c-7e03-b35f-7520e84e70a2`
+updated_at: 2026-07-31T18:37:38+00:00
+cwd: /Users/tualek/ohochat/oho-backoffice
+rollout_path: /Users/tualek/.codex/sessions/2026/08/01/rollout-2026-08-01T01-36-00-019fb976-370c-7e03-b35f-7520e84e70a2.jsonl
+rollout_summary_file: 2026-07-31T18-36-00-Lk1s-backoffice_react_v2_plan_time_boxed_review.md
+
+description: Time-boxed review of the Backoffice React v2 migration plan found several pre-implementation fixes but no Phase 0 blocker; highest-value takeaway is to resolve state/navigation and cutover-contract contradictions before coding.
+task: review backoffice React migration plan for parity, contradictions, active-menu/Zod compatibility, blockers, and verdict
+task_group: /Users/tualek/ohochat/oho-backoffice migration-plan-review
+task_outcome: success
+cwd: /Users/tualek/ohochat/oho-backoffice
+keywords: React 19, Nuxt2, shadcn, Radix, visual parity, active-menu, Zod passthrough, MIGRATED_PATHS, cutover, Sentry, GCP Error Reporting
+
+### Task 1: Review migration plan
+
+task: review `/Users/tualek/ohochat/docs/react-migration/backoffice-react-v2-plan.md` under strict time and source-file limits
+task_group: migration-plan-review
+task_outcome: success
+
+Preference signals:
+- The user said: “อ่านเฉพาะไฟล์ ... ห้าม re-audit repo ... ทั้งหมด” and required completion within 8 minutes -> similar reviews should remain narrowly scoped, avoid exploratory repo audits, and answer directly.
+- The user required five short numbered answers plus `APPROVE` or `NEEDS-FIX` -> preserve that format and give a clear verdict.
+- The user locked React migration and required visual parity with no unresolved stack decisions -> prioritize contradictions, parity risks, and operational blockers.
+
+Reusable knowledge:
+- The plan’s shadcn/ui re-skin choice is reasonable for visual parity because shadcn is copy-in source with full class/token control; AntD/MUI introduce a different design language. A lower-surface alternative is Radix/headless primitives with bespoke Element-compatible wrappers. The review estimated the design layer/style guide at roughly 15–25 senior frontend engineer-days; the plan’s 5–6 day Phase 1 estimate is likely optimistic and should be treated as an estimate, not verified fact.
+- §8.1 forbids moving `bizActiveTab` into the URL, but §13.2.1 chooses `/business/$id?tab=API`; this is an architectural contradiction requiring one contract.
+- §4 and §14 do not definitively select Sentry versus GCP Error Reporting, leaving observability unresolved.
+- §13.2 inventories 12 navigation locations but later refers to 10 actionable points; dynamic destination #7 is also unresolved. The inventory and required migration behavior need to be made explicit.
+- Active-menu matching and Zod passthrough are compatible only with separated responsibilities: preserve unknown query keys through Zod for API requests, but match menus from raw `location.search`, remove only `page`, and compare legacy path/query semantics without serializing a normalized Zod object.
+- No blocker prevents Phase 0, but implementation should wait until the above contracts are closed and listed validations (prod cookie attributes, restricted-role account, LB/GCP access) are completed.
+
+Failures and how to do differently:
+- No tool or scope failure occurred. Only one source file was opened (`layouts/default.vue`) to verify active-menu behavior, respecting the user’s limit.
+- Do not present the 15–25 engineer-day design estimate as measured evidence; label it as an approximate review estimate.
+
+References:
+- Plan: `/Users/tualek/ohochat/docs/react-migration/backoffice-react-v2-plan.md`
+- Active-menu implementation: `/Users/tualek/ohochat/oho-backoffice/layouts/default.vue:65-83`
+- Relevant sections: §2, §4, §7.4, §8.1, §13.2, §13.2.1, §14
+- Baseline SHA: `2f01fc94e906c8a33ff3634f65eaa648d2974ef1`
+- Final verdict: `NEEDS-FIX` for the §8.1/§13.2.1 state contract, §4/§14 observability provider, §7.4 active-menu algorithm, and §13.2 navigation inventory/dynamic destination.
 
