@@ -1,3 +1,34 @@
+# Task Group: /Users/tualek/ohochat/backoffice-v2 / React migration architecture review
+scope: Time-boxed, read-only architecture review of the migrated React admin app; use before scaling multi-person feature work, not as a legacy parity audit.
+applies_to: cwd=/Users/tualek/ohochat/backoffice-v2; reuse_rule=reuse the sampling and boundary checks for this React checkout, but do not treat its snapshot findings as a current Git state and honor an explicit time-box or stated baseline results.
+
+## Task 1: Review feature-based architecture and scale readiness; viable structure, fix boundary enforcement before multi-person development
+
+### rollout_summary_files
+
+- rollout_summaries/2026-08-01T15-20-59-jg2H-react_backoffice_architecture_review.md (cwd=/Users/tualek/ohochat/backoffice-v2, rollout_path=/Users/tualek/.codex/sessions/2026/08/01/rollout-2026-08-01T22-20-59-019fbdea-0a3f-7ed2-a3b3-fddd0046094f.jsonl, updated_at=2026-08-01T15:23:11+00:00, thread_id=019fbdea-0a3f-7ed2-a3b3-fddd0046094f, time-boxed sample; fix-then-ship)
+
+### keywords
+
+- backoffice-v2, react-migration, feature-based, ChannelTable, PaymentDialog, query-keys, shared/lib, shared/utils, barrels, circular-dependency, eslint.config.js
+
+## User preferences
+
+- when the user says “TIME-BOX ... อย่า audit ทุกไฟล์” and “ตอบ 5 ข้อ สั้นๆ ตรงประเด็น ห้ามเขียนยาว” -> use targeted sampling, preserve the five requested answers, and do not rerun stated baseline checks unless needed to answer the review. [Task 1]
+- when legacy is reference only for design parity while backend/URL contracts “ห้ามเปลี่ยน” and old quirks may change only if recorded -> separate architectural findings from parity/contract assumptions. [Task 1]
+
+## Reusable knowledge
+
+- The feature-based structure is suitable for this admin CRUD app: routes are thin, pages use hooks, API I/O is separate, and pure domain logic lives in `lib`; it does not need a folder-level rewrite. [Task 1]
+- Convention is clear: `shared/lib` is I/O/external-bound code, `shared/utils` is pure functions, and features use `lib/` rather than a second `utils/` directory. [Task 1]
+- Sampled boundary violations: `ChannelTable.tsx:123-133` and `PaymentDialog.tsx:131-151` call `useQuery`/raw APIs from render components. Before the team scales, move that I/O into hooks, choose one query-key-factory location, reduce 258/232-line public barrels, and add CI checks for cycles plus relative cross-feature imports. [Task 1]
+- Alias-path ESLint rules enforce barrel imports but miss `../../other-feature/...`; `business` composes JERA, payment, and sales-order, so reverse imports are a practical circular-dependency risk. [Task 1]
+
+## Failures and how to do differently
+
+- Symptom: layer enforcement looks complete because the folder layout and ESLint exist. Cause: the rules miss relative cross-feature imports and components can still import feature API directly. Fix/pivot: sample actual call paths and search components for direct `features/*/api` use before approving scale readiness. [Task 1]
+- Symptom: Git status/log is used as architecture-review proof in this snapshot. Cause: the cwd is not a Git repository. Fix/pivot: rely on sampled source evidence and disclose that stated test/lint/typecheck/format/build results (696 tests) were not rerun within the time-box. [Task 1]
+
 # Task Group: /Users/tualek/ohochat/oho-api/.claude-worktrees/jera-tab-is-missing / JERA login feature-flag read-only review
 scope: Read-only review of the uncommitted JERA login Remote Config feature-flag diff, including comments-only scope checks, cold-start semantics, Feathers hook behavior, and targeted Node 20 Jest validation.
 applies_to: cwd=/Users/tualek/ohochat/oho-api/.claude-worktrees/jera-tab-is-missing; reuse_rule=reuse the review protocol for similar `oho-api` JERA login feature-flag changes, but treat the verified implementation, diff hash, test counts, and branch state as checkout-specific and re-inspect the live tracked and untracked diff.
@@ -72,11 +103,22 @@ applies_to: cwd=/Users/tualek/ohochat/oho-backoffice with plan=/Users/tualek/oho
 
 - shadcn, Radix, visual parity, bizActiveTab, /business/$id?tab=API, Sentry, GCP Error Reporting, raw location.search, refetchOnWindowFocus, cutover
 
+## Task 3: Round-2 revised-plan audit found a material baseline mismatch, unowned shared state, and omitted contracts; rollout ended without a verdict
+
+### rollout_summary_files
+
+- rollout_summaries/2026-07-31T17-45-44-dIut-round_2_backoffice_react_migration_plan_review.md (cwd=/Users/tualek/ohochat/oho-backoffice, rollout_path=/Users/tualek/.codex/sessions/2026/08/01/rollout-2026-08-01T00-45-44-019fb948-34df-78c3-acf3-404943218769.jsonl, updated_at=2026-07-31T17:55:34+00:00, thread_id=019fb948-34df-78c3-acf3-404943218769, incomplete adversarial review; not an approval)
+
+### keywords
+
+- react-migration, 2f01fc94, v1.62.0, 27d6741, external-message-apps, store/modules/dashboard.js, x-jera-api-key, query-string serialization, jquery, export-to-csv
+
 ## User preferences
 
 - when the user requires “SHA check result first,” all 18 pass/fail fixes, labeled scrutiny answers a-e, and a final verdict -> follow that exact order and finish synthesis; do not stop after evidence collection. [Task 1]
 - when the user says “อ่านเฉพาะไฟล์ ... ห้าม re-audit repo ... ทั้งหมด” with an 8-minute limit -> honor the narrow scope, answer five numbered points concisely, and state `APPROVE`/`NEEDS-FIX`. [Task 2]
 - when React migration is locked and “visual parity” plus a settled stack are non-negotiable -> test compliance and unresolved contracts rather than reopening the strategic choice. [Task 1][Task 2]
+- when the user explicitly required a read-only review, full plan reading first, source-grounded `file:line` evidence, scrutiny answers, and a plain final verdict -> keep the review read-only, distinguish claims from verification, and put the verdict at both top and bottom. [Task 3]
 
 ## Reusable knowledge
 
@@ -85,11 +127,15 @@ applies_to: cwd=/Users/tualek/ohochat/oho-backoffice with plan=/Users/tualek/oho
 - `MIGRATED_PATHS` must cover every internal link and programmatic navigation, including child-path flips. Endpoint constants are not a request-contract inventory; audit method + path + query + body at call sites. [Task 1]
 - shadcn copy-in source/Radix primitives can support visual parity, but Element UI's tables, date range/sidebar, upload, select, dialog, pagination, and loading behavior need bespoke wrappers plus screenshot/interaction gates. The 15–25 engineer-day design estimate was an unvalidated review estimate, not measured evidence. [Task 1][Task 2]
 - Resolve the direct contracts before implementation: `bizActiveTab` URL contradiction, Sentry versus GCP Error Reporting, incomplete/dynamic navigation inventory, cookie/restricted-role/GCP validation, and the unsettled query refetch behavior. [Task 1][Task 2]
+- The `27d6741` baseline predates the two external-message pages: regenerate the plan inventory at live `2f01fc94`/`v1.62.0` instead of accepting “12 routes verified @ baseline.” Current source had 12 page routes and 35 Vue components. [Task 3]
+- State ownership is not settled while `store/modules/dashboard.js` values (`time_period`, `channels`, `checked_channels`) and cross-route `business`, `partners`, and `api_keys` caches have no final homes. Include `/external-message-apps` mutations and JERA full-sync POST with `x-jera-api-key` in the contract/E2E inventory. [Task 3]
+- Element theme CSS is about 500 KB; shadcn/Radix visual parity is a substantive design-system effort. Treat the 2–4 engineer-week core re-skin estimate as approximate and make staffing/parallelism plus a design-system contingency explicit. [Task 3]
 
 ## Failures and how to do differently
 
 - Symptom: a detailed review has strong findings but no usable decision. Cause: time was consumed collecting evidence and the requested pass/fail list, scrutiny answers, and verdict were not synthesized. Fix/pivot: reserve time for the exact deliverable and distinguish bounded review from a full audit. [Task 1]
 - Symptom: an external recommendation or effort estimate is treated as a repository fact. Cause: exploratory research/proposal replaced source evidence. Fix/pivot: cite plan section plus live file:line for acceptance claims and label estimates approximate. [Task 1][Task 2]
+- Symptom: a revision changelog or baseline claim is accepted as verification. Cause: live SHA/tree, imports, state consumers, and network calls were not compared. Fix/pivot: verify each against source; reserve enough time for the requested claim table and final APPROVE/rejection verdict. [Task 3]
 
 # Task Group: /Users/tualek/ohochat/oho-web-app / Firebase Remote Config multi-tab and session-cache review
 scope: Read-only design and live-diff review of web Firebase Remote Config business flags, shared SDK storage, session-cache isolation, and listener ordering; use for JERA/browser flag authority or per-tab cache changes.

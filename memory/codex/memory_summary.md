@@ -11,6 +11,7 @@ The user uses Codex mainly for evidence-first, read-only source and GitLab MR re
 - Keep reports compact and verdict-first: severity-ranked blockers before nits, with the requested numbered checklist/order preserved.
 - For plan audits, challenge scope and trace the whole contract; end with the requested cut-line/backlog or stated verdict—do not stop after evidence collection.
 - Honor explicit scope/time limits such as “do not re-audit the repo”; for React migration, prioritize visual parity and unsettled state/navigation/operational contracts.
+- For a time-boxed React architecture review (“อย่า audit ทุกไฟล์”, “ตอบ 5 ข้อ สั้นๆ ตรงประเด็น”), use targeted sampling and separate architecture findings from immutable backend/URL contracts and design-parity assumptions.
 - Do not re-litigate accepted residual risk unless the change worsens it or removes its mitigation.
 - For Thai ceremony work, honor “รวมทั้งหมดรวบเดียว”; use requested full royal names and a concise (~1 minute) thank-you script.
 - For finance planning, exclude wife monthly support from income; include tuition saving, utilities, and `Paynext 3,300/month`. [ad-hoc note]
@@ -25,13 +26,21 @@ The user uses Codex mainly for evidence-first, read-only source and GitLab MR re
 
 ## What's in Memory
 
+### /Users/tualek/ohochat/backoffice-v2
+
+#### 2026-08-01
+
+- React migration architecture review: feature-based, ChannelTable, PaymentDialog, query-keys, shared/lib, barrels, circular-dependency
+  - desc: Time-boxed architecture evidence for `cwd=/Users/tualek/ohochat/backoffice-v2`; search before adding parallel feature work or judging its layer enforcement.
+  - learnings: The structure is viable; move component I/O into hooks, centralize query-key factories, trim public barrels, and gate cycles/relative cross-feature imports in CI.
+
 ### /Users/tualek/ohochat/oho-backoffice
 
 #### 2026-07-31
 
 - Nuxt-to-React migration-plan review: react-migration, 2f01fc94, active-menu, Zod passthrough, MIGRATED_PATHS, Element UI
   - desc: Source-bound plan reviews for `cwd=/Users/tualek/ohochat/oho-backoffice`; search before reviewing React 19 parity, URL/state, navigation cutover, or inventory claims.
-  - learnings: Pin SHA; raw query active-menu matching needs an explicit contract; close `bizActiveTab`, observability, and navigation contradictions before implementation.
+  - learnings: Pin SHA: `27d6741` predates external-message pages; raw query matching needs an explicit contract, and dashboard/cache ownership plus JERA/external-message mutations remain inventory gates.
 
 ### /Users/tualek/ohochat/oho-api
 

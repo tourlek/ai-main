@@ -2934,6 +2934,58 @@ References:
 - `docs/feature-flags.md:370-379`
 - Review revisions: local `develop@fadce8537`, `origin/develop@a98fb25a`, OHO-1272 worktree `bbe0ac735`.
 
+## Thread `019fb948-34df-78c3-acf3-404943218769`
+updated_at: 2026-07-31T17:55:34+00:00
+cwd: /Users/tualek/ohochat/oho-backoffice
+rollout_path: /Users/tualek/.codex/sessions/2026/08/01/rollout-2026-08-01T00-45-44-019fb948-34df-78c3-acf3-404943218769.jsonl
+rollout_summary_file: 2026-07-31T17-45-44-dIut-round_2_backoffice_react_migration_plan_review.md
+
+---
+description: Partial read-only adversarial review of the backoffice React migration plan found a material baseline SHA mismatch, unresolved state ownership, URL serialization risk, and omitted runtime contracts.
+task: review revised backoffice React migration plan against live Nuxt2 repo
+task_group: /Users/tualek/ohochat/oho-backoffice
+task_outcome: partial
+cwd: /Users/tualek/ohochat/oho-backoffice
+keywords: react-migration, plan-review, SHA-mismatch, visual-parity, shadcn, radix, Element-UI, TanStack-Router, Zod, Zustand, JERA, external-message
+---
+
+### Task 1: Review revised React migration plan
+
+task: verify the revised migration plan against current source, including SHA, inventory, contracts, visual parity, URL behavior, state, and timeline
+task_group: migration-plan-review
+task_outcome: partial
+
+Preference signals:
+- The user explicitly required a read-only review, full plan reading first, source-grounded file:line evidence, explicit scrutiny answers, and a plain final verdict -> similar reviews should not edit artifacts, should distinguish claims from verification, and should put the verdict at both the top and bottom.
+- The user locked React migration, visual parity, and fully settled decisions as non-negotiable -> future reviews should verify compliance rather than reopen those strategic decisions.
+
+Reusable knowledge:
+- Current checkout SHA is `2f01fc94e906c8a33ff3634f65eaa648d2974ef1`, tagged `v1.62.0`. The plan’s baseline `27d674156fe47d402ed0fefa0bf168aee3b9dc08` is an ancestor, but it predates the two external-message routes/files. Therefore “12 routes verified @ baseline SHA” is not grounded; inventory should be regenerated at the actual current SHA.
+- Current tree contains 12 page routes and 35 Vue components; §5.2’s 34-component count is stale.
+- `layouts/default.vue:65-83` and `components/SubMenu.vue:121-131` compare full path/query strings after removing `page`, preserving query ordering. TanStack Router’s default JSON-first serialization can alter the externally visible query contract. A passthrough/loose schema alone is insufficient; use explicit query-string serialization and exact URL tests.
+- `store/modules/dashboard.js:4-29` has live shared state (`time_period`, `channels`, `checked_channels`) consumed by `components/Business/Dashboard/ChatPerformance.vue` and `components/SelectChannels.vue`. `business`, `partners`, and `api_keys` are also cross-route caches used by `pages/business/_id.vue`, `pages/create-api/_id.vue`, and `components/Business/ApiList.vue`. A plan claiming only three real shared-state values while deferring these ownership decisions to Phase 0 is not fully settled.
+- `/external-message-apps` is mutation-heavy: create/edit/delete and duplicate validation in `pages/external-message-apps.vue` and `api/externalMessageApps.js`; it should be included in the mutation E2E/contract matrix.
+- `components/JeraForm.vue:652-664` sends a direct full-sync POST to a user-entered JERA URL with `x-jera-api-key`; this is a real external contract absent from the plan’s endpoint inventory and mutation list.
+- The Element theme is approximately 500 KB and includes hundreds of selectors/colors. shadcn/Radix is technically suitable because the code is open and Radix primitives are unstyled, but matching Element UI visually is a major design-system effort, not merely token replacement. Estimate core re-skin/style-guide work at roughly 2–4 engineer-weeks, plus page-level migration/parity work.
+
+Failures and how to do differently:
+- The review rollout ended before completing all 18 claimed-fix checks and before issuing the required APPROVE or numbered must-change verdict. Treat the outcome as incomplete, not approved.
+- The plan’s dependency audit should not be accepted without checking imports. Confirmed live imports include `jquery` at `components/Business/CloseChatSchedulerConfigDialog.vue:43`, `pretty-bytes` in `pages/business/_id.vue`, and `export-to-csv` in both business list and deleted-business pages.
+
+References:
+- `git rev-parse HEAD` -> `2f01fc94e906c8a33ff3634f65eaa648d2974ef1`
+- `git describe --tags --exact-match HEAD` -> `v1.62.0`
+- Plan: `/Users/tualek/ohochat/docs/react-migration/backoffice-react-v2-plan.md` (833 lines)
+- `layouts/default.vue:65-83`
+- `components/SubMenu.vue:121-131`
+- `store/modules/dashboard.js:4-29`
+- `pages/create-api/_id.vue:115-185,266-267`
+- `components/Business/ApiList.vue:136-177`
+- `pages/external-message-apps.vue`
+- `api/externalMessageApps.js`
+- `components/JeraForm.vue:652-664`
+- `assets/style/oho-theme/theme/index.css`
+
 ## Thread `019fb951-ea5f-7483-bc82-456377b2d2df`
 updated_at: 2026-07-31T18:07:44+00:00
 cwd: /Users/tualek/ohochat/oho-backoffice
@@ -3023,4 +3075,54 @@ References:
 - Relevant sections: §2, §4, §7.4, §8.1, §13.2, §13.2.1, §14
 - Baseline SHA: `2f01fc94e906c8a33ff3634f65eaa648d2974ef1`
 - Final verdict: `NEEDS-FIX` for the §8.1/§13.2.1 state contract, §4/§14 observability provider, §7.4 active-menu algorithm, and §13.2 navigation inventory/dynamic destination.
+
+## Thread `019fbdea-0a3f-7ed2-a3b3-fddd0046094f`
+updated_at: 2026-08-01T15:23:11+00:00
+cwd: /Users/tualek/ohochat/backoffice-v2
+rollout_path: /Users/tualek/.codex/sessions/2026/08/01/rollout-2026-08-01T22-20-59-019fbdea-0a3f-7ed2-a3b3-fddd0046094f.jsonl
+rollout_summary_file: 2026-08-01T15-20-59-jg2H-react_backoffice_architecture_review.md
+
+---
+description: Time-boxed architecture review of migrated React admin app; structure is viable but needs boundary and scaling fixes before multi-person development
+ task: review-react-migration-architecture
+ task_group: /Users/tualek/ohochat/backoffice-v2
+ task_outcome: success
+ cwd: /Users/tualek/ohochat/backoffice-v2
+ keywords: react-migration, feature-based, layering, payment, business, barrels, query-keys, circular-dependency, eslint
+---
+
+### Task 1: Review React migration architecture
+
+task: assess feature-based React structure, layer enforcement, sampled payment/business implementation, and scale risks
+task_group: React architecture review
+ task_outcome: success
+
+Preference signals:
+- เมื่อผู้ใช้กำหนด “TIME-BOX ... อย่า audit ทุกไฟล์” และ “ตอบ 5 ข้อ สั้นๆ ตรงประเด็น ห้ามเขียนยาว” -> รีวิวลักษณะนี้ควรใช้ targeted sampling และสรุป actionable findings โดยไม่ rerun baseline checks เว้นแต่จำเป็น
+- ผู้ใช้ล็อกว่า backend contract และ URL contract ห้ามเปลี่ยน ส่วน legacy quirk แก้ได้แต่ต้องจด -> แยก architectural review จาก parity/contract audit ให้ชัด
+
+Reusable knowledge:
+- Feature-based architecture เหมาะกับ admin CRUD ขนาดนี้; ไม่จำเป็นต้องรวมโฟลเดอร์หรือรื้อสถาปัตยกรรม
+- Layer separation มีจริงในเส้นหลัก: route composer บาง, page ใช้ hooks, API แยก raw I/O, `lib` มี domain/pure logic
+- กฎ “components render อย่างเดียว” ยังไม่ตรง implementation: `src/features/business/components/ChannelTable.tsx:123-133` ใช้ `useQuery` และเรียก `getLineWebhook`; `src/features/payment/components/PaymentDialog.tsx:131-151` ใช้ `useQuery` และเรียก API โดยตรง; `PaymentDetailPage` ยังรวม validation/orchestration ได้ในฐานะ feature container
+- `shared/lib` หมายถึง I/O/external-bound code; `shared/utils` หมายถึง pure function; feature-level ใช้ `lib/` เดียว ไม่มี `utils/` ถือว่าเป็น convention ที่ชัด
+- Query-key convention กระจายหลายตำแหน่ง: payment `hooks/query-keys.ts`, business `lib/query-keys.ts` และ `api/*`, JERA/external-message `api/query-keys.ts`; sample ไม่พบ namespace collision แต่การกระจายนี้เสี่ยง convention เสื่อมเมื่อทีมโต
+- Public barrels ใหญ่: `src/features/business/index.ts` 258 lines และ `src/features/payment/index.ts` 232 lines; ควรลดให้เหลือ public API ที่ถูกใช้ข้าม feature/โดย routes จริง
+- ESLint feature isolation ตรวจ alias deep imports แต่ config ระบุเองว่า relative imports ที่ไต่ข้าม feature (`../../other-feature/...`) ตรวจไม่ได้; ยังไม่มี circular dependency/dependency-direction gate
+- `business` เป็น composition hub ที่ import JERA, payment และ sales-order; ต้องเฝ้าระวัง reverse dependency ที่ทำให้เกิด cycle
+
+Failures and how to do differently:
+- ห้ามสรุปว่า layer enforcement ครบเพียงเพราะมีโฟลเดอร์และ ESLint: ต้อง sample call path และค้นหา component ที่ import `features/*/api` โดยตรง
+- ก่อนให้ทีมเพิ่มหน้าแบบเต็มสปีด ควรย้าย I/O จาก `ChannelTable` และ `PaymentDialog` เข้า hooks, กำหนดตำแหน่ง query-key factory เดียว, ลด barrels, และเพิ่ม CI ตรวจ circular dependencies กับ relative cross-feature imports
+- ใน snapshot นี้ git commands ใช้ไม่ได้เพราะ cwd ไม่ใช่ git repository; อย่าใช้ git status/log เป็นหลักฐานหลักของ review
+
+References:
+- Plan: `/Users/tualek/docs/react-migration/backoffice-react-v2-plan.md`, sections 6, 8, 9
+- `src/features/business/components/ChannelTable.tsx:123-133`
+- `src/features/payment/components/PaymentDialog.tsx:131-151`
+- `src/features/payment/components/PaymentDetailPage.tsx:157-184`
+- `src/app/routes/_authenticated/business.tsx:26-50`
+- `src/features/business/components/BusinessPage.tsx:98-138`
+- `eslint.config.js:235-238`
+- Component sizes: `PaymentDialog.tsx` 659 lines, `PaymentDetailPage.tsx` 664 lines, `BusinessDetailPage.tsx` 632 lines
 
