@@ -88,3 +88,7 @@ consolidate: merge duplicates, drop obsolete ones, keep the rule one line each.
 ## 2026-08 — ไม่กรอง Ticket ตาม assignee ของผู้ใช้
 - **Mistake**: user ขอ Ticket ที่ due วันที่กำหนดและหมายถึงงานที่ assign ให้ตัวเอง แต่ผมรายงานทุก assignee ก่อนที่ผู้ใช้จะทักว่า `เอาแค่ assign ของฉันสิ`.
 - **Rule**: เมื่อสรุป Ticket ให้ระบุตัวผู้ใช้ปัจจุบันและกรอง `assignee` ก่อนรายงานผลเสมอ; ถ้าไม่ทราบตัวตนให้ตรวจจากบริบทหรือถามก่อน.
+
+## 2026-08 — ปล่อย diff ใหญ่เกิน scope bug 4 cases
+- **Mistake**: หลัง user จำกัดงานให้แก้เฉพาะ Smartchat 4 cases ผมเพิ่ม test จำนวนมากและรัน file-wide formatting จน commit ใหญ่ โดยไม่ได้แยกให้ชัดว่าอะไรมีอยู่ก่อนและอะไรที่เพิ่มในรอบนี้; user ทักว่า `นายแก้สะเยอะเลยมั่นใจได้ไงว่าจะถุกต้องหรอ`.
+- **Rule**: งาน bug scope แคบต้อง pin pre-edit diff, แก้ source ขั้นต่ำ, ห้าม file-wide formatting ที่ไม่จำเป็น, รายงานเฉพาะ delta ที่ทำใน session และใช้คำว่า ready เฉพาะเมื่อ exact acceptance cases มี sequence/manual evidence ครบ.
