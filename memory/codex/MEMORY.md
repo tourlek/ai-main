@@ -1,3 +1,200 @@
+# Task Group: /Users/tualek/Documents/Codex/2026-08-03/r / Cursor ai-main rules and symlink integration
+
+scope: Runtime-aware audit of Cursor loading ai-main-managed skills, commands, and workspace rules, plus recoverable cleanup of a conflicting home-level rule source.
+applies_to: cwd=/Users/tualek/Documents/Codex/2026-08-03/r; reuse_rule=reuse the audit sequence for Cursor and ai-main integration, but re-check the live Cursor version, runtime state, symlink targets, registered workspaces, and any cached sessions before treating this snapshot as current.
+
+## Task 1: Audit Cursor integration; runtime confirmed ai-main skills, commands, and workspace rules were loaded
+
+### rollout_summary_files
+
+- rollout_summaries/2026-08-03T06-25-10-otHf-audit_and_fix_cursor_ai_main_rules_symlinks.md (cwd=/Users/tualek/Documents/Codex/2026-08-03/r, rollout_path=/Users/tualek/.codex/sessions/2026/08/03/rollout-2026-08-03T13-25-10-019fc64c-3291-73a0-9abc-8400c6838b3d.jsonl, updated_at=2026-08-03T06:38:46+00:00, thread_id=019fc64c-3291-73a0-9abc-8400c6838b3d, success; Cursor 3.14.7 runtime-state evidence)
+
+### keywords
+
+- Cursor, ai-main, ~/.cursor/skills, ~/.cursor/commands, AGENTS.md, CLAUDE.md, always_applied_workspace_rule, aimain list, symlink, cursor-agent
+
+## Task 2: Remove stale conflicting `/Users/tualek/AGENTS.md`; backup preserved and workspace fleet stayed healthy
+
+### rollout_summary_files
+
+- rollout_summaries/2026-08-03T06-25-10-otHf-audit_and_fix_cursor_ai_main_rules_symlinks.md (cwd=/Users/tualek/Documents/Codex/2026-08-03/r, rollout_path=/Users/tualek/.codex/sessions/2026/08/03/rollout-2026-08-03T13-25-10-019fc64c-3291-73a0-9abc-8400c6838b3d.jsonl, updated_at=2026-08-03T06:38:46+00:00, thread_id=019fc64c-3291-73a0-9abc-8400c6838b3d, success; stale rule moved to recoverable backup)
+
+### keywords
+
+- /Users/tualek/AGENTS.md, stale-home-backup-20260803, workspace rules, Cursor cached rules, reload window, new chat, aimain list
+
+## User preferences
+
+- when asking whether Cursor still used the ai-main rules and symlinks -> verify actual runtime loading, not only filesystem presence. [Task 1]
+- when the user said “จัดการให้หน่อย” about the stale conflicting rule -> make the scoped corrective change, preserve a recoverable backup, and avoid touching unrelated dirty work in `ai-main`. [Task 2]
+
+## Reusable knowledge
+
+- In the verified Cursor 3.14.7 snapshot, `~/.cursor/skills/` had 22 valid symlinks to `/Users/tualek/ai-main`, `~/.cursor/commands/worklog.md` pointed to the ai-main command, and runtime state loaded workspace `AGENTS.md`/`CLAUDE.md` as `always_applied_workspace_rule`. No `~/.cursor/rules/` directory did not prevent workspace rules from loading. [Task 1]
+- `ai-main/bin/aimain list` reported all 11 registered workspaces `ok`; ai-main deploys the repo-specific compiled `AGENTS.md`, with `CLAUDE.md` and `GEMINI.md` aliases. Use the runtime state/logs as the stronger loading check and `aimain list` as fleet-health evidence. [Task 1]
+- A home-level `/Users/tualek/AGENTS.md` can be loaded in addition to ai-main workspace rules and conflict with repo conventions. The verified cleanup moved it to `/Users/tualek/Documents/Codex/2026-08-03/r/outputs/AGENTS.md.stale-home-backup-20260803`; original absence, backup existence, intact workspace files, and all-workspaces-`ok` were checked. Existing Cursor sessions may cache rules, so reload the window or use a new chat after rule-file changes. [Task 2]
+
+## Failures and how to do differently
+
+- Symptom: `rtk find` is used for compound predicates/actions. Cause: it does not support that form. Fix/pivot: use native `find` for symlink and file predicates. [Task 1]
+- Symptom: `cursor agent --help` cannot run because `cursor-agent` is absent and network installation fails. Fix/pivot: record the CLI limitation and inspect Cursor runtime state/logs instead; do not claim CLI verification. [Task 1]
+- Symptom: fixing a global rule risks unrelated repository churn. Fix/pivot: move only the identified stale rule to a named backup and leave dirty `ai-main` worktree changes untouched. [Task 2]
+
+# Task Group: /Users/tualek/ohochat / Meta Business AI Messenger handover, documentation, and ClickUp handoff
+
+scope: Evidence-first OHO-1215/OHO-1634 work on Meta Business AI contracts versus observed POC, conversation routing, return-to-AI verification, and stakeholder handoff.
+applies_to: cwd=/Users/tualek/ohochat; reuse_rule=use for Meta Business AI / Facebook Messenger handover work; re-verify live payloads, code, logs, and external-card persistence before treating observed Axon behavior or an HTTP response as a universal contract or completed outcome.
+
+## Task 1: Second-opinion review of the six Meta Business AI POC answers; rework before implementation
+
+### rollout_summary_files
+
+- rollout_summaries/2026-08-02T17-35-03-puSA-meta_business_ai_poc_second_opinion_review.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/08/03/rollout-2026-08-03T00-35-03-019fc38b-2163-7081-8ab6-b42248952f08.jsonl, updated_at=2026-08-02T20:11:49+00:00, thread_id=019fc38b-2163-7081-8ab6-b42248952f08, success; Thai detailed report, prod-log recheck partly blocked by sandbox credential refresh)
+
+### keywords
+
+- OHO-1215, Meta Business AI, standby, messaging, ai_generated, hop_context, pass_thread_control, take_thread_control, thread_owner, HUMAN_AGENT, handler.ts, gcloud logging, queue ordering
+
+## Task 2: Create source-separated Meta documentation and communication pack; canonical documents completed
+
+### rollout_summary_files
+
+- rollout_summaries/2026-08-03T07-01-28-EQdm-meta_business_ai_docs_clickup_reactivation_debug.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/08/03/rollout-2026-08-03T14-01-28-019fc66d-6db1-7253-a396-dfde3105523c.jsonl, updated_at=2026-08-03T18:26:26+00:00, thread_id=019fc66d-6db1-7253-a396-dfde3105523c, success; canonical comparison, coming-soon, and Meta-question documents)
+- rollout_summaries/2026-08-03T18-11-52-TXSz-meta_business_ai_doc_split_clickup_update_blocked.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/08/04/rollout-2026-08-04T01-11-52-019fc8d3-33e3-7132-b93a-a21e3685223b.jsonl, updated_at=2026-08-03T18:11:52+00:00, thread_id=019fc8d3-33e3-7132-b93a-a21e3685223b, success; source matrix and communication pack)
+
+### keywords
+
+- Meta Business AI, official contract, observed POC, coming soon, source matrix, Business AI Take Thread Control API, 622851382610562, 104613548045675, meta-official-source-matrix-2026-08-04.md, meta-partner-communication-pack-2026-08-04.md
+
+## Task 3: Update ClickUp OHO-1634 with canonical documents; one authenticated run verified persistence
+
+### rollout_summary_files
+
+- rollout_summaries/2026-08-03T07-01-28-EQdm-meta_business_ai_docs_clickup_reactivation_debug.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/08/03/rollout-2026-08-03T14-01-28-019fc66d-6db1-7253-a396-dfde3105523c.jsonl, updated_at=2026-08-03T18:26:26+00:00, thread_id=019fc66d-6db1-7253-a396-dfde3105523c, success; description and three attachments persisted after reload)
+- rollout_summaries/2026-08-03T18-11-52-TXSz-meta_business_ai_doc_split_clickup_update_blocked.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/08/04/rollout-2026-08-04T01-11-52-019fc8d3-33e3-7132-b93a-a21e3685223b.jsonl, updated_at=2026-08-03T18:11:52+00:00, thread_id=019fc8d3-33e3-7132-b93a-a21e3685223b, partial; earlier unauthenticated session left a paste-ready draft only)
+
+### keywords
+
+- ClickUp, OHO-1634, Canonical 3 files, filechooser, chooser.setFiles, locator.setInputFiles, persistedCanonicalSection, persistedFiles, app.clickup.com/login, clickup-OHO-1634-description-2026-08-04.md
+
+## Task 4: Diagnose default-app take/pass and return-to-AI behavior; root cause remains unverified
+
+### rollout_summary_files
+
+- rollout_summaries/2026-08-03T07-01-28-EQdm-meta_business_ai_docs_clickup_reactivation_debug.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/08/03/rollout-2026-08-03T14-01-28-019fc66d-6db1-7253-a396-dfde3105523c.jsonl, updated_at=2026-08-03T18:26:26+00:00, thread_id=019fc66d-6db1-7253-a396-dfde3105523c, partial; controlled HTTP/webhook sequence still required)
+
+### keywords
+
+- take_thread_control, pass_thread_control, release_thread_control, default app, 622851382610562, standby, messaging, ai_generated, hop_context, You're chatting with an AI agent, HTTP 200
+
+## User preferences
+
+- when reviewing Meta Business AI work, the user asked: “Answer entirely in Thai” and requested a detailed problem/evidence/severity/recommendation structure -> respond in Thai with detailed, source-cited findings rather than a terse summary. [Task 1]
+- when evidence is incomplete, the user said “Do not fabricate log output” -> separate verified source facts, document/payload evidence, `no data`, and `Not run: <reason>`; a credential failure or timeout is not no data. [Task 1][Task 2]
+- when the user asked for documents that “เอาไปสื่อสารกับทาง meta ได้เลย” and to “แยก document ที่เกี่ยวกับ docs จาก meta” / “แยก docs ที่เป็น coming soon” -> separate official contract, observed POC, and open questions/communication pack; do not blend evidence levels. [Task 2]
+- when the user asked “update description ในการ์ด” and include related files -> make the external update, then verify the saved card after reload; a repo draft is not completion. [Task 3]
+- when the user said “ถ้ากดส่งแชทกลับให้ AI แปลว่า AI ต้องกลับมาทำงานทันที” -> do not present HTTP 200 as UX success; wait for positive runtime evidence or show pending/unknown/timeout. [Task 4]
+- when the user specified read-only and no edits/commits -> pin repository/worktree state and do not mutate files while tracing the implementation. [Task 1]
+
+## Reusable knowledge
+
+- Do not use the six POC answers as an implementation contract: replay remains a hypothesis; observational flags mean recently observed rather than enabled; channel is not enough to identify AI/OHO/Business Suite owner; detection is eventual/best-effort; structured reason is absent from the payload; and a standby gate needs a send-time guard. [Task 1]
+- Keep delivery authority, agent identity, and latest event as separate state dimensions. An AI echo can arrive via `messaging` with `hop_context.app_id=388207815496149`; `standby` versus `messaging` is not a binary owner test. `thread_owner` returned `data:[]` or expiration without `app_id` for eight v20/v25 threads, so do not hardcode it as current-owner evidence. [Task 1][Task 2]
+- Canonicalize and deduplicate before queue/state transition: `take_thread_control` metadata `axon_take_thread_control` was delivered four times, control timestamps are seconds while regular messages are milliseconds, and first-entry classification can misroute mixed page/PSID/event batches. Branch control events before message transformation because `take_thread_control` has no `message`. [Task 1][Task 2]
+- An ingress standby gate is insufficient: scheduled/direct sends through `/schedule-reply-trigger`, `/bot-send-message`, and `/bot-send-message/notify` also need send-time authority checks and cancellation of scheduled/in-flight sends. [Task 1][Task 2]
+- For stakeholder-ready material, start with the official partner PDF/public docs and a source matrix, then keep available/current, coming soon/planned, observed POC, and questions separate. Canonical files include `01-meta-docs-vs-oho-poc-2026-08-04.md`, `02-meta-coming-soon-2026-08-04.md`, and `03-questions-for-meta-2026-08-04.md`; the broader pack includes the source matrix, observed behavior, dev questions, and partner communication pack. [Task 2]
+- `release_thread_control` returns a conversation to idle/default routing, not Business AI. `pass_thread_control` to `622851382610562` worked as a POC target, but API success alone does not prove immediate AI response; verify a fresh post-pass message, event channel, `ai_generated`, `hop_context`, and control events. [Task 2][Task 4]
+- In the authenticated ClickUp run, attachments rose 10→13 and description plus the three canonical links survived reload. Browser uploads require `waitForEvent("filechooser")`, click the visible upload control, then `chooser.setFiles(...)`; `locator.setInputFiles` did not work in this runtime. [Task 3]
+
+## Failures and how to do differently
+
+- Symptom: a broad gcloud month query hangs or gets cancelled -> query daily/weekly slices with `--limit` and a 90-second shell timeout; report only a completed query’s actual result. [Task 1]
+- Symptom: gcloud cannot refresh because sandbox denies `credentials.db` writes -> report `Not run: gcloud credential refresh ถูก sandbox ปฏิเสธ`; do not infer an absence of production events. [Task 1]
+- Symptom: public Meta docs cannot be fetched (`Failed to fetch`, HTTP 429, cache miss, or URL unsafe) -> use the local official PDF/stored POC evidence and explicitly mark the live public-doc comparison unverified. [Task 1][Task 2][Task 4]
+- Symptom: an adoption scan finds no `ai_generated:true` payloads -> it cannot prove 100% coverage without an independent denominator; “Instagram never stored payload” is not “Instagram has no payload.” [Task 1]
+- Symptom: ClickUp resolves to `https://app.clickup.com/login` or no connector is available -> retain the paste-ready draft but report the card as not updated; after authentication, save and verify toast/description and attachments after reload. [Task 3]
+- Symptom: `pass_thread_control` returns success but AI appears silent -> root cause is unverified without a timestamped ledger. Run take with metadata → capture response → send/capture webhook → pass to `622851382610562` → wait 5–10 seconds → send a fresh message; if events stay `messaging`, routing did not move, while `standby` without an AI echo points to eligibility/response-policy/lifecycle rather than default-app causality. [Task 4]
+
+# Task Group: /Users/tualek/ohochat/docs/react-migration / backoffice React migration-plan source review
+
+scope: Repository-scoped, read-only validation of `backoffice-react-v2-plan.md` against the live Nuxt/Vue backoffice source; use before implementation or plan approval.
+applies_to: cwd=/Users/tualek/ohochat/docs/react-migration; reuse_rule=the plan lives here but factual contracts come from `/Users/tualek/ohochat/oho-backoffice` at the pinned revision; re-inventory after any checkout/SHA change.
+
+## Task 1: Review the original backoffice React migration plan against the actual repository; rework before implementation
+
+### rollout_summary_files
+
+- rollout_summaries/2026-07-31T16-52-16-hvzY-review_backoffice_react_migration_plan.md (cwd=/Users/tualek/ohochat/docs/react-migration, rollout_path=/Users/tualek/.codex/sessions/2026/07/31/rollout-2026-07-31T23-52-16-019fb917-4170-7273-a018-fe437807752a.jsonl, updated_at=2026-07-31T16:57:58+00:00, thread_id=019fb917-4170-7273-a018-fe437807752a, success; baseline `master@2f01fc94e906c8a33ff3634f65eaa648d2974ef1`)
+
+### keywords
+
+- backoffice-react-v2-plan.md, oho-backoffice, Nuxt2, Vue2, TanStack Router, Cloud Run, auth_user_token, auth_created_token_at, external-message-apps, external-message-whitelist, path-based-cutover, Intl.NumberFormat
+
+## User preferences
+
+- when the user specified “Scope is strictly oho-backoffice only” and “do not edit the plan file or any other files” -> keep reviews repository-scoped and strictly read-only. [Task 1]
+- when the user asked for plan-section/phase organization, quoted references, concrete adjustments, and a prioritized top 3–5 -> report evidence-first by phase with actionable fixes and a short priority list. [Task 1]
+- when the user said not to guess repo structure/tooling -> inspect actual route, API, auth, dependency, and deployment sources before asserting a gap. [Task 1]
+
+## Reusable knowledge
+
+- Generate and compare route/menu/page inventories instead of trusting a hand-written route list. The plan omitted active `/external-message-apps` and `/external-message-whitelist`; include them in feature structure, mutation tests, smoke tests, and cutover sequence. [Task 1]
+- Derive DTOs and examples from `oho-backoffice/api/endpoint.js`, auth actions, and representative pages. The real contract uses `/backoffice/business`, `/backoffice/authentication-user`, `_id`, `is_disabled`, and `is_deleted`, not simplified `/businesses`, `id`, or `status`. [Task 1]
+- Treat cookie migration as an explicit parity/security contract: preserve `auth_user_token`, `auth_user_id`, `auth_created_token_at`, codec, host/domain/path, SameSite/Secure, expiry, and removal attributes. Existing writes are host-only with `maxAge`; remove only on confirmed 401/403, not transient network/5xx bootstrap failures. [Task 1]
+- Preserve legacy query contracts during gradual cutover. Existing menu/list links use `is_disabled`, `is_deleted`, payment values, and other parameters, so proposed `q`/`page`/`status=active|inactive` is not automatically compatible. [Task 1]
+- LB path routing cannot catch Nuxt `<nuxt-link>`/`$router.push()` client-side navigation. Maintain a React/Nuxt route-ownership manifest, hard-navigate across ownership boundaries, and test both directions plus browser history. Decide Cloud Run/build-per-env versus runtime config in Phase 0 because it changes Dockerfile, nginx, CI, promotion, and rollback. [Task 1]
+- Make test and parity gates executable: Vitest/RTL/Playwright, controlled staging fixtures, lint/typecheck/unit/build CI, per-route E2E for mutations/uploads/destructive actions/recovery, numeral formatting golden tests, and browser error reporting/source maps/release dashboards. Classify commented socket/window-focus/mobile/widget calls as active, dead, or intentionally removed before porting. [Task 1]
+
+## Failures and how to do differently
+
+- Symptom: a migration plan looks complete but misses production behavior -> generate route/menu/page and dependency usage inventories at the actual pinned SHA. [Task 1]
+- Symptom: generic React examples and cutover diagrams look plausible but drift from runtime -> trace API/auth contracts and client-side navigation directly from source, then test legacy→React and React→legacy paths. [Task 1]
+- Symptom: Phase 5 looks short while observation windows are 2–3 days per path -> require exact/nested LB matchers, calendar duration, IaC, rollback drills, decommission exit criteria, and browser observability before accepting the timeline. [Task 1]
+
+# Task Group: /Users/tualek/ai-main / workspace-linking deployment and design review
+
+scope: Read-only review and architecture decisions for registry-driven deployment of generated workspace `AGENTS.md` and aliases in the ai-main daily-driver fleet.
+applies_to: cwd=/Users/tualek/ai-main; reuse_rule=use for `bin/aimain`, `workspaces.json`, deploy/link/unlink/verify/doctor changes; static review does not prove dynamic round-trip behavior.
+
+## Task 1: Review shipped registry-driven workspace linking; deployment false-success and verification gaps found
+
+### rollout_summary_files
+
+- rollout_summaries/2026-07-31T17-07-42-OOQ2-ai_main_workspace_linking_review_and_design_adjudication.md (cwd=/Users/tualek/ai-main, rollout_path=/Users/tualek/.codex/sessions/2026/08/01/rollout-2026-08-01T00-07-42-019fb925-627a-7253-bc76-6715214f2a22.jsonl, updated_at=2026-07-31T17:26:31+00:00, thread_id=019fb925-627a-7253-bc76-6715214f2a22, success; static read-only review)
+
+### keywords
+
+- bin/aimain, config/workspaces.json, deploy_one, deploy_all, cmd_unlink, git-path info/exclude, scripts/verify.sh, install.sh, scripts/sync.sh, AGENTS.md, doctor
+
+## Task 2: Adjudicate workspace files, tiers, and enforcement; smaller single-user architecture preferred
+
+### rollout_summary_files
+
+- rollout_summaries/2026-07-31T17-07-42-OOQ2-ai_main_workspace_linking_review_and_design_adjudication.md (cwd=/Users/tualek/ai-main, rollout_path=/Users/tualek/.codex/sessions/2026/08/01/rollout-2026-08-01T00-07-42-019fb925-627a-7253-bc76-6715214f2a22.jsonl, updated_at=2026-07-31T17:26:31+00:00, thread_id=019fb925-627a-7253-bc76-6715214f2a22, success; design adjudication)
+
+### keywords
+
+- AGENTS.md, CLAUDE.md, GEMINI.md, exact-target symlink, prompt budgets, full=3200, lean=1400, minimal=500, generic knowledge, glab PATH shim, Git hooks
+
+## User preferences
+
+- when reviewing ai-main, the user required “READ-ONLY” and said not to run `link`, `unlink`, `install.sh`, or `verify.sh` because they can write filesystem state -> distinguish static evidence from dynamic verification and do not run mutating commands without authorization. [Task 1]
+- when the user asked for worst-first, line-referenced real-world bugs in a daily-use fleet with launchd redeploys every six hours -> prioritize silent failure, false success, data loss, rollback hazards, and false greens over cosmetic issues. [Task 1]
+
+## Reusable knowledge
+
+- `bin/aimain:215-224` suppresses every `deploy_one` failure with `|| true`, so `install.sh:345-351` and `scripts/sync.sh:56-58` can report successful redeployment after a workspace deployment fails. Batch deployment must aggregate errors and return nonzero. [Task 1]
+- Exclude-path handling is correctly linked-worktree-aware at `bin/aimain:164`: `git -C "$ws" rev-parse --git-path info/exclude`; do not repeat the disproven `--git-dir` claim. But `cmd_unlink` never removes the five added, broad unanchored exclude entries, so link/unlink is not a clean round trip. [Task 1]
+- `scripts/verify.sh:197-210` skips missing directories and warns on missing knowledge files; generated-marker-only checks can pass incomplete imports. Required registry and knowledge failures should fail verification, while optional/nonexistent paths need an explicit category. [Task 1]
+- Avoid pre-deployment state mutation: `bin/aimain:229-255` records a registry entry before deployment, and `--force` can bypass the first tracked-file guard while `deploy_one` still refuses tracked `AGENTS.md`. Validate first or roll back registry changes on failure; ordinary deploy should refuse unmanaged handwritten instructions unless force is explicit. [Task 1]
+- For this single-user setup, prefer a readable real `AGENTS.md` with exact-target `CLAUDE.md`/`GEMINI.md` aliases over cache-only symlinks. Keep the current marker/exact-target ownership heuristic; defer a separate state ledger until shared-worktree lifecycle needs justify it. [Task 2]
+- Use prompt budgets `full=3200`, `lean=1400`, `minimal=500`; fail compilation on overrun but retain last-known-good generated output in live deployment. Keep the lightweight registry CLI/generic fallback/guards/tier compiler/stronger verification, and defer broad adapters/cache-state/task-contract layers. Plain Git hooks plus a `glab` PATH shim are sufficient for current tool use. [Task 2]
+
+## Failures and how to do differently
+
+- Symptom: static inspection seems green -> do not claim `verify.sh` or link/unlink passed. Dynamic validation requires a disposable workspace, and static evidence already proves incomplete unlink cleanup. [Task 1]
+- Symptom: deployment fails after registry mutation -> deployment state and registry become inconsistent. Fix with atomic deployment/registry changes or rollback; make `doctor` return nonzero for attachment/alias drift, not only Git-leak status. [Task 1]
+
 # Task Group: /Users/tualek/ohochat/backoffice-v2 / React migration architecture review
 scope: Time-boxed, read-only architecture review of the migrated React admin app; use before scaling multi-person feature work, not as a legacy parity audit.
 applies_to: cwd=/Users/tualek/ohochat/backoffice-v2; reuse_rule=reuse the sampling and boundary checks for this React checkout, but do not treat its snapshot findings as a current Git state and honor an explicit time-box or stated baseline results.

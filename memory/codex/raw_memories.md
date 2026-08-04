@@ -2934,6 +2934,122 @@ References:
 - `docs/feature-flags.md:370-379`
 - Review revisions: local `develop@fadce8537`, `origin/develop@a98fb25a`, OHO-1272 worktree `bbe0ac735`.
 
+## Thread `019fb917-4170-7273-a018-fe437807752a`
+updated_at: 2026-07-31T16:57:58+00:00
+cwd: /Users/tualek/ohochat/docs/react-migration
+rollout_path: /Users/tualek/.codex/sessions/2026/07/31/rollout-2026-07-31T23-52-16-019fb917-4170-7273-a018-fe437807752a.jsonl
+rollout_summary_file: 2026-07-31T16-52-16-hvzY-review_backoffice_react_migration_plan.md
+
+description: Read-only, evidence-based review of the oho-backoffice React migration plan against the actual Nuxt/Vue repository; found route inventory, API/auth contract, cross-app navigation, testing, deployment, and observability gaps requiring rework before implementation
+task: review oho-backoffice React migration plan against repository source
+ task_group: migration-plan-review
+ task_outcome: success
+cwd: /Users/tualek/ohochat/docs/react-migration
+keywords: oho-backoffice, react-migration, Nuxt2, Vue2, TanStack Router, Cloud Run, path-based-cutover, auth-cookie-contract, external-message, API-inventory, read-only-review
+
+### Task 1: Review migration plan against actual oho-backoffice repo
+
+task: compare backoffice-react-v2-plan.md with live oho-backoffice source without editing
+ task_group: migration-plan-review
+ task_outcome: success
+
+Preference signals:
+- When the user specified “Scope is strictly oho-backoffice only” and “do not edit the plan file or any other files” -> keep future reviews scoped to that repo and strictly read-only.
+- When the user required organization by plan section/phase, quoted references, concrete adjustments, and a prioritized top 3–5 -> report findings phase-by-phase, evidence-first, with actionable fixes and a short priority list.
+- When the user required grounding in verifiable files and said not to guess repo structure/tooling -> inspect route, API, auth, dependency, and deployment sources before asserting a gap.
+
+Reusable knowledge:
+- The v2 plan omitted active production routes `/external-message-apps` and `/external-message-whitelist`, present in `oho-backoffice/store/modules/menu.js:92-103` and implemented by `pages/external-message-apps.vue` and `pages/external-message-whitelist.vue`. Add them to route inventory, feature structure, tests, smoke tests, and cutover sequence.
+- The plan’s sample API contract is inaccurate: real endpoints are in `oho-backoffice/api/endpoint.js`, including `/backoffice/business` and `/backoffice/authentication-user`; business data uses `_id`, `is_disabled`, and `is_deleted`, not the simplified `/businesses`, `id`, and `status` example.
+- Existing auth behavior is in `store/index.js:96-166`: cookies include `auth_user_token`, `auth_user_id`, and `auth_created_token_at`; token exchange uses the backoffice authentication endpoint. `plugins/axios.js:3-45` attaches the current cookie token to requests.
+- Existing cookie writes are host-only with `maxAge`; the plan’s proposed `.oho.chat` domain and deletion on every bootstrap failure require explicit review. Preserve codec, domain/path, SameSite/Secure, expiry, removal attributes, and distinguish 401/403 from transient network/5xx failures.
+- The plan introduces Zustand state (`sidebarCollapsed`, `commandPaletteOpen`) without evidence that either behavior exists in the current backoffice. For a 1:1 migration, defer these unless a parity inventory proves they are required.
+- Legacy URL state is not equivalent to the proposed React schema. Existing business menu links use `is_disabled` and `is_deleted` (`store/modules/menu.js:19-31`), while payment and list pages use additional legacy query parameters. Preserve compatibility during gradual cutover.
+- URL-map path routing can be bypassed by client-side navigation: Nuxt uses `<nuxt-link>` and `$router.push()` (`components/Sidenav.vue`, `components/SubMenu.vue:117-131`). Define a hard-navigation rule at React/Nuxt ownership boundaries, maintain a route ownership manifest, and test navigation in both directions plus browser history.
+- Cloud Run and build strategy are coupled decisions. The plan locks Cloud Run but defers build-per-env versus build-once runtime config to Phase 5; decide hosting/runtime config in Phase 0 because it changes Dockerfile, nginx, CI, artifact promotion, and rollback.
+- Testing needs implementation gates, not only a locked stack: configure Vitest/RTL/Playwright, controlled staging fixtures, lint/typecheck/unit/build CI gates, and per-route E2E assertions for mutations, uploads, destructive actions, validation, and recovery.
+- `Intl.NumberFormat` needs a parity contract before replacing numeral. `plugins/numeral-format.js` supports integer, fixed-decimal, percentage, compact, currency-prefix, and null/Decimal-like formatting. Create separate helpers and golden tests.
+- Runtime-liveness audit is required before porting cross-cutting behavior. Socket, window-focus, mobile detection, and widget lifecycle calls are commented out in `layouts/default.vue`; classify active, dead, or intentionally removed behavior.
+- Phase 5 needs concrete LB exact/nested matchers, calendar-duration re-estimation, IaC, staging rollback drills, and explicit rollback/decommission exit criteria. A 5–7 day phase conflicts with 2–3 day observation windows per path.
+- Cloud/LB metrics and an error boundary do not provide browser observability. Add frontend error reporting, source maps, release/environment tags, and separate React/Nuxt dashboards before production cutover.
+
+Failures and how to do differently:
+- A hand-written route list missed active external-message pages. Generate route/menu/page inventories from the repository and compare them with the plan.
+- Generic React examples drifted from the real API and auth contract. Derive DTOs, endpoint wrappers, and examples from `api/endpoint.js`, auth actions, and representative page calls.
+- Path-based cutover was underspecified for SPA client navigation. Test legacy→React and React→legacy transitions and enforce hard navigation across ownership boundaries.
+
+References:
+- `/Users/tualek/ohochat/docs/react-migration/backoffice-react-v2-plan.md`
+- `/Users/tualek/ohochat/oho-backoffice/api/endpoint.js`
+- `/Users/tualek/ohochat/oho-backoffice/store/index.js`
+- `/Users/tualek/ohochat/oho-backoffice/plugins/axios.js`
+- `/Users/tualek/ohochat/oho-backoffice/store/modules/menu.js`
+- `/Users/tualek/ohochat/oho-backoffice/components/Sidenav.vue`
+- `/Users/tualek/ohochat/oho-backoffice/components/SubMenu.vue`
+- `/Users/tualek/ohochat/oho-backoffice/layouts/default.vue`
+- Verified repo baseline: `master@2f01fc94e906c8a33ff3634f65eaa648d2974ef1`.
+
+## Thread `019fb925-627a-7253-bc76-6715214f2a22`
+updated_at: 2026-07-31T17:26:31+00:00
+cwd: /Users/tualek/ai-main
+rollout_path: /Users/tualek/.codex/sessions/2026/08/01/rollout-2026-08-01T00-07-42-019fb925-627a-7253-bc76-6715214f2a22.jsonl
+rollout_summary_file: 2026-07-31T17-07-42-OOQ2-ai_main_workspace_linking_review_and_design_adjudication.md
+
+---
+description: Read-only review of ai-main workspace-linking implementation found deployment false-success, incomplete unlink cleanup, weak verification, registry mutation ordering, and broken-import false greens; adjudicated a smaller single-user architecture.
+task: review ai-main workspace-linking implementation and compare workspace/prompt/enforcement designs
+task_group: ai-main architecture and workspace deployment
+ task_outcome: success
+cwd: /Users/tualek/ai-main
+keywords: bin/aimain, workspaces.json, workspace linking, git info exclude, deploy_all, verify.sh, unlink, generic knowledge, prompt budgets, git hooks, glab PATH shim
+---
+
+### Task 1: Review shipped workspace linking
+
+task: static code review of registry-driven workspace deployment
+ task_group: ai-main workspace deployment
+ task_outcome: success
+
+Preference signals:
+- The user required strictly read-only investigation and asked for worst-first, line-referenced real-world bugs -> future reviews should avoid mutating test commands and clearly separate static evidence from unverified runtime claims.
+- The user runs ai-main as a daily driver with launchd redeploys every six hours -> prioritize silent failure, false success, data loss, and rollback hazards over cosmetic issues.
+
+Reusable knowledge:
+- `bin/aimain:215-224` suppresses all `deploy_one` failures with `|| true`; `install.sh:345-351` and `scripts/sync.sh:56-58` can therefore report successful redeployment when workspace deployment failed.
+- `bin/aimain:164` correctly computes exclusions with `git -C "$ws" rev-parse --git-path info/exclude`; the alleged shipped `--git-dir` bug is not present in the exclude path.
+- `bin/aimain:159-170` adds five exclude entries, but `cmd_unlink` at `bin/aimain:262-286` never removes them. This disproves a clean unlink round-trip and leaves broad unanchored ignores.
+- `scripts/verify.sh:197-210` skips missing directories and warns rather than failing for missing knowledge files, so invalid registry entries can still appear green.
+- `bin/aimain:229-255` mutates `config/workspaces.json` before deployment. `--force` bypasses the early tracked-file check, but `deploy_one` still refuses tracked `AGENTS.md`, leaving a broken registry entry after failure.
+- `bin/aimain:120-142` continues after missing knowledge imports; `scripts/verify.sh:206-210` checks only the generated marker, allowing incomplete generated files to pass.
+- Ordinary non-sync deployment moves unmanaged handwritten instruction files at `bin/aimain:186-205`; this should require explicit force or refuse by default.
+- `doctor` at `bin/aimain:316-332` reports drift but returns only Git-leak status, so it can exit zero despite broken attachments.
+
+Failures and how to do differently:
+- Do not claim `verify.sh` is fully green or link/unlink is clean from static inspection alone; dynamic verification requires running the commands in a disposable/test workspace, and unlink cleanup is visibly incomplete from code.
+- Batch deployment should aggregate errors and return nonzero; registry changes should be atomic with deployment or rolled back on failure.
+
+References:
+- `config/workspaces.json:3-48` contains 11 registered workspaces, so a five-workspace equivalence test would be incomplete.
+- `install.sh:337-355` delegates workspace deployment to `bin/aimain`; `scripts/sync.sh:53-58` runs it during automated redeploy.
+- `bin/aimain:151-156` defines current ownership: alias symlink exactly targets `AGENTS.md`, or regular file has the generated marker.
+
+### Task 2: Architecture adjudication
+
+task: compare Fable and prior Codex proposals for workspace files, tiers, and enforcement
+ task_group: ai-main design decisions
+ task_outcome: success
+
+Reusable knowledge:
+- For this single-user daily-driver setup, a real `AGENTS.md` plus exact-target alias symlinks is preferable to cache-only symlinks because it is readable, debuggable, and more compatible with tools that mishandle symlinks.
+- The current ownership heuristic is sufficient for now; a separate `~/.local/state` ledger adds drift/complexity unless stronger provenance or shared-worktree lifecycle requirements emerge.
+- Recommended budgets: `full=3200`, `lean=1400`, `minimal=500`; compiler should fail on overrun, while live deployment should retain last-known-good generated output.
+- Must-have scope is the lightweight registry CLI, generic fallback knowledge, tracked/unmanaged-file guards, correct `--git-path` exclusion handling, tier compilation, and stronger verification. Defer broad `lib/`, per-tool driver abstractions, cache/state layers, and task-contract orchestration until justified by a real additional host.
+- For today’s Claude Code, Codex CLI, opencode, and Qwen usage, plain Git hooks plus a `glab` PATH shim are realistically enforceable. A full immutable task-contract planner/guard is not shared across these tools and is unnecessary for the narrow `glab --json` rule.
+
+References:
+- Actual current file sizes/counts used for tier discussion: `config/style.md` 27 lines/1,848 bytes; `config/workflow.md` 64/4,838; `config/profile.md` 49/2,929; `memory/SHARED.md` 11/744; `memory/lessons/LESSONS.md` 86/13,435. Combined: 237 lines/23,794 bytes.
+- `knowledge/_generic.md:1-9` is the generic fallback profile and includes an unquoted generated `aimain link {{WORKSPACE_PATH}}` example, which can break for paths containing spaces.
+
 ## Thread `019fb948-34df-78c3-acf3-404943218769`
 updated_at: 2026-07-31T17:55:34+00:00
 cwd: /Users/tualek/ohochat/oho-backoffice
@@ -3125,4 +3241,260 @@ References:
 - `src/features/business/components/BusinessPage.tsx:98-138`
 - `eslint.config.js:235-238`
 - Component sizes: `PaymentDialog.tsx` 659 lines, `PaymentDetailPage.tsx` 664 lines, `BusinessDetailPage.tsx` 632 lines
+
+## Thread `019fc38b-2163-7081-8ab6-b42248952f08`
+updated_at: 2026-08-02T20:11:49+00:00
+cwd: /Users/tualek/ohochat
+rollout_path: /Users/tualek/.codex/sessions/2026/08/03/rollout-2026-08-03T00-35-03-019fc38b-2163-7081-8ab6-b42248952f08.jsonl
+rollout_summary_file: 2026-08-02T17-35-03-puSA-meta_business_ai_poc_second_opinion_review.md
+
+---
+description: Evidence-first Thai second-opinion review of Meta Business AI POC OHO-1215; docs and code reviewed successfully, prod log recheck only partially completed due sandbox credential refresh failure; main takeaway is to rework owner/state model before implementation
+task: review_meta_business_ai_poc_oho1215
+task_group: meta-business-ai-messenger-handover
+task_outcome: success
+cwd: /Users/tualek/ohochat
+keywords: OHO-1215, Meta Business AI, standby, messaging, ai_generated, hop_context, pass_thread_control, take_thread_control, thread_owner, bot gate, gcloud logging, queue ordering, HUMAN_AGENT
+---
+
+### Task 1: Meta Business AI POC second-opinion review
+
+task: review six POC answers against findings, payloads, official guide, code paths, and prod logs
+ task_group: meta-business-ai-messenger-handover
+ task_outcome: success
+
+Preference signals:
+- ผู้ใช้ขอรายงานภาษาไทยแบบละเอียด และกำหนดโครงสร้างปัญหา/หลักฐาน/ความรุนแรง/ข้อเสนอแนะ -> งาน review คล้ายกันควรตอบไทยและ cite หลักฐานละเอียด
+- ผู้ใช้กำชับ “Do not fabricate log output” และให้แยก verified/not verified -> ห้ามเปลี่ยน timeout หรือ credential failure เป็น no data; ใช้ `Not run: <reason>` ตามจริง
+- ผู้ใช้กำหนด read-only, ห้ามแก้ไฟล์และ commit -> ควรตรวจโดยไม่แก้ repo และ pin สถานะ worktree/commit ก่อน trace
+
+Reusable knowledge:
+- คำตอบ POC ทั้งหกไม่ควรถูกใช้เป็น implementation contract โดยตรง: Q1 replay ยังเป็น hypothesis; Q2 observational flag คือ recently observed ไม่ใช่ enabled state; Q3 channel ไม่พอระบุว่า AI/OHO/Business Suite เป็น owner; Q4 เป็น eventual/best-effort detection; Q5 structured reason ไม่มีใน payload; Q6 standby gate ถูกหลักแต่ต้องมี send-time guard
+- `meta-biz-ai-payload-samples.md:33–39` มี AI echo ทาง `messaging` พร้อม `hop_context.app_id=388207815496149`; ห้ามตีความ `messaging=OhoChat` หรือ `standby=Meta AI` แบบ binary
+- `meta-biz-ai-payload-samples.md:71–77` แสดง `take_thread_control` metadata `axon_take_thread_control`, previous owner `388207815496149`, new owner `928891643393937`, timestamp เป็นวินาที และส่งซ้ำ 4 ครั้ง; ต้อง deduplicate logical transition
+- `meta-biz-ai-payload-samples.md:53–69` แสดง read-channel switch หลัง AI farewell; arrival `entry.time` ประมาณ 3.69s แต่ embedded event timestamp ประมาณ 2.13s; ต้องเก็บทั้ง clocks และไม่ใช้ “~4s” เป็น universal SLA
+- `meta-biz-ai-queue-routing-design.md:68–72` ระบุ hop_context พบเพียง 113/796 requests และ AI echoes 25 รายการไม่มี hop; finding เก่าที่บอก `is_ai_thread_owner` มาทุกข้อความขัดกับหลักฐานใหม่
+- `handler.ts:857–875` ทิ้ง channel หลังเลือก `messaging[0] || standby[0]`; `handler.ts:945–992` จัดการ read แล้ว return ก่อน bot path; `handler.ts:1612–1632` schedule fallback bot; ดังนั้น standby ingress gate อย่างเดียวไม่กัน scheduled/in-flight send และไม่ implement read-based ownership flip
+- `helper.ts:1465–1541` และ `facebook.controller.ts:124–168` เลือก queue จาก entry/event แรกและ enqueue request ทั้งก้อน; ต้องแตก canonical event envelope ต่อ page/PSID/event ก่อนจัด queueเพื่อกัน mixed-entry misrouting
+- control event อย่าง `take_thread_control` ไม่มี `message` แต่เข้า handler เดียวกัน; `helper.ts:1294–1304` fallback เป็น unsupported text ได้ จึงควร branch control event ก่อน transform และห้ามสร้าง chat bubble/bot trigger
+- Official PDF local (15 หน้า, extract ด้วย `pypdf`) ระบุ Business AI App ID `622851382610562`, `ai_generated:true`, standby, `HUMAN_AGENT`, และ reactivation ผ่าน `pass_thread_control`; ต้องแยก official expected behavior จาก observed Axon rollout
+
+Failures and how to do differently:
+- gcloud month-wide query hung; ใช้รายวัน/รายสัปดาห์ + `--limit` + shell alarm/timeout 90s เสมอ
+- gcloud continuation ล้มก่อน query เพราะ sandbox ปฏิเสธเขียน `~/.config/gcloud/credentials.db`; รายงาน slice เหล่านั้นเป็น `Not run: gcloud credential refresh ถูก sandbox ปฏิเสธ` ไม่ใช่ “ไม่พบข้อมูล”
+- direct public Meta docs fetch ล้ม (`Failed to fetch`/URL unsafe); cite local PDF และระบุ live comparison not verified
+- adoption scan ที่ค้นเฉพาะ `ai_generated:true` ไม่สามารถพิสูจน์ coverage 100% ได้เพราะไม่มี independent denominator; Instagram “ไม่เคยเก็บ payload” ไม่เท่ากับ “ไม่มี payload”
+
+References:
+- `docs/meta-business-ai/meta-biz-ai-poc-6-answers.md:7–121`
+- `docs/meta-business-ai/meta-biz-ai-poc-result.md:93–105, 163–177, 187–229, 235–254, 308–331`
+- `docs/meta-business-ai/meta-biz-ai-payload-samples.md:53–93`
+- `docs/meta-business-ai/meta-biz-ai-queue-routing-design.md:48–85`
+- `oho-webhook/.claude-worktrees/meta-business-ai/src/controllers/facebook/handler.ts:857–875,945–992,1242–1274,1612–1632,1940–1960`
+- `oho-webhook/.claude-worktrees/meta-business-ai/src/controllers/facebook/helper.ts:1294–1304,1317–1343,1465–1541`
+- `oho-webhook/.claude-worktrees/meta-business-ai/src/controllers/facebook/facebook.controller.ts:124–168`
+- `oho-api/src/utils/facebook/request-page-subscribed-app.js:7–25`
+- Direct completed query: `resource.type="cloud_run_revision" AND resource.labels.service_name="webhook--production" AND jsonPayload.message:"pass_thread_control" --freshness=24h --limit=100` -> empty output/no data found for available 24h window
+
+## Thread `019fc64c-3291-73a0-9abc-8400c6838b3d`
+updated_at: 2026-08-03T06:38:46+00:00
+cwd: /Users/tualek/Documents/Codex/2026-08-03/r
+rollout_path: /Users/tualek/.codex/sessions/2026/08/03/rollout-2026-08-03T13-25-10-019fc64c-3291-73a0-9abc-8400c6838b3d.jsonl
+rollout_summary_file: 2026-08-03T06-25-10-otHf-audit_and_fix_cursor_ai_main_rules_symlinks.md
+
+description: Verified Cursor still loads ai-main-managed skills, commands, and workspace rules; removed a conflicting stale home-level AGENTS.md while preserving a backup.
+task: audit_and_fix_cursor_ai_main_rules
+task_group: ai-main-cursor-integration
+task_outcome: success
+cwd: /Users/tualek/Documents/Codex/2026-08-03/r
+keywords: Cursor, ai-main, symlink, AGENTS.md, CLAUDE.md, skills, commands, aimain, workspace rules
+
+### Task 1: Audit Cursor integration
+
+task: verify_cursor_rules_and_symlinks
+task_group: ai-main-cursor-integration
+task_outcome: success
+
+Preference signals:
+- The user asked whether Cursor still used the rules and symlinks configured in ai-main -> similar audits should verify actual runtime loading, not only filesystem presence.
+
+Reusable knowledge:
+- `~/.cursor/skills/` contained 22 valid symlinks to `/Users/tualek/ai-main`, with no broken links.
+- `~/.cursor/commands/worklog.md` points to `/Users/tualek/ai-main/commands/worklog.md`.
+- Cursor 3.14.7 loaded workspace `AGENTS.md`/`CLAUDE.md` as `always_applied_workspace_rule`; absence of `~/.cursor/rules/` did not prevent ai-main workspace rules from loading.
+- `/Users/tualek/ai-main/bin/aimain list` showed all 11 registered workspaces as `ok`.
+
+Failures and how to do differently:
+- Use native `find` rather than `rtk find` for compound predicates/actions.
+- `cursor-agent` was unavailable and network installation failed; use Cursor runtime state/logs when CLI testing is impossible.
+
+References:
+- `/Users/tualek/ai-main/install.sh`
+- `/Users/tualek/ai-main/bin/aimain list`
+- Cursor version: `3.14.7`
+
+### Task 2: Remove stale conflicting rule
+
+task: remove_conflicting_home_agents_rule
+task_group: ai-main-cursor-integration
+task_outcome: success
+
+Preference signals:
+- The user said “จัดการให้หน่อย” -> make the corrective change, preserve a recoverable backup, and avoid touching unrelated dirty work in `ai-main`.
+
+Reusable knowledge:
+- `/Users/tualek/AGENTS.md` was an old generic rule source loaded in addition to ai-main workspace rules and could conflict with repo-specific conventions.
+- It was moved, not deleted, to `/Users/tualek/Documents/Codex/2026-08-03/r/outputs/AGENTS.md.stale-home-backup-20260803`.
+- After removal, workspace files remained intact and `aimain list` still reported every workspace `ok`.
+- Existing Cursor sessions may cache rules; reload the window or start a new chat after changing rule files.
+
+Failures and how to do differently:
+- Do not edit or clean unrelated changes in `/Users/tualek/ai-main`; preserve the user’s dirty worktree.
+
+References:
+- Removed: `/Users/tualek/AGENTS.md`
+- Backup: `/Users/tualek/Documents/Codex/2026-08-03/r/outputs/AGENTS.md.stale-home-backup-20260803`
+- Verification: `ls -la /Users/tualek/AGENTS.md` returned no such file; `aimain list` returned all workspaces `ok`.
+
+## Thread `019fc66d-6db1-7253-a396-dfde3105523c`
+updated_at: 2026-08-03T18:26:26+00:00
+cwd: /Users/tualek/ohochat
+rollout_path: /Users/tualek/.codex/sessions/2026/08/03/rollout-2026-08-03T14-01-28-019fc66d-6db1-7253-a396-dfde3105523c.jsonl
+rollout_summary_file: 2026-08-03T07-01-28-EQdm-meta_business_ai_docs_clickup_reactivation_debug.md
+
+---
+description: Meta Business AI documentation, ClickUp handoff, and thread-control reactivation findings; documents completed, latest reactivation diagnosis only partially verified
+task: Meta Business AI docs/POC comparison and take-pass thread-control debugging
+task_group: /Users/tualek/ohochat Meta Business AI Messenger handover
+task_outcome: partial
+cwd: /Users/tualek/ohochat
+keywords: Meta Business AI, OHO-1634, OHO-1215, take_thread_control, pass_thread_control, release_thread_control, default app, standby, messaging, ai_generated, thread_owner, HUMAN_AGENT, ClickUp, filechooser
+---
+
+### Task 1: Canonical Meta/Oho documentation
+
+task: Separate official Meta docs, coming-soon features, observed POC, and questions for Meta
+task_group: Meta Business AI documentation
+ task_outcome: success
+
+Preference signals:
+- when the user asked for documents that can be communicated directly to Meta, separate official contract, observed POC, and open questions rather than blending them
+- when reviewing Meta Business AI, the user prefers detailed Thai, source/evidence-based reporting and no fabricated logs
+
+Reusable knowledge:
+- `pass_thread_control` target `622851382610562` worked as a Business AI reactivation target in prior POC, but HTTP/API success does not prove that AI immediately resumes responding.
+- `take_thread_control` has no `message`; branch control events before message transformation to avoid fake “unsupported message” bubbles or bot triggers.
+- Keep delivery authority, agent identity, and latest source event time separate. `standby` versus `messaging` is not a binary AI/Oho owner test; AI echoes were observed via `messaging` and `ai_generated` coverage is not proven universal.
+- `thread_owner` was not reliable in the latest scan: 8 threads on v20/v25 returned `data:[]` or expiration without `app_id`; do not use it as current-owner contract or hardcode historical Axon IDs.
+- `take_thread_control` was duplicated four times in one incident; control timestamps use seconds while regular message timestamps use milliseconds. Normalize and dedupe before state transitions.
+- `release_thread_control` returns a conversation to idle/default routing; it is not equivalent to returning control to Business AI.
+- Three canonical files were created: `docs/meta-business-ai/01-meta-docs-vs-oho-poc-2026-08-04.md`, `02-meta-coming-soon-2026-08-04.md`, and `03-questions-for-meta-2026-08-04.md`.
+
+Failures and how to do differently:
+- Public Meta docs were not freshly verified because browsing hit HTTP 429/cache/URL errors; label those comparisons as based on local official PDF and stored POC evidence.
+
+References:
+- `docs/meta-business-ai/meta-biz-ai-poc-result.md:235-245, 258-277`
+- `docs/meta-business-ai/meta-official-available-2026-08-04.md`
+- `docs/meta-business-ai/01-meta-docs-vs-oho-poc-2026-08-04.md`
+- `docs/meta-business-ai/02-meta-coming-soon-2026-08-04.md`
+- `docs/meta-business-ai/03-questions-for-meta-2026-08-04.md`
+
+### Task 2: ClickUp OHO-1634 update
+
+task: Attach canonical Meta documents and update ClickUp description
+task_group: ClickUp handoff
+ task_outcome: success
+
+Reusable knowledge:
+- ClickUp task `OHO-1634` was updated successfully; attachments increased from 10 to 13 and the three canonical filenames were verified after reload.
+- Browser uploads require the file chooser flow, not `locator.setInputFiles`: wait for `filechooser`, click the visible upload control, then call `chooser.setFiles([...])`.
+
+References:
+- `https://app.clickup.com/t/90182460598/OHO-1634`
+- Verification values: `persistedCanonicalSection: true`, `persistedFiles: true`, each canonical attachment link count `1`.
+
+### Task 3: Default app and return-to-AI diagnosis
+
+task: Diagnose silent take and non-responsive pass after setting a default app
+task_group: Meta Business AI thread-control debugging
+ task_outcome: partial
+
+Preference signals:
+- when the user said that clicking “send chat back to AI” must mean AI works immediately, treat HTTP 200 as insufficient UX success; wait for positive runtime evidence or show pending/unknown/timeout state
+
+Reusable knowledge:
+- Silent `take_thread_control` normally carries no user message; it changes routing authority and should not create a chat message.
+- After take, AI silence and “You're no longer chatting with an AI agent.” are consistent with Oho becoming the active delivery authority.
+- A default app is a prerequisite for generic `take_thread_control`, but existing evidence does not prove it alone explains failed AI reactivation.
+- After `pass_thread_control` to `622851382610562`, verify a new user message reaches `standby` and produces an echo with `ai_generated:true`; the UI banner is only an observation.
+- If pass succeeds but events remain `messaging`, routing did not move. If events move to `standby` but AI remains silent, investigate AI eligibility/response policy, unresolved context, or lifecycle behavior rather than assuming default-app causality.
+- Bot/send safety still requires ingress guard plus send-time authority check and cancellation of scheduled/in-flight sends.
+
+Failures and how to do differently:
+- The latest failure was not reproduced with a complete timestamped HTTP/webhook ledger, so root cause remains unverified. Run: take with metadata → capture response → send one message/capture webhook → pass to `622851382610562` → wait 5–10s → send a fresh message → inspect channel, `ai_generated`, `hop_context`, and control events.
+
+References:
+- `docs/meta-business-ai/meta-biz-ai-poc-result.md:235-245, 274-277`
+- `docs/meta-business-ai/oho-poc-observed-behavior-2026-08-04.md:38-42, 72-89`
+- Exact observed UI strings: `You're no longer chatting with an AI agent.`, `You're chatting with an AI agent.`
+
+## Thread `019fc8d3-33e3-7132-b93a-a21e3685223b`
+updated_at: 2026-08-03T18:11:52+00:00
+cwd: /Users/tualek/ohochat
+rollout_path: /Users/tualek/.codex/sessions/2026/08/04/rollout-2026-08-04T01-11-52-019fc8d3-33e3-7132-b93a-a21e3685223b.jsonl
+rollout_summary_file: 2026-08-03T18-11-52-TXSz-meta_business_ai_doc_split_clickup_update_blocked.md
+
+description: แยก Meta Business AI official/current, coming soon/planned, observed POC และ communication pack สำเร็จ; เตรียม ClickUp OHO-1634 description แต่บันทึกการ์ดจริงไม่ได้เพราะไม่มี ClickUp connector และ browser ยังไม่ล็อกอิน
+task: meta-business-ai-doc-split-and-clickup-card-update
+task_group: /Users/tualek/ohochat
+task_outcome: partial
+cwd: /Users/tualek/ohochat
+keywords: Meta Business AI, OHO-1634, OHO-1215, ClickUp, Conversation Routing, standby, ai_generated, thread_owner, pass_thread_control, HUMAN_AGENT, source-matrix
+
+### Task 1: แยกเอกสาร Meta และผล POC
+
+task: split Meta documented capabilities from coming soon/planned items and Oho observed behavior
+task_group: Meta Business AI documentation
+task_outcome: success
+
+Preference signals:
+- เมื่อผู้ใช้ขอ “แยก document ที่เกี่ยวกับ docs จาก meta” และ “แยก docs ที่เป็น coming soon” พร้อมเอกสารที่ส่งคุย Meta ได้ -> ควรสร้าง source-separated documents และ communication pack โดยไม่ปน official contract กับ local observation
+- ผู้ใช้ต้องการหลักฐานตรงและไม่ fabricate logs -> ระบุ observed, not verified และขอบเขตของ POC อย่างชัดเจน
+
+Reusable knowledge:
+- สร้าง source matrix จาก official partner PDF 15 หน้าและ public Meta docs พร้อมข้อขัดแย้ง 10 จุด; ใช้เป็นจุดเริ่มต้นก่อน implementation
+- เอกสารใหม่อยู่ใน `docs/meta-business-ai/`: `meta-official-source-matrix-2026-08-04.md`, `meta-official-available-2026-08-04.md`, `meta-official-coming-soon-2026-08-04.md`, `oho-poc-observed-behavior-2026-08-04.md`, `meta-partner-communication-pack-2026-08-04.md`, `meta-business-ai-dev-questions-2026-08-04.md`
+- POC evidence: test page `104613548045675`, 13 subscribed fields, live self-handoff 4/4 รอบไม่พบ `pass_thread_control`, `thread_owner` 8 threads บน v20/v25 ไม่คืน `app_id`, `pass_thread_control` ไป `622851382610562` ทำงาน, control event เคย duplicate 4 ครั้ง
+- Implementation ต้องแยก delivery authority, agent identity และ latest event; ใช้ send-time guard/cancel scheduled sends และ canonicalize/dedupe events
+
+Failures and how to do differently:
+- อย่าใช้ `standby`, `messaging`, `app_id` หรือ `ai_generated` เพียงค่าเดียวเป็น universal owner contract; current evidence จำกัดตาม Page/rollout
+
+References:
+- `docs/meta-business-ai/meta-official-source-matrix-2026-08-04.md`
+- `docs/meta-business-ai/meta-official-coming-soon-2026-08-04.md`
+- `docs/meta-business-ai/oho-poc-observed-behavior-2026-08-04.md`
+
+### Task 2: เตรียม ClickUp description และ cross-reference
+
+task: update ClickUp OHO-1634 description and related documentation
+task_group: ClickUp card update
+ task_outcome: partial
+
+Preference signals:
+- ผู้ใช้ขอ “update description ในการ์ด” และรวมไฟล์ที่เกี่ยวข้อง -> ต้องทำ external update จริงและตรวจผลหลัง save ไม่ควรนับ draft เป็น completion
+
+Reusable knowledge:
+- Draft พร้อมวางอยู่ที่ `docs/meta-business-ai/clickup-OHO-1634-description-2026-08-04.md`
+- Related files ถูกอัปเดตให้ชี้ไปยัง draft/source split: `clickup-OHO-1634-poc-results.md`, `meta-biz-ai-card-review-2026-08-03.md`, `meta-biz-ai-summary-solutions-2026-08-03.md`, `HANDOFF.md`
+- ClickUp browser เปิดได้แต่ redirect ไป `https://app.clickup.com/login`; active tool search ไม่พบ ClickUp connector/plugin
+
+Failures and how to do differently:
+- Card ยังไม่ได้แก้จริง; รอ authenticated ClickUp browser session แล้ววาง draft ลง OHO-1634 และ verify saved description/toast
+
+References:
+- `https://app.clickup.com/t/90182460598/OHO-1634`
+- `docs/meta-business-ai/clickup-OHO-1634-description-2026-08-04.md`
+- Exact blocker: browser resolved to `https://app.clickup.com/login`; no ClickUp tool available
 
