@@ -84,3 +84,7 @@ consolidate: merge duplicates, drop obsolete ones, keep the rule one line each.
 ## 2026-07 — สร้าง ClickUp task ทั้งที่ user สั่ง "จดเป็น task" เฉยๆ
 - **Mistake**: user บอก `จดเป็น task แล้วทำ handoff ทิ้งไว้` ผมไปสร้าง task ใน ClickUp ด้วย — user แก้ว่า `ฉันหมายถึงสร้างไว้ใน folder ไม่ต้องไปทำใน clickup` ต้องลบทิ้ง
 - **Rule**: "จดเป็น task / จดไว้" หมายถึงไฟล์ .md ใน repo/folder เป็น default — สร้างของใน ClickUp เฉพาะเมื่อ user พูดถึง ClickUp ตรงๆ เท่านั้น
+
+## 2026-08 — ไม่กรอง Ticket ตาม assignee ของผู้ใช้
+- **Mistake**: user ขอ Ticket ที่ due วันที่กำหนดและหมายถึงงานที่ assign ให้ตัวเอง แต่ผมรายงานทุก assignee ก่อนที่ผู้ใช้จะทักว่า `เอาแค่ assign ของฉันสิ`.
+- **Rule**: เมื่อสรุป Ticket ให้ระบุตัวผู้ใช้ปัจจุบันและกรอง `assignee` ก่อนรายงานผลเสมอ; ถ้าไม่ทราบตัวตนให้ตรวจจากบริบทหรือถามก่อน.
