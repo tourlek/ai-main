@@ -17,6 +17,7 @@ The user uses Codex mainly for evidence-first source, MR, architecture-plan, int
 - For Thai ceremony work, honor “รวมทั้งหมดรวบเดียว”; use requested full royal names and a concise (~1 minute) thank-you script.
 - For finance planning, exclude wife monthly support from income; include tuition saving, utilities, and `Paynext 3,300/month`. [ad-hoc note]
 - When auditing Cursor/ai-main setup, verify actual runtime rule/skill loading, not merely symlink presence; when correcting a conflicting rule, preserve a recoverable backup and do not touch unrelated dirty ai-main work.
+- When asked to find a previously created artifact, search the named assistant history plus the workspace and Drive before proposing to recreate it.
 
 ## General Tips
 
@@ -30,6 +31,14 @@ The user uses Codex mainly for evidence-first source, MR, architecture-plan, int
 - For Cursor integration, runtime state/logs are valid fallback evidence when `cursor-agent` is unavailable; after rule-file changes, reload Cursor or open a new chat because sessions can cache rules.
 
 ## What's in Memory
+
+### /Users/tualek/retourapac
+
+#### 2026-08-04
+
+- ReTour form/dashboard slide search: ReTour, slides, submission-form, dashboard, Claude session, Google Drive, apps-script/README.md
+  - desc: Prior-artifact search for form opening and dashboard-use slides in `cwd=/Users/tualek/retourapac`; use before recreating a ReTour deck.
+  - learnings: No matching deck was verified; start from the targeted Claude session, then `/apps-script/README.md` and `dashboard-plan.md`, and call the result “not found” rather than nonexistent.
 
 ### /Users/tualek/Documents/Codex/2026-08-03/r
 
@@ -52,14 +61,6 @@ The user uses Codex mainly for evidence-first source, MR, architecture-plan, int
 - Meta Business AI Messenger handover POC review: OHO-1215, standby, messaging, ai_generated, hop_context, take_thread_control, HUMAN_AGENT
   - desc: Search for Thai, read-only review evidence on owner/state modeling, duplicate control events, mixed-entry queue routing, and gcloud-log limits in `cwd=/Users/tualek/ohochat`.
   - learnings: Rework before implementation; canonicalize event envelopes, branch control events early, and re-check ownership at send time rather than relying on one ingress flag.
-
-### /Users/tualek/ohochat/backoffice-v2
-
-#### 2026-08-01
-
-- React migration architecture review: feature-based, ChannelTable, PaymentDialog, query-keys, shared/lib, barrels, circular-dependency
-  - desc: Time-boxed architecture evidence for `cwd=/Users/tualek/ohochat/backoffice-v2`; use before adding parallel feature work or judging layer enforcement.
-  - learnings: The structure is viable; move component I/O into hooks, centralize query-key factories, trim public barrels, and gate cycles/relative cross-feature imports in CI.
 
 ### Older Memory Topics
 
@@ -88,6 +89,11 @@ The user uses Codex mainly for evidence-first source, MR, architecture-plan, int
 
 - External-message admin UI review: external-message-apps, external-message-whitelist, select-all, pagination, JeraForm
   - desc: UI correctness, async-state, mutation, and data-safety reviews for `cwd=/Users/tualek/ohochat/oho-backoffice`.
+
+#### /Users/tualek/ohochat/backoffice-v2
+
+- React migration architecture review: feature-based, ChannelTable, PaymentDialog, query-keys, shared/lib, barrels, circular-dependency
+  - desc: Time-boxed architecture evidence for `cwd=/Users/tualek/ohochat/backoffice-v2`; use before adding parallel feature work or judging layer enforcement.
 
 #### /Users/tualek/ohochat/oho-web-app
 

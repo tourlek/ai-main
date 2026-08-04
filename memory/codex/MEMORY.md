@@ -1,3 +1,32 @@
+# Task Group: /Users/tualek/retourapac / ReTour APAC form/dashboard documentation and prior-artifact search
+
+scope: Locate previously created ReTour form-access/dashboard-use artifacts across the workspace, Claude history, and Drive; route to the verified documentation when a deck is not recovered.
+applies_to: cwd=/Users/tualek/retourapac; reuse_rule=reuse the search order and documentation pointers for similar ReTour artifact requests, but report a deck as not found rather than nonexistent unless the live repository, Claude project history, and Drive search are repeated.
+
+## Task 1: Locate existing form/dashboard slides; no matching deck verified, documentation and prior Claude session identified
+
+### rollout_summary_files
+
+- rollout_summaries/2026-08-04T01-19-33-sccm-find_retour_form_dashboard_slides.md (cwd=/Users/tualek/retourapac, rollout_path=/Users/tualek/.codex/sessions/2026/08/04/rollout-2026-08-04T08-19-33-019fca5a-c19e-7761-966a-95f4e7276aae.jsonl, updated_at=2026-08-04T01:21:08+00:00, thread_id=019fca5a-c19e-7761-966a-95f4e7276aae, partial; no deck recovered)
+
+### keywords
+
+- ReTour, slides, dashboard, submission-form, Google Drive, Claude session, ai-title, last-prompt, apps-script/README.md, dashboard-plan.md
+
+## User preferences
+
+- when the user asks “ฉันน่าจะเคยมีทำ slide ของ step การเปิดปุ่ม form และการใช้ dashboard ช่วยหา slide ให่หน่อยเคยทำไว้ใน claude” -> search both Claude history and the workspace/Drive for the prior artifact before proposing to recreate it. [Task 1]
+
+## Reusable knowledge
+
+- No ReTour-specific `.pptx`, `.ppt`, Google Slides URL, or matching deck was found in `/Users/tualek/retourapac` or the searched Google Drive presentation results. The practical replacement sources are `/Users/tualek/retourapac/apps-script/README.md` (setup, form webhook flow, dashboard roles, daily use) and `/Users/tualek/retourapac/dashboard-plan.md` (test-only form access and dashboard behavior). [Task 1]
+- The relevant prior Claude session is `/Users/tualek/.claude/projects/-Users-tualek-retourapac/f39934f0-c004-4206-853a-18ffda63f30b.jsonl`, titled “สร้าง dashboard สำหรับ review และ approve forms”; the master dashboard sheet is `https://docs.google.com/spreadsheets/d/1ktQ8F00uR4rLJiawR964bSYcNILl7pb0O8NhMwCA4u4/edit`. [Task 1]
+
+## Failures and how to do differently
+
+- Symptom: broad `rg` over Claude JSONL produces heavily truncated output. Cause: large session histories swamp the result. Fix/pivot: search the relevant Claude project directory first, inspect metadata such as `ai-title` and `last-prompt`, then use exact artifact extensions and focused terms. [Task 1]
+- Symptom: no deck is recovered. Fix/pivot: present the result as “not found,” not proof it never existed; offer a new deck from the README and dashboard plan only if requested. [Task 1]
+
 # Task Group: /Users/tualek/Documents/Codex/2026-08-03/r / Cursor ai-main rules and symlink integration
 
 scope: Runtime-aware audit of Cursor loading ai-main-managed skills, commands, and workspace rules, plus recoverable cleanup of a conflicting home-level rule source.

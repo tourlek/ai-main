@@ -3498,3 +3498,42 @@ References:
 - `docs/meta-business-ai/clickup-OHO-1634-description-2026-08-04.md`
 - Exact blocker: browser resolved to `https://app.clickup.com/login`; no ClickUp tool available
 
+## Thread `019fca5a-c19e-7761-966a-95f4e7276aae`
+updated_at: 2026-08-04T01:21:08+00:00
+cwd: /Users/tualek/retourapac
+rollout_path: /Users/tualek/.codex/sessions/2026/08/04/rollout-2026-08-04T08-19-33-019fca5a-c19e-7761-966a-95f4e7276aae.jsonl
+rollout_summary_file: 2026-08-04T01-19-33-sccm-find_retour_form_dashboard_slides.md
+
+description: Search for ReTour APAC slides explaining form access and dashboard usage; no matching deck was found, but authoritative replacement documentation and the prior Claude session were identified
+ task: locate existing ReTour form-opening and dashboard-usage slides
+ task_group: retourapac-documentation
+ task_outcome: partial
+ cwd: /Users/tualek/retourapac
+ keywords: ReTour, slides, dashboard, submission-form, Claude-session, Google-Drive, apps-script
+
+### Task 1: Locate existing form/dashboard slides
+
+task: locate previously created slides for opening the submission form and using the dashboard
+task_group: retourapac-documentation
+task_outcome: partial
+
+Preference signals:
+- The user asked: “ฉันน่าจะเคยมีทำ slide ของ step การเปิดปุ่ม form และการใช้ dashboard ช่วยหา slide ให่หน่อยเคยทำไว้ใน claude” -> when asked to find a prior artifact, search both Claude history and the workspace/Drive before proposing to recreate it.
+
+Reusable knowledge:
+- No ReTour-specific `.pptx`, `.ppt`, or Google Slides deck was found in the repository or the searched Google Drive presentation results.
+- The practical substitute is `/Users/tualek/retourapac/apps-script/README.md`, covering setup, form webhook flow, dashboard roles, and daily use.
+- `/Users/tualek/retourapac/dashboard-plan.md` contains the form test-access and dashboard implementation details.
+- The prior Claude session is `/Users/tualek/.claude/projects/-Users-tualek-retourapac/f39934f0-c004-4206-853a-18ffda63f30b.jsonl`, titled “สร้าง dashboard สำหรับ review และ approve forms”.
+- Master dashboard sheet: `https://docs.google.com/spreadsheets/d/1ktQ8F00uR4rLJiawR964bSYcNILl7pb0O8NhMwCA4u4/edit`.
+
+Failures and how to do differently:
+- Broad `rg` searches across Claude JSONL files generated massive truncated output. Narrow searches to the relevant Claude project directory, metadata fields such as `ai-title`/`last-prompt`, and exact artifact extensions.
+- The search ended without direct user confirmation or a recovered deck; treat the result as partial and offer to create a new slide deck from the identified documentation.
+
+References:
+- `/Users/tualek/retourapac/apps-script/README.md`
+- `/Users/tualek/retourapac/dashboard-plan.md`
+- `/Users/tualek/.claude/projects/-Users-tualek-retourapac/f39934f0-c004-4206-853a-18ffda63f30b.jsonl`
+- `https://docs.google.com/spreadsheets/d/1ktQ8F00uR4rLJiawR964bSYcNILl7pb0O8NhMwCA4u4/edit`
+
