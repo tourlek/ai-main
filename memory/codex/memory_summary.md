@@ -2,7 +2,7 @@ v1
 
 ## User Profile
 
-The user uses Codex mainly for evidence-first source, MR, architecture-plan, integration, and workspace-tooling reviews across OHO repositories and `/Users/tualek/ai-main`. They expect pinned worktrees/SHAs, exact `file:line` proof, a distinction between source facts, runtime evidence, and unverified claims, plus a decisive verdict. They often ask for adversarial contract tracing across API/auth, queue/event ordering, DB writes, broadcasts, browser state, and rollout/rollback. Meta Business AI work needs detailed Thai, stakeholder-ready material that separates official contracts, observed POC, and open questions. They also use Codex for native-Google-Docs ceremony material and personal monthly-finance planning. [ad-hoc note]
+The user uses Codex mainly for evidence-first source, MR, UI/architecture-plan, integration, and workspace-tooling reviews across OHO repositories and `/Users/tualek/ai-main`. They expect pinned worktrees/SHAs, exact `file:line` proof, a distinction between source facts, runtime evidence, and unverified claims, plus a decisive verdict. They often ask for adversarial contract tracing across API/auth, queue/event ordering, DB writes, broadcasts, browser state, and rollout/rollback. Meta Business AI work needs detailed Thai, stakeholder-ready material that separates official contracts, observed POC, and open questions. They also use Codex for native-Google-Docs ceremony material and personal monthly-finance planning. [ad-hoc note]
 
 ## User preferences
 
@@ -11,6 +11,7 @@ The user uses Codex mainly for evidence-first source, MR, architecture-plan, int
 - Put worst-first, severity-ranked blockers before nits; preserve the requested checklist/phase order and end with a direct ship/merge/rework verdict.
 - For plan audits, inspect actual route/API/auth/dependency/deployment sources and trace the full contract; do not trust hand-written inventories, generic examples, or prior reviews alone.
 - Honor explicit scope/time limits. For a time-boxed React review (“อย่า audit ทุกไฟล์”, “ตอบ 5 ข้อ สั้นๆ ตรงประเด็น”), sample deliberately and separate architecture findings from immutable backend/URL contracts and design-parity assumptions.
+- For a plan-only UI/dark-mode request (“ทำเป็น plan อย่างละเอียด”, “สร้าง md plan มาเลย”), create an implementation-ready Markdown plan; inspect source plus rendered viewports, and do not modify code or commit.
 - For Meta Business AI, answer in detailed Thai when requested; keep official contract, observed POC, and open questions separate, and do not elevate an observation or HTTP 200 into a verified runtime/product outcome.
 - When asked to update an external card with related files, save the real card and verify persistence after reload; a repo draft is not completion.
 - Do not re-litigate accepted residual risk unless the change worsens it or removes its mitigation.
@@ -29,8 +30,17 @@ The user uses Codex mainly for evidence-first source, MR, architecture-plan, int
 - For migration plans, generate the live inventory at a pinned SHA; preserve URL/cookie behavior and test both sides of SPA ownership boundaries.
 - Feature-off means no behavior and no collateral impact. For flag/cache systems, verify authority/overwrite safety and transient/default recovery.
 - For Cursor integration, runtime state/logs are valid fallback evidence when `cursor-agent` is unavailable; after rule-file changes, reload Cursor or open a new chat because sessions can cache rules.
+- For authenticated UI smoke checks with dummy credentials, limit claims to shell/layout evidence; `jwt malformed` is not feature validation. Invoke the local Playwright wrapper with `bash` if direct execution is denied.
 
 ## What's in Memory
+
+### /Users/tualek/ohochat/backoffice-v2
+
+#### 2026-08-04
+
+- UI design audit and detailed dark-mode implementation plan: backoffice-v2, ui-design-dark-mode-plan.md, globals.css, AppLayout.tsx, SubMenu.tsx, oho-backoffice-theme, jwt malformed
+  - desc: Plan-only source plus rendered-viewport audit for `cwd=/Users/tualek/ohochat/backoffice-v2`; search before implementing dark mode, responsive shell changes, or shared UI patterns.
+  - learnings: Start with semantic theme foundation and shared primitives; fixed rail/submenu/padding squeeze content at 1024px, and authenticated data behavior was not validated.
 
 ### /Users/tualek/retourapac
 

@@ -96,3 +96,23 @@ consolidate: merge duplicates, drop obsolete ones, keep the rule one line each.
 ## 2026-08 — Fabricated mock ID/data and presented as real facts
 - **Mistake**: generated mock App ID in example JSON, then later mistakenly treated it as real official documentation; user: `ต่อจากนี้ห้ามจำลองหรือคิดเอาเองจำไว้นะ`.
 - **Rule**: never fabricate/hallucinate specific IDs, values, or schemas and present them as real facts; clearly label mock/example data as mock, and verify facts against real logs or authoritative documentation before asserting them.
+
+## 2026-08 — Imported a review draft before the user approved it
+- **Mistake**: after creating a separate presentation for review, I started uploading it to Canva before the user confirmed; user corrected: `อย่างพึ่ง import ให้ ให้เนื้อหามันแยก ไฟล์`.
+- **Rule**: when the user allows a separate/import-later workflow, deliver the separate file for review and wait for explicit approval before importing or merging it into the destination.
+
+## 2026-08 — Declared a presentation font changed from metadata alone
+- **Mistake**: set the PPTX typeface metadata to `Prompt` and reported success even though the font was not installed and the rendered slides still used a fallback; user corrected: `font ไม่เปลี่ยนนะ`.
+- **Rule**: for presentation font changes, verify the font is installed or embedded and compare rendered output visually; typeface metadata alone is not proof that the font changed.
+
+## 2026-08 — Used dense, small comparison slides for an older audience
+- **Mistake**: kept body text small and presented two eight-step lists without explicit row-to-row mapping; user corrected: `เพิ่มขนาด font ให้ใหญ่กว่านี้ เพราะคนอ่านเป็นคนมีอายุ` and `จุดที่ใช้เปรียบเทียบ มันไม่ชัดเจนเลย`.
+- **Rule**: for older presentation audiences, use large body text and compare the same task in directly aligned old/new rows; split slides instead of shrinking text or relying on unexplained bold emphasis; for Thai decks, render the final exported PPTX, add explicit line breaks where PowerPoint could split a syllable, and verify vowels and tone marks at full size.
+
+## 2026-08 — Timeline connector covered the numbered node
+- **Mistake**: created a timeline's vertical connector after the numbered circle, so the line rendered on top of the orange node; user corrected: `เส้นชี้ต้องอยู่หลังวงกลมส้มสิ`.
+- **Rule**: create timeline and diagram connectors before cards, nodes, circles, and labels, then verify the final exported PPTX at full size.
+
+## 2026-08 — ตัดข้อความวงเล็บที่มีนัยสำคัญออกจากสไลด์
+- **Mistake**: สรุป Workflow แล้วตัดหมายเหตุในวงเล็บ เช่น `(ผู้ใหญ่ตกลงกัน)` ออก ทำให้ประเด็นความเสี่ยงด้านความโปร่งใสหายไป.
+- **Rule**: เมื่อสรุปเอกสารหรือบันทึกลายมือ ให้เก็บและชูข้อความวงเล็บ/ข้อความข้างบรรทัดที่เปลี่ยนความหมาย ความเสี่ยง กฎหมาย หรือ Compliance; ถ้าอ่านไม่ชัดให้ระบุว่าไม่ชัดและถาม ห้ามตัดทิ้ง.

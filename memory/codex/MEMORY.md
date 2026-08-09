@@ -1,3 +1,38 @@
+# Task Group: /Users/tualek/ohochat/backoffice-v2 / UI design audit and dark-mode implementation planning
+
+scope: Create a detailed, plan-only UI/UX and dark-mode implementation plan from source plus rendered viewport evidence; use for backoffice-v2 layout, responsive-shell, theme-token, accessibility, or visual-audit planning.
+applies_to: cwd=/Users/tualek/ohochat/backoffice-v2; reuse_rule=reuse the audit sequence and design findings as a baseline only after re-checking the live branch, authenticated data routes, and concurrent workspace changes; this rollout did not implement or fully validate the plan.
+
+## Task 1: Audit backoffice-v2 UI and create a detailed dark-mode implementation plan, success
+
+### rollout_summary_files
+
+- rollout_summaries/2026-08-04T04-50-48-0WTj-backoffice_v2_ui_design_dark_mode_plan.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/08/04/rollout-2026-08-04T11-50-48-019fcb1c-2b9b-7740-9cf8-6ca8be40c1cd.jsonl, updated_at=2026-08-04T05:01:22+00:00, thread_id=019fcb1c-2b9b-7740-9cf8-6ca8be40c1cd, plan-only source and visual audit; Markdown formatting verified)
+
+### keywords
+
+- backoffice-v2, ui-audit, dark-mode, ui-design-dark-mode-plan.md, responsive-layout, AppLayout.tsx, SubMenu.tsx, globals.css, semantic-tokens, PageShell, Playwright, jwt malformed, prettier
+
+## User preferences
+
+- when the user asks “ทำเป็น plan อย่างละเอียด” and “สร้าง md plan มาเลย” including dark mode -> deliver an implementation-ready document with design specs, file references, rollout phases, tests, and acceptance criteria, not just a problem list. [Task 1]
+- when the user asks to assess padding/margin and visual quality from the real UI -> inspect source alongside rendered screenshots and viewport checks. [Task 1]
+- when the task is plan-only -> do not change implementation or commit without a separate instruction. [Task 1]
+
+## Reusable knowledge
+
+- The created plan is `/Users/tualek/ohochat/backoffice-v2/ui-design-dark-mode-plan.md`; it specifies a 4px spacing scale, typography roles, responsive shell, shared page patterns, semantic dark tokens, page-by-page work, visual matrix, accessibility, acceptance criteria, and eight phases with commit boundaries. [Task 1]
+- In the reviewed baseline, `src/styles/globals.css:37-66` has light semantic tokens but no `.dark`, `color-scheme`, `theme-color`, or pre-paint theme bootstrap. It also has global heading sizes (`h1=40`, `h2=36`, `h3=24`) and `div:focus { outline: none }`; move typography to role-based styling and repair focus handling. [Task 1]
+- `AppLayout.tsx` uses `p-10` and `SubMenu.tsx` a fixed `w-60`; at 1024px, rail 64px + submenu 240px + main padding 40px squeeze the business content/table. Use a collapsible or overlay submenu for 1024–1279px. [Task 1]
+- Migrate light-only coupling (`bg-white`, `text-black-*`, `border-black-*`, hardcoded hex/rgba, `transition-all`) from business, payment, external-message, JERA, and dashboard through semantic surface/status/chart tokens and shared primitives before feature-page dark-mode work. The plan's theme contract is `light`/`dark`/`system`, `localStorage` key `oho-backoffice-theme`, class `dark` on `<html>`, `color-scheme`, meta `theme-color`, and `light` default for existing users. [Task 1]
+- Visual smoke checks used `bash /Users/tualek/.codex/skills/playwright/scripts/playwright_cli.sh`; calling that wrapper directly caused `Permission denied`. [Task 1]
+
+## Failures and how to do differently
+
+- Symptom: dummy-cookie authenticated routes return `jwt malformed`. Cause: local API authentication is not valid. Fix/pivot: report only shell, navigation, empty/loading, and layout evidence; do not claim data-driven behavior passed. [Task 1]
+- Symptom: source shifts while the dev server is running. Cause: another process/session changes files concurrently. Fix/pivot: check timestamps and re-check source line references immediately before summarizing. [Task 1]
+- Symptom: a planning rollout is presented as fully validated. Cause: only the Markdown plan's Prettier check passed; full lint/typecheck/test/build were not run. Fix/pivot: explicitly say `Not run` rather than extending the formatting result to application validation. [Task 1]
+
 # Task Group: /Users/tualek/retourapac / ReTour APAC form/dashboard documentation and prior-artifact search
 
 scope: Locate previously created ReTour form-access/dashboard-use artifacts across the workspace, Claude history, and Drive; route to the verified documentation when a deck is not recovered.

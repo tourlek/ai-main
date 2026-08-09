@@ -3537,3 +3537,48 @@ References:
 - `/Users/tualek/.claude/projects/-Users-tualek-retourapac/f39934f0-c004-4206-853a-18ffda63f30b.jsonl`
 - `https://docs.google.com/spreadsheets/d/1ktQ8F00uR4rLJiawR964bSYcNILl7pb0O8NhMwCA4u4/edit`
 
+## Thread `019fcb1c-2b9b-7740-9cf8-6ca8be40c1cd`
+updated_at: 2026-08-04T05:01:22+00:00
+cwd: /Users/tualek/ohochat
+rollout_path: /Users/tualek/.codex/sessions/2026/08/04/rollout-2026-08-04T11-50-48-019fcb1c-2b9b-7740-9cf8-6ca8be40c1cd.jsonl
+rollout_summary_file: 2026-08-04T04-50-48-0WTj-backoffice_v2_ui_design_dark_mode_plan.md
+
+description: สร้างแผน audit UI และ dark mode สำหรับ backoffice-v2 สำเร็จ โดยตรวจ source + rendered UI และยืนยัน Markdown formatting
+ task: backoffice-v2 UI/UX audit and detailed dark-mode implementation plan
+ task_group: /Users/tualek/ohochat/backoffice-v2 UI design workflow
+ task_outcome: success
+ cwd: /Users/tualek/ohochat/backoffice-v2
+ keywords: backoffice-v2, ui-audit, dark-mode, responsive-layout, spacing, padding, margin, Playwright, jwt-malformed, prettier
+
+### Task 1: UI audit and dark-mode plan
+
+task: inspect backoffice-v2 UI and create a detailed Markdown implementation plan
+task_group: UI design and frontend planning
+task_outcome: success
+
+Preference signals:
+- เมื่อผู้ใช้ขอ “ทำเป็น plan อย่างละเอียด” และ “สร้าง md plan มาเลย” พร้อม “รวมถึงทำโหมด dark” -> ควรสร้างเอกสาร implementation-ready ที่มี design specs, file references, rollout phases, tests และ acceptance criteria ไม่ใช่แค่สรุปปัญหา
+- ผู้ใช้ขอวิเคราะห์ padding/margin/ความสวยงามจาก UI จริง -> ควรตรวจ source ควบคู่กับ rendered screenshots/viewport checks
+- งานรอบนี้เป็น plan-only -> ต้องไม่แก้ implementation หรือ commit โดยไม่ได้รับคำสั่งเพิ่ม
+
+Reusable knowledge:
+- แผนที่สร้างแล้วอยู่ที่ `ui-design-dark-mode-plan.md` และครอบคลุม spacing scale 4px, typography roles, responsive shell, shared page patterns, semantic dark tokens, page-by-page work, implementation phases, visual matrix, accessibility และ acceptance criteria
+- Source baseline ที่สำคัญ: `src/styles/globals.css` มี light tokens แต่ไม่มี `.dark`, `color-scheme`, `theme-color` หรือ pre-paint bootstrap; มี global heading sizes และ `div:focus { outline: none }`
+- `src/shared/components/layout/AppLayout.tsx` ใช้ `p-10`; `SubMenu.tsx` ใช้ `w-60`; ที่ 1024px โครงสร้าง rail 64px + submenu 240px + main padding ทำให้ content/table ถูกบีบ
+- พบ light-only coupling จำนวนมาก เช่น `bg-white`, `text-black-*`, `border-black-*`, hardcoded hex/rgba และ `transition-all` ใน business, payment, external-message, JERA และ dashboard; dark-mode migration ควรเริ่มจาก theme foundation และ shared primitives ก่อน feature pages
+- Visual smoke check ใช้ Playwright ผ่าน `bash /Users/tualek/.codex/skills/playwright/scripts/playwright_cli.sh`; เรียก script ตรง ๆ ทำให้ `Permission denied`
+
+Failures and how to do differently:
+- Authenticated visual review ใช้ dummy cookies และ API ตอบ `jwt malformed`; ให้รายงานเป็นข้อจำกัดและอย่าอ้างว่าหน้า data จริงหรือ feature behavior ผ่าน
+- ระหว่าง dev server มี process/session อื่นแก้ source หลายไฟล์; ก่อนสรุปควรตรวจ timestamps และ re-check line references เสมอ
+- Full validation ยังไม่ได้รันใน rollout นี้; ห้ามอ้าง lint/typecheck/test/build ผ่านจากงานนี้
+
+References:
+- `ui-design-dark-mode-plan.md`
+- `output/playwright/login-desktop.png`
+- `output/playwright/login-mobile.png`
+- `output/playwright/business-desktop.png`
+- `output/playwright/business-1024.png`
+- `pnpm exec prettier --check ui-design-dark-mode-plan.md` -> `All matched files use Prettier code style!`
+- Local API limitation: `jwt malformed`
+
