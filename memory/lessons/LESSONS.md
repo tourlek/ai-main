@@ -116,3 +116,7 @@ consolidate: merge duplicates, drop obsolete ones, keep the rule one line each.
 ## 2026-08 — ตัดข้อความวงเล็บที่มีนัยสำคัญออกจากสไลด์
 - **Mistake**: สรุป Workflow แล้วตัดหมายเหตุในวงเล็บ เช่น `(ผู้ใหญ่ตกลงกัน)` ออก ทำให้ประเด็นความเสี่ยงด้านความโปร่งใสหายไป.
 - **Rule**: เมื่อสรุปเอกสารหรือบันทึกลายมือ ให้เก็บและชูข้อความวงเล็บ/ข้อความข้างบรรทัดที่เปลี่ยนความหมาย ความเสี่ยง กฎหมาย หรือ Compliance; ถ้าอ่านไม่ชัดให้ระบุว่าไม่ชัดและถาม ห้ามตัดทิ้ง.
+
+## 2026-08 — สรุป dead code ว่าต้อง deploy จากการค้นข้อความอย่างเดียว
+- **Mistake**: พบ LINE webhook domain เก่าใน Vue template แล้วสรุปว่าต้องแก้และ deploy web app โดยไม่ได้ตรวจว่า block ทั้งก้อนถูกครอบด้วย HTML comment; user corrected: `web-app ต้อง deploy ใหม่หรอในเมื่อมัน comment code ไว้`.
+- **Rule**: ก่อนสรุปว่าข้อความหรือ config ที่ค้นเจอมีผลต่อ runtime ให้ตรวจ enclosing comment, feature gate, route registration และ call/render path จนยืนยันว่าโค้ด reachable จริง.

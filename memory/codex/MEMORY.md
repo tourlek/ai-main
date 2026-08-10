@@ -1,3 +1,184 @@
+# Task Group: /Users/tualek/ohochat / Meta Business AI Messenger handover, onboarding, and ClickUp handoff
+
+scope: Evidence-first OHO-1215/OHO-1634 work on Meta Business AI contracts versus observed POC, Facebook Page onboarding, runtime ownership/reducer safety, and stakeholder/ClickUp handoff.
+applies_to: cwd=/Users/tualek/ohochat; reuse_rule=use for Meta Business AI / Facebook Messenger handover work; re-verify live payloads, code, logs, and external-card persistence before treating observed behavior, an HTTP response, or a diagram as a universal contract or completed outcome.
+
+## Task 1: Create Facebook Page onboarding runbook and synchronize OHO-1634; success
+
+### rollout_summary_files
+
+- rollout_summaries/2026-08-03T07-01-28-EQdm-meta_business_ai_facebook_page_onboarding_clickup_handoff.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/08/03/rollout-2026-08-03T14-01-28-019fc66d-6db1-7253-a396-dfde3105523c.jsonl, updated_at=2026-08-05T03:30:55+00:00, thread_id=019fc66d-6db1-7253-a396-dfde3105523c, success; runbook and ClickUp persistence verified)
+
+### keywords
+
+- OHO-1634, Facebook Page onboarding, not_started, configured, verified, messaging_handovers, Conversation Routing, default app, pass_thread_control, send_first, HUMAN_AGENT, GET union POST GET verify, ClickUp
+
+## Task 2: Implement narrowly scoped Smartchat unread/unresponded badge fix for four QA cases; success
+
+### rollout_summary_files
+
+- rollout_summaries/2026-08-04T09-26-31-tqzG-smartchat_four_qa_badge_fix_scoped_validation.md (cwd=/Users/tualek/ohochat/oho-api, rollout_path=/Users/tualek/.codex/sessions/2026/08/04/rollout-2026-08-04T16-26-31-019fcc18-966f-75c1-8bb6-3c8b98c927f4.jsonl, updated_at=2026-08-05T03:16:07+00:00, thread_id=019fcc18-966f-75c1-8bb6-3c8b98c927f4, success; focused API/Mongo/web contract validation)
+
+### keywords
+
+- Smartchat, QA-case-1, QA-case-2, QA-case-3, QA-case-4, emit-chat-session-event.js, includeUnreadState, unread_by, is_unresponded, getEligibleMemberIds, group-chat, 46 tests, 28 tests, 135 tests
+
+## Task 3: Diagnose UAT Facebook-login consent and App ID history; partial
+
+### rollout_summary_files
+
+- rollout_summaries/2026-08-04T11-11-11-39xm-uat_facebook_login_consent_meta_app_change_history.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/08/04/rollout-2026-08-04T18-11-11-019fcc78-6964-7c40-b51c-34e9b65b8d10.jsonl, updated_at=2026-08-04T11:26:49+00:00, thread_id=019fcc78-6964-7c40-b51c-34e9b65b8d10, partial; environment change dated, Meta-side switch unverified)
+
+### keywords
+
+- FACEBOOK_APP_ID, Facebook Login for Business, UAT, staging-4, production, Nuxt build-time config, Cloud Run revision, web-app--uat-00082-8tn, DOTENV, config_id, is_business_login
+
+## Task 4: Review 3-box Meta Business AI flow; rework before implementation contract
+
+### rollout_summary_files
+
+- rollout_summaries/2026-08-07T06-58-36-zLcc-meta_business_ai_3_boxes_documentation_review.md (cwd=/Users/tualek/Documents/Codex/2026-08-07/referenced-chatgpt-conversation-this-is-an, rollout_path=/Users/tualek/.codex/sessions/2026/08/07/rollout-2026-08-07T13-58-36-019fdb04-3fd5-7162-baaf-6899542d9a88.jsonl, updated_at=2026-08-07T07:05:16+00:00, thread_id=019fdb04-3fd5-7162-baaf-6899542d9a88, rework; source traced in oho-webhook/oho-api/oho-web-app)
+
+### keywords
+
+- meta-biz-ai-flow-3-boxes, previous_owner_app_id, new_owner_app_id, shouldBlockFacebookBotSend, reactivation=requested, runtime-event.class.js, conditional atomic update, stale-event rejection, conceptual view
+
+## Task 5: Review POC and create source-separated Meta communication material; rework before implementation
+
+### rollout_summary_files
+
+- rollout_summaries/2026-08-03T18-11-52-TXSz-meta_business_ai_doc_split_clickup_update_blocked.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/08/04/rollout-2026-08-04T01-11-52-019fc8d3-33e3-7132-b93a-a21e3685223b.jsonl, updated_at=2026-08-03T18:11:52+00:00, thread_id=019fc8d3-33e3-7132-b93a-a21e3685223b, success; source matrix and communication pack)
+- rollout_summaries/2026-08-02T17-35-03-puSA-meta_business_ai_poc_second_opinion_review.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/08/03/rollout-2026-08-03T00-35-03-019fc38b-2163-7081-8ab6-b42248952f08.jsonl, updated_at=2026-08-02T20:11:49+00:00, thread_id=019fc38b-2163-7081-8ab6-b42248952f08, rework; detailed Thai source review)
+
+### keywords
+
+- OHO-1215, official contract, observed POC, coming soon, source matrix, standby, messaging, ai_generated, hop_context, thread_owner, queue ordering, gcloud logging
+
+## User preferences
+
+- when reviewing Meta Business AI work, the user asked: “Answer entirely in Thai” and requested a detailed problem/evidence/severity/recommendation structure -> respond in Thai with detailed, source-cited findings rather than a terse summary. [Task 4]
+- when evidence is incomplete, the user said “Do not fabricate log output” -> separate verified source facts, document/payload evidence, `no data`, and `Not run: <reason>`; a credential failure or timeout is not no data. [Task 1][Task 4]
+- when asked what Facebook Page onboarding is necessary -> cover both Oho-controlled setup and Page-admin Meta configuration, and distinguish `configured` from `verified`. [Task 1]
+- when the user said “ตอนนี้อยากให้ครอบคลุมแค่เคสที่ QA ตีแก้มา 4 case” -> keep implementation focused on reported QA scenarios; defer broad refactor/optimization. [Task 2]
+- when the user asked to compare `prod`, `staging-4`, and `uat` -> compare deployed environment configuration and browser requests before editing code. [Task 3]
+- when the user asked “update description ในการ์ด” and include related files -> make the external update, then verify the saved card after reload; a repo draft is not completion. [Task 1]
+
+## Reusable knowledge
+
+- Required Facebook Page onboarding gates: identity mapping; Page token/permissions; HTTPS webhook/signature verification; subscriptions `messages`, `message_echoes`, `message_deliveries`, `message_reads`, `messaging_postbacks`, `messaging_referrals`, `messaging_handovers`, `standby`; Conversation Routing/default app; Business AI activation; takeover configuration; fresh-message E2E. Use `GET → union → POST → GET verify`; never replace existing subscription fields. [Task 1]
+- Return-to-AI requires positive fresh runtime evidence after `pass_thread_control`. HTTP 200, a Messenger banner, one `standby` signal, or a `thread_owner` snapshot is insufficient. For tested silent takeover, retain a `send_first` + `HUMAN_AGENT` fallback. [Task 1]
+- ClickUp OHO-1634 was verified after reload with canonical `04`/`05`/`06` files and matching SHA-256; use custom task ID `OHO-1634` if an internal/workspace combination returns `Team not authorized`, and inspect tail sections when connector reads truncate a long description. [Task 1]
+- The four-case patch keeps group chat unresponded-only; contact/Smartchat opts into per-member unread via `includeUnreadState: true`. `buildAttentionEventUnreadPayload` gates `unread_by` and `is_unresponded` independently; both off returns `{}` without eligible-member lookup. [Task 2]
+- Facebook login source is shared; `FACEBOOK_APP_ID` is baked into the Nuxt client at build time. Changing only Cloud Run runtime variables is insufficient: update GitLab `DOTENV`, rebuild/deploy, then route traffic to the revision. Cloud Run revision history can prove the deployed App ID date, not when Meta changed an app's Login-for-Business setting. [Task 3]
+- The 3-box diagram is conceptual until a canonical runtime-state contract models requested/confirmed/unconfirmed/failed. Preserve previous/new owner app IDs, reject stale events with conditional atomic updates, and block bot sends while return-to-AI is pending. [Task 4]
+- Keep delivery authority, agent identity, and latest event as separate state dimensions. `standby` versus `messaging`, `thread_owner`, or `hop_context` alone is not a binary AI/OHO-owner test; canonicalize/dedupe control events before queue/state transition and branch controls before message transformation. [Task 5]
+- For stakeholder material, keep official/current, coming-soon/planned, observed POC, and questions for Meta separate; do not use POC answers as an implementation contract. [Task 5]
+
+## Failures and how to do differently
+
+- Symptom: control events are treated as immediate ownership confirmation. Cause: API only passes `control_event_type`, reducer lacks direction and stale-event guards. Fix: include owner direction/target, use transition states, and enforce conditional writes. [Task 4]
+- Symptom: a flag-off Smartchat change claims zero runtime impact. Cause: the after-hook still does one contact `findOne()` and flag lookup. Fix: call it a deferred optimization; do not claim behavior absent beyond disabled writes/lookups/emits. Browser E2E was not run. [Task 2]
+- Symptom: post-login consent is asserted from an unauthenticated browser. Fix: require an authenticated Meta session or captured request; navigation timeouts should be checked by current URL/title before declaring failure. [Task 3]
+- Symptom: Meta docs conflict or live checks return 429/cache miss. Fix: preserve explicit clarification questions and mark live comparison unverified instead of silently selecting a universal contract. [Task 1][Task 4]
+
+# Task Group: /Users/tualek/ohochat / ClickUp ticket lookup and Meta MVP estimation
+
+scope: Assignee-scoped ClickUp date queries and evidence-bound OHO-1634 planning estimates.
+applies_to: cwd=/Users/tualek/ohochat; reuse_rule=reuse the ClickUp lookup sequence for the current user and the MVP scope map only after re-querying live task data; estimates are planning inputs, not commitments.
+
+## Task 1: Find the current user's latest due-date ticket; success
+
+### rollout_summary_files
+
+- rollout_summaries/2026-08-04T11-45-02-h9iX-clickup_latest_due_date_assigned_ticket.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/08/04/rollout-2026-08-04T18-45-02-019fcc97-697a-70b0-a137-64ad27e07903.jsonl, updated_at=2026-08-04T11:48:17+00:00, thread_id=019fcc97-697a-70b0-a137-64ad27e07903, success)
+
+### keywords
+
+- clickup_resolve_assignees, ClickUp, assignees, due_date, Asia/Bangkok, OHO-1215, 113526352, clickup_get_task
+
+## Task 2: Correct assignee filtering and estimate OHO-1634 Meta Business AI MVP; partial
+
+### rollout_summary_files
+
+- rollout_summaries/2026-08-04T12-00-04-U5UC-clickup_assignee_filter_and_meta_business_ai_estimate.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/08/04/rollout-2026-08-04T19-00-04-019fcca5-2c2f-7bb1-ad67-039a286e19da.jsonl, updated_at=2026-08-05T04:00:09+00:00, thread_id=019fcca5-2c2f-7bb1-ad67-039a286e19da, partial; planning estimate, not runtime validated)
+
+### keywords
+
+- เอาแค่ assign ของฉันสิ, OHO-1634, expected string received number, ClickUp server error, 15-20 working days, 5-7 days, webhook canonicalization, Cloud Tasks canary
+
+## User preferences
+
+- when listing ClickUp tickets for a date, the user corrected: “เอาแค่ assign ของฉันสิ” -> filter to the current user's assignee before presenting results unless all tickets are explicitly requested. [Task 2]
+- when asking which assigned ticket has the latest due date -> give the top result, ticket ID, title, due date, status, and link in concise Thai rather than dumping every ticket. [Task 1]
+
+## Reusable knowledge
+
+- Resolve `me` rather than guessing: `clickup_resolve_assignees({assignees:["me"]})` returned user ID `113526352`. Search results may omit due dates, so fetch task summaries, use `due_date` rather than `dateUpdated`, convert to Asia/Bangkok, then sort. [Task 1]
+- Assignee filtering can reject a numeric ID with `expected string, received number` and a string retry can return `ClickUp server error`; fall back to per-task verification of candidate tasks. [Task 2]
+- OHO-1634 MVP estimate was 15–20 working days (plan 20), limited POC demo 5–7. Scope includes canonicalization, queue/state/dedup, bot/scheduled-send safety, subscriptions, UI, QA, observability, canary; it lacks Meta runtime/Cloud Tasks validation. [Task 2]
+
+## Failures and how to do differently
+
+- Do not return all date-matched tickets before applying assignee scope. [Task 2]
+- Do not present a planning estimate as a verified delivery commitment, or use internal task ID `90182460598` when `OHO-1634` is the working custom ID. [Task 2]
+
+# Task Group: /Users/tualek/ohochat / Stream Chat credentials and Cloud Run multi-tenancy
+
+scope: Secure per-business Stream Chat credential resolution without duplicating Cloud Run.
+applies_to: cwd=/Users/tualek/ohochat; reuse_rule=reuse architecture only after confirming tenancy, authorization, Stream account model, and compliance/isolation requirements.
+
+## Task 1: Design per-business Stream credential resolution; success
+
+### rollout_summary_files
+
+- rollout_summaries/2026-08-04T12-04-39-FePe-dynamic_stream_credentials_cloud_run_multitenancy.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/08/04/rollout-2026-08-04T19-04-39-019fcca9-5c19-7c82-9846-631245488d38.jsonl, updated_at=2026-08-04T12:07:11+00:00, thread_id=019fcca9-5c19-7c82-9846-631245488d38, success; architecture guidance)
+
+### keywords
+
+- Stream Chat, business_id, Secret Manager, pinned secret version, MongoDB mapping, Cloud Run, Firebase Remote Config, api_secret, user token, TTL, LRU, global singleton
+
+## User preferences
+
+- when the user clarified “มันเป็น secreat เลยเพราะต้องทำ multi account streamchat แยกตาม business” -> keep `api_secret` server-only and resolve credentials per authorized business, never through frontend config. [Task 1]
+
+## Reusable knowledge
+
+- Use `business_id → MongoDB mapping → Secret Manager pinned version → backend Stream client/token → frontend apiKey + userToken`. Cache clients by connection/business and secret version with TTL/LRU; rotate by adding a secret version and updating the mapping, not `latest`. [Task 1]
+- One Cloud Run service can serve multiple Stream accounts. Separate services are for infrastructure/compliance isolation (service accounts, networking, scaling, deployment, operational boundaries), not credential selection alone. [Task 1]
+
+## Failures and how to do differently
+
+- Never put per-business Stream secrets in Firebase Remote Config, frontend runtime config, or a global Cloud Run env variable; do not trust arbitrary request-body `business_id` or use one global Stream client across businesses. [Task 1]
+
+# Task Group: /Users/tualek/Documents/Codex/2026-08-09/10-52-jeam-smk-https-www / Canva section addition and PDF export
+
+scope: Append Thai foreign-worker content to an existing Canva deck while preserving its style, with a separate importable/PDF fallback.
+applies_to: cwd=/Users/tualek/Documents/Codex/2026-08-09/10-52-jeam-smk-https-www; reuse_rule=reuse the Canva access/fallback sequence, but re-inspect the live design and confirm page insertion before claiming the deck changed.
+
+## Task 1: Add a new Canva section; partial, no insertion completed
+
+### rollout_summary_files
+
+- rollout_summaries/2026-08-09T04-06-11-vKu8-canva_section_addition_and_pdf_export.md (cwd=/Users/tualek/Documents/Codex/2026-08-09/10-52-jeam-smk-https-www, rollout_path=/Users/tualek/.codex/sessions/2026/08/09/rollout-2026-08-09T11-06-11-019fe4b3-1cdd-7b82-a02e-9bbf8aba17dc.jsonl, updated_at=2026-08-09T07:19:28+00:00, thread_id=019fe4b3-1cdd-7b82-a02e-9bbf8aba17dc, partial; PDF exported, no Canva page inserted)
+
+### keywords
+
+- Canva, DAGsRNjn95Y, Add page, Chrome extension, All changes saved, foreign-worker, 60 pages, 1920x1080, e-workpermit-detailed-workflow-section-v7-identity-visa.pdf
+
+## User preferences
+
+- when adding content to a presentation, the user asked for “ใน section ใหม่ต่อจากอันเดิม” and to inspect the original style -> append after existing content, retain visual continuity, and do not alter unrelated pages. [Task 1]
+- when direct insertion is blocked, the user accepted a separate file for later import -> provide an importable standalone section rather than stopping. [Task 1]
+
+## Reusable knowledge
+
+- Design `DAGsRNjn95Y` has 60 editable 1920×1080 pages; use pages 57–60 as style references. The logged-in Chrome extension exposed the existing editor tab; prefer it over the in-app browser, which produced a blank login path. [Task 1]
+- A 13-page Thai PDF was exported at `outputs/pdf/e-workpermit-detailed-workflow-section-v7-identity-visa.pdf`. [Task 1]
+
+## Failures and how to do differently
+
+- An editing transaction is not completion: the API did not provide a validated add-page operation and the transaction was cancelled. Use the visible native Add page/copy-page flow in the claimed existing editor, or clearly leave import/copy for the user. [Task 1]
+
 # Task Group: /Users/tualek/ohochat/backoffice-v2 / UI design audit and dark-mode implementation planning
 
 scope: Create a detailed, plan-only UI/UX and dark-mode implementation plan from source plus rendered viewport evidence; use for backoffice-v2 layout, responsive-shell, theme-token, accessibility, or visual-audit planning.
@@ -103,81 +284,6 @@ applies_to: cwd=/Users/tualek/Documents/Codex/2026-08-03/r; reuse_rule=reuse the
 - Symptom: `rtk find` is used for compound predicates/actions. Cause: it does not support that form. Fix/pivot: use native `find` for symlink and file predicates. [Task 1]
 - Symptom: `cursor agent --help` cannot run because `cursor-agent` is absent and network installation fails. Fix/pivot: record the CLI limitation and inspect Cursor runtime state/logs instead; do not claim CLI verification. [Task 1]
 - Symptom: fixing a global rule risks unrelated repository churn. Fix/pivot: move only the identified stale rule to a named backup and leave dirty `ai-main` worktree changes untouched. [Task 2]
-
-# Task Group: /Users/tualek/ohochat / Meta Business AI Messenger handover, documentation, and ClickUp handoff
-
-scope: Evidence-first OHO-1215/OHO-1634 work on Meta Business AI contracts versus observed POC, conversation routing, return-to-AI verification, and stakeholder handoff.
-applies_to: cwd=/Users/tualek/ohochat; reuse_rule=use for Meta Business AI / Facebook Messenger handover work; re-verify live payloads, code, logs, and external-card persistence before treating observed Axon behavior or an HTTP response as a universal contract or completed outcome.
-
-## Task 1: Second-opinion review of the six Meta Business AI POC answers; rework before implementation
-
-### rollout_summary_files
-
-- rollout_summaries/2026-08-02T17-35-03-puSA-meta_business_ai_poc_second_opinion_review.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/08/03/rollout-2026-08-03T00-35-03-019fc38b-2163-7081-8ab6-b42248952f08.jsonl, updated_at=2026-08-02T20:11:49+00:00, thread_id=019fc38b-2163-7081-8ab6-b42248952f08, success; Thai detailed report, prod-log recheck partly blocked by sandbox credential refresh)
-
-### keywords
-
-- OHO-1215, Meta Business AI, standby, messaging, ai_generated, hop_context, pass_thread_control, take_thread_control, thread_owner, HUMAN_AGENT, handler.ts, gcloud logging, queue ordering
-
-## Task 2: Create source-separated Meta documentation and communication pack; canonical documents completed
-
-### rollout_summary_files
-
-- rollout_summaries/2026-08-03T07-01-28-EQdm-meta_business_ai_docs_clickup_reactivation_debug.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/08/03/rollout-2026-08-03T14-01-28-019fc66d-6db1-7253-a396-dfde3105523c.jsonl, updated_at=2026-08-03T18:26:26+00:00, thread_id=019fc66d-6db1-7253-a396-dfde3105523c, success; canonical comparison, coming-soon, and Meta-question documents)
-- rollout_summaries/2026-08-03T18-11-52-TXSz-meta_business_ai_doc_split_clickup_update_blocked.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/08/04/rollout-2026-08-04T01-11-52-019fc8d3-33e3-7132-b93a-a21e3685223b.jsonl, updated_at=2026-08-03T18:11:52+00:00, thread_id=019fc8d3-33e3-7132-b93a-a21e3685223b, success; source matrix and communication pack)
-
-### keywords
-
-- Meta Business AI, official contract, observed POC, coming soon, source matrix, Business AI Take Thread Control API, 622851382610562, 104613548045675, meta-official-source-matrix-2026-08-04.md, meta-partner-communication-pack-2026-08-04.md
-
-## Task 3: Update ClickUp OHO-1634 with canonical documents; one authenticated run verified persistence
-
-### rollout_summary_files
-
-- rollout_summaries/2026-08-03T07-01-28-EQdm-meta_business_ai_docs_clickup_reactivation_debug.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/08/03/rollout-2026-08-03T14-01-28-019fc66d-6db1-7253-a396-dfde3105523c.jsonl, updated_at=2026-08-03T18:26:26+00:00, thread_id=019fc66d-6db1-7253-a396-dfde3105523c, success; description and three attachments persisted after reload)
-- rollout_summaries/2026-08-03T18-11-52-TXSz-meta_business_ai_doc_split_clickup_update_blocked.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/08/04/rollout-2026-08-04T01-11-52-019fc8d3-33e3-7132-b93a-a21e3685223b.jsonl, updated_at=2026-08-03T18:11:52+00:00, thread_id=019fc8d3-33e3-7132-b93a-a21e3685223b, partial; earlier unauthenticated session left a paste-ready draft only)
-
-### keywords
-
-- ClickUp, OHO-1634, Canonical 3 files, filechooser, chooser.setFiles, locator.setInputFiles, persistedCanonicalSection, persistedFiles, app.clickup.com/login, clickup-OHO-1634-description-2026-08-04.md
-
-## Task 4: Diagnose default-app take/pass and return-to-AI behavior; root cause remains unverified
-
-### rollout_summary_files
-
-- rollout_summaries/2026-08-03T07-01-28-EQdm-meta_business_ai_docs_clickup_reactivation_debug.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/08/03/rollout-2026-08-03T14-01-28-019fc66d-6db1-7253-a396-dfde3105523c.jsonl, updated_at=2026-08-03T18:26:26+00:00, thread_id=019fc66d-6db1-7253-a396-dfde3105523c, partial; controlled HTTP/webhook sequence still required)
-
-### keywords
-
-- take_thread_control, pass_thread_control, release_thread_control, default app, 622851382610562, standby, messaging, ai_generated, hop_context, You're chatting with an AI agent, HTTP 200
-
-## User preferences
-
-- when reviewing Meta Business AI work, the user asked: “Answer entirely in Thai” and requested a detailed problem/evidence/severity/recommendation structure -> respond in Thai with detailed, source-cited findings rather than a terse summary. [Task 1]
-- when evidence is incomplete, the user said “Do not fabricate log output” -> separate verified source facts, document/payload evidence, `no data`, and `Not run: <reason>`; a credential failure or timeout is not no data. [Task 1][Task 2]
-- when the user asked for documents that “เอาไปสื่อสารกับทาง meta ได้เลย” and to “แยก document ที่เกี่ยวกับ docs จาก meta” / “แยก docs ที่เป็น coming soon” -> separate official contract, observed POC, and open questions/communication pack; do not blend evidence levels. [Task 2]
-- when the user asked “update description ในการ์ด” and include related files -> make the external update, then verify the saved card after reload; a repo draft is not completion. [Task 3]
-- when the user said “ถ้ากดส่งแชทกลับให้ AI แปลว่า AI ต้องกลับมาทำงานทันที” -> do not present HTTP 200 as UX success; wait for positive runtime evidence or show pending/unknown/timeout. [Task 4]
-- when the user specified read-only and no edits/commits -> pin repository/worktree state and do not mutate files while tracing the implementation. [Task 1]
-
-## Reusable knowledge
-
-- Do not use the six POC answers as an implementation contract: replay remains a hypothesis; observational flags mean recently observed rather than enabled; channel is not enough to identify AI/OHO/Business Suite owner; detection is eventual/best-effort; structured reason is absent from the payload; and a standby gate needs a send-time guard. [Task 1]
-- Keep delivery authority, agent identity, and latest event as separate state dimensions. An AI echo can arrive via `messaging` with `hop_context.app_id=388207815496149`; `standby` versus `messaging` is not a binary owner test. `thread_owner` returned `data:[]` or expiration without `app_id` for eight v20/v25 threads, so do not hardcode it as current-owner evidence. [Task 1][Task 2]
-- Canonicalize and deduplicate before queue/state transition: `take_thread_control` metadata `axon_take_thread_control` was delivered four times, control timestamps are seconds while regular messages are milliseconds, and first-entry classification can misroute mixed page/PSID/event batches. Branch control events before message transformation because `take_thread_control` has no `message`. [Task 1][Task 2]
-- An ingress standby gate is insufficient: scheduled/direct sends through `/schedule-reply-trigger`, `/bot-send-message`, and `/bot-send-message/notify` also need send-time authority checks and cancellation of scheduled/in-flight sends. [Task 1][Task 2]
-- For stakeholder-ready material, start with the official partner PDF/public docs and a source matrix, then keep available/current, coming soon/planned, observed POC, and questions separate. Canonical files include `01-meta-docs-vs-oho-poc-2026-08-04.md`, `02-meta-coming-soon-2026-08-04.md`, and `03-questions-for-meta-2026-08-04.md`; the broader pack includes the source matrix, observed behavior, dev questions, and partner communication pack. [Task 2]
-- `release_thread_control` returns a conversation to idle/default routing, not Business AI. `pass_thread_control` to `622851382610562` worked as a POC target, but API success alone does not prove immediate AI response; verify a fresh post-pass message, event channel, `ai_generated`, `hop_context`, and control events. [Task 2][Task 4]
-- In the authenticated ClickUp run, attachments rose 10→13 and description plus the three canonical links survived reload. Browser uploads require `waitForEvent("filechooser")`, click the visible upload control, then `chooser.setFiles(...)`; `locator.setInputFiles` did not work in this runtime. [Task 3]
-
-## Failures and how to do differently
-
-- Symptom: a broad gcloud month query hangs or gets cancelled -> query daily/weekly slices with `--limit` and a 90-second shell timeout; report only a completed query’s actual result. [Task 1]
-- Symptom: gcloud cannot refresh because sandbox denies `credentials.db` writes -> report `Not run: gcloud credential refresh ถูก sandbox ปฏิเสธ`; do not infer an absence of production events. [Task 1]
-- Symptom: public Meta docs cannot be fetched (`Failed to fetch`, HTTP 429, cache miss, or URL unsafe) -> use the local official PDF/stored POC evidence and explicitly mark the live public-doc comparison unverified. [Task 1][Task 2][Task 4]
-- Symptom: an adoption scan finds no `ai_generated:true` payloads -> it cannot prove 100% coverage without an independent denominator; “Instagram never stored payload” is not “Instagram has no payload.” [Task 1]
-- Symptom: ClickUp resolves to `https://app.clickup.com/login` or no connector is available -> retain the paste-ready draft but report the card as not updated; after authentication, save and verify toast/description and attachments after reload. [Task 3]
-- Symptom: `pass_thread_control` returns success but AI appears silent -> root cause is unverified without a timestamped ledger. Run take with metadata → capture response → send/capture webhook → pass to `622851382610562` → wait 5–10 seconds → send a fresh message; if events stay `messaging`, routing did not move, while `standby` without an AI echo points to eligibility/response-policy/lifecycle rather than default-app causality. [Task 4]
 
 # Task Group: /Users/tualek/ohochat/docs/react-migration / backoffice React migration-plan source review
 
