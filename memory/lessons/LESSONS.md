@@ -120,3 +120,7 @@ consolidate: merge duplicates, drop obsolete ones, keep the rule one line each.
 ## 2026-08 — สรุป dead code ว่าต้อง deploy จากการค้นข้อความอย่างเดียว
 - **Mistake**: พบ LINE webhook domain เก่าใน Vue template แล้วสรุปว่าต้องแก้และ deploy web app โดยไม่ได้ตรวจว่า block ทั้งก้อนถูกครอบด้วย HTML comment; user corrected: `web-app ต้อง deploy ใหม่หรอในเมื่อมัน comment code ไว้`.
 - **Rule**: ก่อนสรุปว่าข้อความหรือ config ที่ค้นเจอมีผลต่อ runtime ให้ตรวจ enclosing comment, feature gate, route registration และ call/render path จนยืนยันว่าโค้ด reachable จริง.
+
+## 2026-08 — ลด Meta Business AI MVP ให้เหลือ authority ที่จำเป็น
+- **Mistake**: วางแผนเพิ่ม state machine, kill switch, channel/contact fields และ runtime side effects หลายชุด ทั้งที่ webhook เดิมมี message/control flow อยู่แล้ว; user corrected ว่า feature นี้ควรเปลี่ยน profile ผู้ส่งและ guard เท่าที่จำเป็นโดยไม่ทำให้ flow เดิมช้าหรือพัง.
+- **Rule**: สำหรับ integration ที่มี webhook/control flow อยู่แล้ว ให้เริ่มจาก evidence เดิมและเพิ่มเฉพาะ authority observation, send guard และ identity ที่จำเป็น; ปิด feature ต้องคง behavior เดิมและทุก field/side effect ใหม่ต้องมี consumer กับ acceptance test ชัดเจน.
