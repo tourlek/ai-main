@@ -124,3 +124,7 @@ consolidate: merge duplicates, drop obsolete ones, keep the rule one line each.
 ## 2026-08 — ลด Meta Business AI MVP ให้เหลือ authority ที่จำเป็น
 - **Mistake**: วางแผนเพิ่ม state machine, kill switch, channel/contact fields และ runtime side effects หลายชุด ทั้งที่ webhook เดิมมี message/control flow อยู่แล้ว; user corrected ว่า feature นี้ควรเปลี่ยน profile ผู้ส่งและ guard เท่าที่จำเป็นโดยไม่ทำให้ flow เดิมช้าหรือพัง.
 - **Rule**: สำหรับ integration ที่มี webhook/control flow อยู่แล้ว ให้เริ่มจาก evidence เดิมและเพิ่มเฉพาะ authority observation, send guard และ identity ที่จำเป็น; ปิด feature ต้องคง behavior เดิมและทุก field/side effect ใหม่ต้องมี consumer กับ acceptance test ชัดเจน.
+
+## 2026-08 — แทน model ที่ผู้ใช้ระบุด้วย model ใกล้เคียงเอง
+- **Mistake**: user สั่งให้ใช้ `5.6 Luna max` แต่ผมส่งงานให้ `gpt-5.6-sol` โดยไม่ได้แจ้งว่า environment ไม่มี Luna ก่อน; user corrected ว่า `ฉันบอกให้ใช้ 5.6 Luna max`.
+- **Rule**: เมื่อผู้ใช้ระบุ model ชัดเจน ให้ใช้ชื่อนั้นเท่านั้น; ถ้า environment ไม่มี model ดังกล่าวให้หยุดและแจ้งข้อจำกัด ห้ามเลือก model ใกล้เคียงแทนเอง.
