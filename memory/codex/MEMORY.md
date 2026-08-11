@@ -1,3 +1,71 @@
+# Task Group: /Users/tualek/ohochat/script-oho / LINE webhook domain migration hardening and canary operation
+
+scope: Evidence-first review, plan, hardening, and one-channel canary operation of `migrate-line-webhook.ts`; use for LINE endpoint domain changes requiring exact rollback.
+applies_to: cwd=/Users/tualek/ohochat/script-oho; reuse_rule=reuse the workflow and safety gates for this migration family, but re-read the current CLI/source and inspect live journals before any production operation; source/unit validation is not end-to-end proof.
+
+## Task 1: Audit, harden, and operate the LINE webhook migration; partial / final production outcome unverified
+
+### rollout_summary_files
+
+- rollout_summaries/2026-08-10T07-15-37-7oWo-line_webhook_migration_hardening_and_production_canary.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/08/10/rollout-2026-08-10T14-15-37-019fea86-e89e-79c3-b1e3-68a6504098fc.jsonl, updated_at=2026-08-10T11:07:05+00:00, thread_id=019fea86-e89e-79c3-b1e3-68a6504098fc, partial; static/unit validation and one-channel workflow, no final production confirmation)
+
+### keywords
+
+- migrate-line-webhook.ts, --allowed-host, --old-host, manifest, manifest digest, db_update_requested, register_webhook_at, rollback_not_needed, migrate.journal.json, rollback.journal.json, LINE webhook/test, canary
+
+## User preferences
+
+- when reviewing a migration, the user required DB whitelist classification, new-endpoint verification before LINE PUT, LINE update before DB update, and “backup ไว้ทั้งหมด” -> assess and implement the complete failure-safe sequence, not just happy-path calls. [Task 1]
+- when the user said “ไม่ต้องงั้นนายทำ plan มาอย่างเดียวก่อน” -> keep the run plan-only and do not edit implementation until explicitly authorized. [Task 1]
+- when the user specified `register_webhook_at` should not be updated -> never put it in migrate or rollback payloads. [Task 1]
+- when giving production commands, the user wants one exact copy-pasteable command; no duplicated flags, no trailing-space continuation, and no `<token>` placeholder that zsh reads as redirection. [Task 1]
+
+## Reusable knowledge
+
+- Existing URL contract is `${webhook_endpoint}/line/webhook/${businessId}` in `oho-api/src/services/channel/line/line.hooks.js:237-286`; `oho-webhook/src/controllers/line/line.controller.ts:30-45` exposes `/webhook/:businessId`. LINE `POST /v2/bot/channel/webhook/test` proves endpoint testing only, not real-message processing. [Task 1]
+- Use explicit `--allowed-host=<hostname>`; the old `--old-host` semantics were opposite the requirement. Before mutation, write an immutable, atomically persisted manifest that records exact presence/value of endpoint, validity, active state, and `updated_at`; bind apply confirmation to its digest. [Task 1]
+- Apply must consume the reviewed manifest rather than rebuild candidates. Apply/rollback require exclusive `<manifest>.lock`; journal `line_put_requested`, `db_update_requested` before Mongo commit, `db_updated`, `migrated`, and compensation/conflict states. Exact rollback needs `$set`/`$unset` restoration of field presence. [Task 1]
+- Static/unit validation: focused tests `11/11`, full tests `21/21`, and CLI help passed. The safe status is UAT/one-channel canary only until real-message, queue/terminal-processing, and rollback verification pass. [Task 1]
+
+## Failures and how to do differently
+
+- Symptom: a post-mutation backup cannot reliably undo a crash/partial run. Cause: original backup was persisted after LINE/DB mutation, omitted states, did not bind confirmation to candidates, and could exit successfully despite reported failures. Fix: manifest-first, exact before-state, fail-closed exit semantics, and manifest-bound apply. [Task 1]
+- Symptom: resumed or concurrent migration can corrupt/lose journal truth. Cause: revalidation rejected resumed candidates, there was no lock, and a DB-commit-to-journal crash window. Fix: state-aware revalidation, exclusive lock, and durable `db_update_requested` intent before commit; these P0s were statically/unit-wise addressed. [Task 1]
+- Symptom: rollback says `rollback_not_needed` even though the channel was migrated. Cause: dry-run summary label is misleading; detail can say `would restore ...`. Fix: inspect both `<manifest>.migrate.journal.json` and `<manifest>.rollback.journal.json`, especially durable `migrated`/`dbUpdatedAt`, before declaring rollback unnecessary. [Task 1]
+- Symptom: exact shell command fails. Cause: duplicate `--execute`/`--confirm` flags or `\\ ` with trailing space. Fix: produce a single clean command, validate flags occur once, and avoid multiline continuations unless essential. Do not record production tokens/identifiers in memory. [Task 1]
+
+# Task Group: /Users/tualek/Documents/migrant-labor-crm / new-machine local development setup
+
+scope: Complete first-time macOS setup of Migrant Labor CRM, including Docker dependencies, Prisma database, seed, and NestJS API verification.
+applies_to: cwd=/Users/tualek/Documents/migrant-labor-crm; reuse_rule=reuse the sequence for a new checkout/machine only after checking the current README, `.env.example`, tool versions, and existing user edits.
+
+## Task 1: Set up the full local stack on a new Mac; success
+
+### rollout_summary_files
+
+- rollout_summaries/2026-08-09T06-26-19-LLdx-migrant_labor_crm_new_machine_local_setup.md (cwd=/Users/tualek/Documents/migrant-labor-crm, rollout_path=/Users/tualek/.codex/sessions/2026/08/09/rollout-2026-08-09T13-26-19-019fe533-6a13-7ce1-b33a-be843748c46b.jsonl, updated_at=2026-08-09T06:58:19+00:00, thread_id=019fe533-6a13-7ce1-b33a-be843748c46b, success; Docker, Prisma, seed, API, and HTTP check verified)
+
+### keywords
+
+- migrant-labor-crm, pnpm, CI=true, Docker Desktop, docker compose, Prisma, PostgreSQL, Redis, MinIO, NestJS, @mlcrm/api, ERR_PNPM_ABORTED_REMOVE_MODULES_DIR_NO_TTY, EPERM, Schema engine error, /auth/me
+
+## User preferences
+
+- when setting up a repo, the user asked “run everything for me” -> inspect and execute the complete workflow rather than only listing commands. [Task 1]
+- during setup, protect existing worktree changes and do not overwrite an existing `.env`. [Task 1]
+
+## Reusable knowledge
+
+- Stack: pnpm workspace with React/Vite, NestJS, Prisma/PostgreSQL, Redis/BullMQ, and MinIO. Standard setup is `pnpm install`, create `.env` from `.env.example` if absent, `docker compose up -d`, `pnpm db:generate`, `pnpm db:migrate`, `pnpm db:seed`, then `pnpm dev`. If frontend already runs, start API only with `pnpm --filter @mlcrm/api dev`. [Task 1]
+- Local services: PostgreSQL `5432`, Redis `6379`, MinIO API `9000` and console `9001`; frontend defaults to API `http://localhost:3000`, so `apps/web/.env.local` / `VITE_API_URL` is only needed for non-default API URLs. Generate a fresh `JWT_SECRET` locally; never preserve it in memory. [Task 1]
+- Completion evidence used here: containers healthy, three migrations applied, seed succeeded (optional `~/Downloads/power_of_attorney.pdf` absent), NestJS listening on `3000`, and `GET /auth/me` returned `401`—reachable API with authentication enforced. [Task 1]
+
+## Failures and how to do differently
+
+- Symptom: Compose command exists but cannot start services. Cause: Docker CLI is installed but daemon/socket is unavailable. Fix: check both `docker version` and `docker compose version`; start Docker Desktop and complete its user-owned privileged setup if necessary. Stale broken Docker symlinks previously required `brew install --cask docker --no-binaries`. [Task 1]
+- Symptom: noninteractive install aborts with `ERR_PNPM_ABORTED_REMOVE_MODULES_DIR_NO_TTY`. Fix: use `CI=true pnpm install`. [Task 1]
+- Symptom: sandboxed setup gives `ENOTFOUND registry.npmjs.org`, Prisma-cache `EPERM`, or generic `Schema engine error`. Cause: restricted network, `~/.cache/prisma`, or local Docker/PostgreSQL access. Fix: rerun the affected command with the necessary approved access; do not call setup complete until containers, migration, seed, API logs, and HTTP response all pass. [Task 1]
+
 # Task Group: /Users/tualek/ohochat / Meta Business AI Messenger handover, onboarding, and ClickUp handoff
 
 scope: Evidence-first OHO-1215/OHO-1634 work on Meta Business AI contracts versus observed POC, Facebook Page onboarding, runtime ownership/reducer safety, and stakeholder/ClickUp handoff.

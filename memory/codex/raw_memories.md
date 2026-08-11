@@ -3940,3 +3940,124 @@ Reusable knowledge:
 References:
 - `/Users/tualek/Documents/Codex/2026-08-09/10-52-jeam-smk-https-www/outputs/pdf/e-workpermit-detailed-workflow-section-v7-identity-visa.pdf`
 
+## Thread `019fe533-6a13-7ce1-b33a-be843748c46b`
+updated_at: 2026-08-09T06:58:19+00:00
+cwd: /Users/tualek/Documents/migrant-labor-crm
+rollout_path: /Users/tualek/.codex/sessions/2026/08/09/rollout-2026-08-09T13-26-19-019fe533-6a13-7ce1-b33a-be843748c46b.jsonl
+rollout_summary_file: 2026-08-09T06-26-19-LLdx-migrant_labor_crm_new_machine_local_setup.md
+
+description: Completed new-machine local setup for Migrant Labor CRM; Docker services, Prisma database, seed, and NestJS API were verified, with an optional sample PDF omitted.
+task: setup migrant-labor-crm local environment on new Mac
+task_group: local development setup
+ task_outcome: success
+cwd: /Users/tualek/Documents/migrant-labor-crm
+keywords: pnpm, docker-compose, Docker Desktop, Prisma, PostgreSQL, Redis, MinIO, NestJS, CI=true, EPERM, ENOTFOUND, schema engine error
+
+### Task 1: New-machine local stack setup
+
+task: configure env, dependencies, Docker services, database, seed, and API for migrant-labor-crm
+task_group: local development setup
+task_outcome: success
+
+Preference signals:
+- The user asked “นาย run ทั้งหมดให้หน่อย” (“run everything for me”) -> for similar repo setup requests, inspect and execute the complete workflow instead of only providing instructions.
+- The agent preserved existing worktree edits and avoided overwriting `.env` contents -> protect user changes during setup.
+
+Reusable knowledge:
+- Repo README setup sequence: `pnpm install`, `.env`, `docker compose up -d`, `pnpm db:generate`, `pnpm db:migrate`, `pnpm db:seed`, `pnpm dev`.
+- If frontend is already running, start only the API with `pnpm --filter @mlcrm/api dev`.
+- `.env` is ignored by Git. Frontend defaults to `http://localhost:3000`; `apps/web/.env.local` with `VITE_API_URL` is only needed for a non-default API URL.
+- Docker services expose PostgreSQL `5432`, Redis `6379`, MinIO API `9000`, and MinIO console `9001`.
+- Use `CI=true pnpm install` in non-TTY sessions; plain install failed with `ERR_PNPM_ABORTED_REMOVE_MODULES_DIR_NO_TTY`.
+- Prisma generate may require unsandboxed access to `~/.cache/prisma`; sandboxed run failed with `EPERM` on the Prisma query engine cache.
+- Migration may require unsandboxed local Docker/network access; sandboxed run produced only `Schema engine error`.
+- Docker Desktop installation was blocked by stale broken symlinks; `brew install --cask docker --no-binaries` successfully installed the app without trying to replace privileged helper binaries.
+- Migration applied three existing migrations: `20260503135306_init_mvp`, `20260503141100_init_mvp`, and `20260504032732_init_mvp`.
+- Seed completed but skipped `/Users/tualek/Downloads/power_of_attorney.pdf`; the PDF can be uploaded later through the UI.
+- API verification succeeded: `GET http://localhost:3000/auth/me` returned `401`, and NestJS reported successful startup.
+
+Failures and how to do differently:
+- Before running Compose, verify Docker daemon readiness with `docker version`; a valid CLI alone is insufficient if the Docker socket is unavailable.
+- If Docker Desktop needs privileged setup, the user must run `sudo /Applications/Docker.app/Contents/MacOS/install --user=tualek` and accept any macOS/Docker prompts themselves.
+- Do not treat `pnpm db:migrate` success as sufficient; also verify container status, seed output, API logs, and an HTTP response.
+
+References:
+- `CI=true pnpm install`
+- `docker compose up -d`
+- `pnpm db:generate`
+- `pnpm db:migrate`
+- `pnpm db:seed`
+- `pnpm --filter @mlcrm/api dev`
+- `curl -s -o /dev/null -w '%{http_code}' http://localhost:3000/auth/me` -> `401`
+- `/Users/tualek/Documents/migrant-labor-crm/.env.example`
+- `/Users/tualek/Documents/migrant-labor-crm/docker-compose.yml`
+
+## Thread `019fea86-e89e-79c3-b1e3-68a6504098fc`
+updated_at: 2026-08-10T11:07:05+00:00
+cwd: /Users/tualek/ohochat
+rollout_path: /Users/tualek/.codex/sessions/2026/08/10/rollout-2026-08-10T14-15-37-019fea86-e89e-79c3-b1e3-68a6504098fc.jsonl
+rollout_summary_file: 2026-08-10T07-15-37-7oWo-line_webhook_migration_hardening_and_production_canary.md
+
+---
+description: LINE webhook migration was hardened from an unsafe post-mutation backup flow to an explicit-whitelist, manifest-first, journaled migration with exact rollback; final rollout still needs real integration validation.
+task: review-and-operate-line-webhook-domain-migration
+task_group: /Users/tualek/ohochat/script-oho/migrate-line-webhook-endpoint
+task_outcome: partial
+cwd: /Users/tualek/ohochat/script-oho
+keywords: LINE, webhook, migration, allowed-host, manifest, rollback, journal, db_update_requested, lock, register_webhook_at, canary, zsh
+---
+
+### Task 1: Harden LINE webhook migration
+
+task: review and production-harden `migrate-line-webhook.ts`
+task_group: script-oho LINE webhook migration
+task_outcome: partial
+
+Preference signals:
+- The user required DB whitelist classification, new-endpoint verification before LINE PUT, LINE update before DB update, and complete backup for rollback -> future agents should review and implement the entire failure-safe sequence, not just the happy path.
+- The user explicitly said `register_webhook_at` should not be updated -> never include it in migrate or rollback payloads.
+- The user asked for a plan first and later said “ทำ plan มาอย่างเดียวก่อน” -> do not edit implementation when the requested scope is plan-only.
+
+Reusable knowledge:
+- Existing URL contract is `${webhook_endpoint}/line/webhook/${businessId}` from `oho-api/src/services/channel/line/line.hooks.js:237-286`.
+- Use explicit `--allowed-host`; the old `--old-host` semantics were opposite the requirement.
+- Manifest-first flow now records exact DB field presence, writes atomically, binds confirmation to manifest digest, and uses journal phases including `db_update_requested` before Mongo commit.
+- Apply/rollback acquire an exclusive `<manifest>.lock`.
+- Migration/restore payloads do not touch `line.register_webhook_at`.
+- Tests verified: focused 11/11 and full 21/21; no real DB, LINE API, gateway, or end-to-end message test was run.
+
+Failures and how to do differently:
+- Original backup was persisted after LINE/DB mutation; require immutable before-state manifest before any mutation.
+- Revalidation, locking, and DB commit crash-window bugs were found and fixed, but orchestration tests remain absent.
+- Production readiness should remain “UAT canary only” until real-message, queue/terminal-state, and rollback tests pass.
+
+References:
+- `/Users/tualek/ohochat/script-oho/migrate-line-webhook-endpoint/migrate-line-webhook.ts`
+- `/Users/tualek/ohochat/script-oho/migrate-line-webhook-endpoint/migrate-line-webhook.helpers.ts`
+- `/Users/tualek/ohochat/script-oho/migrate-line-webhook-endpoint/plan.md`
+
+### Task 2: Production command operation
+
+task: run one-channel production dry-run/apply/rollback safely
+task_group: production migration operations
+
+task_outcome: partial
+
+Preference signals:
+- The user wants exact, copy-pasteable shell commands -> emit one command with each flag exactly once.
+- Never use `<token>` placeholders in a command shown for zsh; angle brackets are interpreted as redirection. Ask for or use the actual token.
+
+Reusable knowledge:
+- Dry-run: `npm run migrate:line-webhook -- --env=prod --channel=<channel-id> --allowed-host=api2.oho.chat`
+- Apply reviewed manifest: `npm run migrate:line-webhook -- --env=prod --manifest=<manifest-path> --execute --confirm=<token> --yes`
+- Rollback reviewed manifest: `npm run migrate:line-webhook -- --env=prod --manifest=<manifest-path> --rollback --execute --confirm=<rollback-token> --yes`
+- The migrate journal recorded channel `6a794f77fc9340171589accf` as `migrated` with `dbUpdatedAt`; rollback dry-run’s `rollback_not_needed` summary was misleading because detail said `would restore ...`.
+
+Failures and how to do differently:
+- A user command failed because `--execute` and `--confirm` were duplicated and a line-continuation backslash had a trailing space. Validate generated commands for duplicate flags and shell syntax.
+- Before interpreting rollback output, inspect both migrate and rollback journals; do not rely solely on the `rollback_not_needed` summary label.
+
+References:
+- Journal files use `<manifest>.migrate.journal.json` and `<manifest>.rollback.journal.json`.
+- Final rollout did not include explicit confirmation that the last production command completed; treat final operational outcome as unverified.
+
