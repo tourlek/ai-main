@@ -1,3 +1,84 @@
+# Task Group: /Users/tualek/ohochat / Meta Business AI backend MVP review, scoped implementation, and feature-flag scope correction
+
+scope: Review and narrowly implement Facebook Meta Business AI across `oho-api` and `oho-webhook`; use for authority, identity, tenant safety, Redis dedup, send guards, and accurate cross-repo feature-flag claims.
+applies_to: cwd=/Users/tualek/ohochat; reuse_rule=reuse the backend/webhook contract only after tracing the current feature commits and worktree; UI/Remote Config scope is separate, and focused tests/builds are not canary proof.
+
+## Task 1: Review and implement scoped Facebook Meta Business AI safety fixes; partial
+
+### rollout_summary_files
+
+- rollout_summaries/2026-08-10T08-42-58-K9az-meta_business_ai_scoped_review_and_luna_fixes.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/08/10/rollout-2026-08-10T15-42-58-019fead6-e1dd-77a1-84ca-e7b90cfc6323.jsonl, updated_at=2026-08-10T17:19:20+00:00, thread_id=019fead6-e1dd-77a1-84ca-e7b90cfc6323, partial; focused fixes validated, production gates remain)
+- rollout_summaries/2026-08-10T13-57-30-8fJv-meta_business_ai_minimal_integration_flag_scope_correction.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/08/10/rollout-2026-08-10T20-57-30-019febf6-d717-7103-a1de-872be9834c91.jsonl, updated_at=2026-08-11T03:33:02+00:00, thread_id=019febf6-d717-7103-a1de-872be9834c91, partial; simplified MVP and remaining B1–B5 gates)
+
+### keywords
+
+- Meta Business AI, ai_generated, standby, facebook_delivery_authority, oho-api, oho-webhook, Redis lease, Lua CAS, business_id, Graph API, primary read, campaign TOCTOU, afccdd74e, c3dbadd
+
+## Task 2: Correct the claim that no Meta Business AI feature flag remained; fail
+
+### rollout_summary_files
+
+- rollout_summaries/2026-08-10T13-57-30-8fJv-meta_business_ai_minimal_integration_flag_scope_correction.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/08/10/rollout-2026-08-10T20-57-30-019febf6-d717-7103-a1de-872be9834c91.jsonl, updated_at=2026-08-11T03:33:02+00:00, thread_id=019febf6-d717-7103-a1de-872be9834c91, correction; active web-app Firebase Remote Config usage remains)
+
+### keywords
+
+- rt_meta_business_ai_enabled, firebase-remote-config.js, oho-web-app/store/index.js, Conversation.vue, RoomHeader.vue, SendMessageDisabled.vue, utils/meta-business-ai.js, backend RC lookup, workspace-wide rg
+
+## User preferences
+
+- when reviewing this feature, the user asked for a detailed plan around “ข้อความไม่เข้าหรอ ? หรือ performance drop” -> trace message delivery, authority correctness, security/tenant scope, DB/Redis hot-path cost, and concrete worst cases rather than only the diff. [Task 1]
+- when the user said to fix “แค่ scope ที่เป็น feature meta business ai ก่อน” and defer web-app design -> preserve dirty worktrees and keep backend/webhook changes separate from UI or unrelated channels. [Task 1]
+- when the user corrected “ฉันบอกให้ใช้ 5.6 Luna max” -> do not silently substitute a nearby model; if the named model is unavailable, stop and report it. Once a plan is confirmed and implementation authorized, use a new `[Luna Working] - {name}` task with `gpt-5.6-luna` at max, hand it the approved contract/current worktree/tests/no-commit rule, then have Sol monitor and review the result; do not substitute if Luna max is unavailable. [Task 1] [ad-hoc note]
+- when the user challenged “บอกว่าไม่มี feature flag แล้วทำไมยังมี ใน firebase config” -> acknowledge the overclaim directly and distinguish backend removal from repository-wide removal. [Task 2]
+
+## Reusable knowledge
+
+- Pin actual feature code by reflog/topology when branch refs point at staging: the reviewed commits were `oho-api afccdd74e` and `oho-webhook c3dbadd`. Canonical Facebook events flatten `entry.messaging[]` and `entry.standby[]` with `__ohoChannel`; `message.ai_generated` is nested in that canonical event. [Task 1]
+- Identity contract: `entry.__ohoChannel === 'standby' && entry.message.ai_generated === true` is sufficient Meta Business AI identity even without `app_id`; `standby` alone means another app may own delivery, while `ai_generated` is echo-author identity rather than thread ownership. [Task 1]
+- Use top-level `facebook_delivery_authority` (`oho|other`) plus timestamp. `standby` customer events observe `other`; customer `messaging` returns `oho` only from prior `other`. Tenant-scope Take/Return by `_id + business_id`, validate Facebook, call Graph first, then conditionally persist only non-stale state; Graph failure preserves prior authority. [Task 1]
+- Redis dedup needs pending lease ownership tokens: `completeWithTtl` and `releaseWithToken` must use Lua/CAS so an expired worker cannot mutate a newer claim. Automated Facebook sends use a primary read and fail closed if the authoritative contact is missing; measure p95 and primary load before rollout. [Task 1]
+- Accurate feature-flag statement: backend Remote Config lookup was removed from `oho-api`/`oho-webhook`, but `rt_meta_business_ai_enabled` remains active in web-app store/plugin/Smartchat UI. Before a global-removal claim, run workspace-wide `rg -n -i "meta[_-]?business[_-]?ai|rt_meta_business_ai|business_ai"` with dependency/generated exclusions and classify hits as runtime, UI, config, docs, tests, or compatibility. [Task 2]
+
+## Failures and how to do differently
+
+- Symptom: focused tests/builds are called merge/canary-ready. Cause: full suite, captured-payload replay, terminal Mongo/Stream checks, load testing, and production logs were not run. Fix: keep B1–B5 gates explicit; HTTP 200 or unit tests do not prove webhook delivery. [Task 1]
+- Symptom: campaign delivery reaches a contact whose authority changed mid-batch. Cause: authority filtering is a batch snapshot. Fix: add measured per-recipient/send-time checks or gate campaigns. [Task 1]
+- Symptom: a slow Redis worker races a reclaimed 300-second lease. Cause: no ownership token/CAS. Fix: block canary until tokenized Lua/CAS completion/release is present. [Task 1]
+- Symptom: “no feature flag” overclaims scope. Cause: searched only backend/runtime. Fix: search and classify all repositories/layers; say “no backend RC lookup remains” when that is the verified boundary. [Task 2]
+
+# Task Group: /Users/tualek/ohochat / Facebook Messenger attachment ingestion root-cause investigation
+
+scope: Read-only diagnosis of Facebook image/file send failures across OHO source, GCP logs, GCS validity, and raw Meta errors; use before blaming OHO upload/metadata or retrying messages.
+applies_to: cwd=/Users/tualek/ohochat; reuse_rule=reuse the evidence sequence for similar Facebook/Instagram attachment failures, but re-query the incident window, business/page identifiers, and raw platform responses; do not expose tokens from logs.
+
+## Task 1: Diagnose Gentle Clinic Facebook attachment failures; success
+
+### rollout_summary_files
+
+- rollout_summaries/2026-08-10T07-27-31-raWB-facebook_attachment_ingestion_root_cause_gentle_clinic.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/08/10/rollout-2026-08-10T14-27-31-019fea91-cc0c-72a0-a973-d5bc782a9d01.jsonl, updated_at=2026-08-10T07:33:25+00:00, thread_id=019fea91-cc0c-72a0-a973-d5bc782a9d01, success; cross-business evidence supported Meta attachment ingestion failure)
+
+### keywords
+
+- Gentle Clinic, 67121be026ec0ed85e1d9208, Facebook Messenger Send API, code=100, error_subcode=2018047, Upload attachment failure, OAuthException, core-api--production, oho-platform, GCS, mediaUrl, youpin-to-facebook
+
+## User preferences
+
+- when the user asks for “rootcause” and whether it is the file, OHO metadata/upload, or Meta -> separate raw platform evidence from UI error mappings and compare the competing causes explicitly. [Task 1]
+- when the user supplies a business ID and sample file URL -> search production logs by business/page/file identifiers, error code/subcode, and timestamps; keep the investigation read-only unless edits are requested. [Task 1]
+
+## Reusable knowledge
+
+- OHO sends an existing public GCS `mediaUrl` as `{ attachment: { type: 'image', payload: { url } } }` to Meta; it does not re-encode or re-upload before the Send API call. Relevant code: `oho-api/src/utils/message-converter/youpin-to-facebook.js:42-52` and `src/services/integration/facebook/reply-message/reply-message.class.js:30-35`. [Task 1]
+- Thai UI text claiming Facebook does not support the file maps broad `code=100` + `error_subcode=2018047`; it is not a precise diagnosis. The observed raw shape was HTTP 400, `(#100) Upload attachment failure`, `OAuthException`, `code=100`, `error_subcode=2018047`. [Task 1]
+- In the Gentle incident, supplied and related GCS images returned HTTP 200 and decoded as ordinary RGB/sRGB JPEGs; old reused and new uploads failed in the same period, while the same subcode appeared across unrelated businesses. Evidence supports a Meta attachment fetch/ingestion incident, not a corrupt OHO file or OHO re-upload defect. The sample JSON business ID `604e2c63...` was not Gentle Clinic’s `67121be...`; correlate send logs before attribution. [Task 1]
+- Operational response: after failures cease for about 10–15 minutes, retry only failed attachments; do not resend the whole saved reply because successful text/media can duplicate. [Task 1]
+
+## Failures and how to do differently
+
+- Symptom: GCP log output is truncated/noisy. Cause: broad `gcloud logging read` searches. Fix: constrain service, exact `2018047`, business/page, narrow UTC range, and output only timestamp/severity/text/relevant labels. [Task 1]
+- Symptom: local gcloud says its logs directory is not writable. Cause: local configuration permission, not necessarily application access. Fix: treat it as an environment warning when the proxy query still returns logs. [Task 1]
+- Never store or repeat access tokens from raw Axios log lines; redact as `[REDACTED_SECRET]`. A Meta public status page saying “No known issues” is weaker than synchronized cross-business production evidence and does not rule out a partial incident. [Task 1]
+
 # Task Group: /Users/tualek/ohochat/script-oho / LINE webhook domain migration hardening and canary operation
 
 scope: Evidence-first review, plan, hardening, and one-channel canary operation of `migrate-line-webhook.ts`; use for LINE endpoint domain changes requiring exact rollback.
@@ -7,11 +88,14 @@ applies_to: cwd=/Users/tualek/ohochat/script-oho; reuse_rule=reuse the workflow 
 
 ### rollout_summary_files
 
+- rollout_summaries/2026-08-10T07-54-21-Wlnm-line_webhook_migration_review_config_audit.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/08/10/rollout-2026-08-10T14-54-21-019feaaa-5edf-7453-8fdb-0bf9b642ca0c.jsonl, updated_at=2026-08-10T10:38:39+00:00, thread_id=019feaaa-5edf-7453-8fdb-0bf9b642ca0c, partial; safety audit and runtime-config boundary)
 - rollout_summaries/2026-08-10T07-15-37-7oWo-line_webhook_migration_hardening_and_production_canary.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/08/10/rollout-2026-08-10T14-15-37-019fea86-e89e-79c3-b1e3-68a6504098fc.jsonl, updated_at=2026-08-10T11:07:05+00:00, thread_id=019fea86-e89e-79c3-b1e3-68a6504098fc, partial; static/unit validation and one-channel workflow, no final production confirmation)
+- rollout_summaries/2026-08-10T06-14-37-ygPX-harden_line_webhook_migration_recovery.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/08/10/rollout-2026-08-10T13-14-37-019fea4f-0f09-7031-a11f-8b18c23fcf85.jsonl, updated_at=2026-08-10T07:28:25+00:00, thread_id=019fea4f-0f09-7031-a11f-8b18c23fcf85, partial; recovery/crash-window hardening)
+- rollout_summaries/2026-08-10T04-32-13-Idz9-line_webhook_migration_hardening_scoped_dry_run.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/08/10/rollout-2026-08-10T11-32-13-019fe9f1-4dfe-7963-a2c9-f930bfbf93e7.jsonl, updated_at=2026-08-10T06:55:37+00:00, thread_id=019fe9f1-4dfe-7963-a2c9-f930bfbf93e7, partial; one-channel read-only dry-run)
 
 ### keywords
 
-- migrate-line-webhook.ts, --allowed-host, --old-host, manifest, manifest digest, db_update_requested, register_webhook_at, rollback_not_needed, migrate.journal.json, rollback.journal.json, LINE webhook/test, canary
+- migrate-line-webhook.ts, --allowed-host, --old-host, manifest, manifest digest, db_update_requested, register_webhook_at, rollback_not_needed, migrate.journal.json, rollback.journal.json, LINE webhook/test, canary, APP_CONFIG, webhook_endpoint, OHO_WEBHOOK_URL
 
 ## User preferences
 
@@ -26,6 +110,7 @@ applies_to: cwd=/Users/tualek/ohochat/script-oho; reuse_rule=reuse the workflow 
 - Use explicit `--allowed-host=<hostname>`; the old `--old-host` semantics were opposite the requirement. Before mutation, write an immutable, atomically persisted manifest that records exact presence/value of endpoint, validity, active state, and `updated_at`; bind apply confirmation to its digest. [Task 1]
 - Apply must consume the reviewed manifest rather than rebuild candidates. Apply/rollback require exclusive `<manifest>.lock`; journal `line_put_requested`, `db_update_requested` before Mongo commit, `db_updated`, `migrated`, and compensation/conflict states. Exact rollback needs `$set`/`$unset` restoration of field presence. [Task 1]
 - Static/unit validation: focused tests `11/11`, full tests `21/21`, and CLI help passed. The safe status is UAT/one-channel canary only until real-message, queue/terminal-processing, and rollback verification pass. [Task 1]
+- Runtime config boundary: change `oho-api` environment `webhook_endpoint` in the `APP_CONFIG` Secret Manager flow (GitLab config project `294` → `core-api-config--json--<env>`), then deploy `core-api` with the new secret version. Do not change `oho-webhook` `OHO_WEBHOOK_URL`: it is the internal Cloud Tasks callback base. The stale `webhook.oho.chat` text in `oho-web-app/pages/business/_biz_id/setting/integration.vue:824-1140` is in a commented block, so it does not require web-app deployment. [Task 1]
 
 ## Failures and how to do differently
 
@@ -33,6 +118,7 @@ applies_to: cwd=/Users/tualek/ohochat/script-oho; reuse_rule=reuse the workflow 
 - Symptom: resumed or concurrent migration can corrupt/lose journal truth. Cause: revalidation rejected resumed candidates, there was no lock, and a DB-commit-to-journal crash window. Fix: state-aware revalidation, exclusive lock, and durable `db_update_requested` intent before commit; these P0s were statically/unit-wise addressed. [Task 1]
 - Symptom: rollback says `rollback_not_needed` even though the channel was migrated. Cause: dry-run summary label is misleading; detail can say `would restore ...`. Fix: inspect both `<manifest>.migrate.journal.json` and `<manifest>.rollback.journal.json`, especially durable `migrated`/`dbUpdatedAt`, before declaring rollback unnecessary. [Task 1]
 - Symptom: exact shell command fails. Cause: duplicate `--execute`/`--confirm` flags or `\\ ` with trailing space. Fix: produce a single clean command, validate flags occur once, and avoid multiline continuations unless essential. Do not record production tokens/identifiers in memory. [Task 1]
+- Symptom: a cross-repo `rg` hit is called a deployment dependency. Cause: reachability/comments were not inspected. Fix: inspect enclosing comments, feature gates, route registration, and execution/render path; do not read an entire production secret merely to inspect one field. [Task 1]
 
 # Task Group: /Users/tualek/Documents/migrant-labor-crm / new-machine local development setup
 
