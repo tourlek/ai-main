@@ -4090,73 +4090,109 @@ References:
 - No secrets, DB credentials, LINE tokens, or production endpoints were stored; no real DB/LINE/gateway calls were made.
 
 ## Thread `019fea86-e89e-79c3-b1e3-68a6504098fc`
-updated_at: 2026-08-10T11:07:05+00:00
+updated_at: 2026-08-11T03:38:57+00:00
 cwd: /Users/tualek/ohochat
 rollout_path: /Users/tualek/.codex/sessions/2026/08/10/rollout-2026-08-10T14-15-37-019fea86-e89e-79c3-b1e3-68a6504098fc.jsonl
-rollout_summary_file: 2026-08-10T07-15-37-7oWo-line_webhook_migration_hardening_and_production_canary.md
+rollout_summary_file: 2026-08-10T07-15-37-7oWo-line_webhook_migration_audit_hardening_and_production_runboo.md
 
 ---
-description: LINE webhook migration was hardened from an unsafe post-mutation backup flow to an explicit-whitelist, manifest-first, journaled migration with exact rollback; final rollout still needs real integration validation.
-task: review-and-operate-line-webhook-domain-migration
-task_group: /Users/tualek/ohochat/script-oho/migrate-line-webhook-endpoint
+description: LINE webhook migration was hardened and reviewed; production-safe workflow requires whitelist inventory, immutable manifest, LINE verification before DB update, exact rollback, and canary-first execution.
+task: audit-and-operationalize-line-webhook-migration
+task_group: script-oho-line-webhook-migration
 task_outcome: partial
 cwd: /Users/tualek/ohochat/script-oho
-keywords: LINE, webhook, migration, allowed-host, manifest, rollback, journal, db_update_requested, lock, register_webhook_at, canary, zsh
+keywords: LINE webhook, migrate-line-webhook.ts, allowed-host, manifest, rollback, journal, register_webhook_at, production dry-run, canary, npm test
 ---
 
-### Task 1: Harden LINE webhook migration
+### Task 1: Audit and hardening review
 
-task: review and production-harden `migrate-line-webhook.ts`
-task_group: script-oho LINE webhook migration
+task: Review LINE webhook migration against whitelist, verification, backup, ordering, and rollback requirements.
+task_group: script-oho-line-webhook-migration
 task_outcome: partial
 
 Preference signals:
-- The user required DB whitelist classification, new-endpoint verification before LINE PUT, LINE update before DB update, and complete backup for rollback -> future agents should review and implement the entire failure-safe sequence, not just the happy path.
-- The user explicitly said `register_webhook_at` should not be updated -> never include it in migrate or rollback payloads.
-- The user asked for a plan first and later said “ทำ plan มาอย่างเดียวก่อน” -> do not edit implementation when the requested scope is plan-only.
+- The user requires DB-driven whitelist detection, new endpoint verification before LINE mutation, LINE API update before DB update, complete backup, and rollback protection. Similar migrations should be audited end-to-end, including crash and partial-failure paths.
 
 Reusable knowledge:
-- Existing URL contract is `${webhook_endpoint}/line/webhook/${businessId}` from `oho-api/src/services/channel/line/line.hooks.js:237-286`.
-- Use explicit `--allowed-host`; the old `--old-host` semantics were opposite the requirement.
-- Manifest-first flow now records exact DB field presence, writes atomically, binds confirmation to manifest digest, and uses journal phases including `db_update_requested` before Mongo commit.
-- Apply/rollback acquire an exclusive `<manifest>.lock`.
-- Migration/restore payloads do not touch `line.register_webhook_at`.
-- Tests verified: focused 11/11 and full 21/21; no real DB, LINE API, gateway, or end-to-end message test was run.
+- Existing endpoint construction is `${webhook_endpoint}/line/webhook/${businessId}` in `oho-api/src/services/channel/line/line.hooks.js`.
+- The webhook service route is `/line/webhook/:businessId`; `/line` returns `{ page: 'LINE Home' }`.
+- LINE webhook test proves endpoint communication but not full real-message processing; production rollout needs a real-message canary and queue/terminal-state evidence.
 
 Failures and how to do differently:
-- Original backup was persisted after LINE/DB mutation; require immutable before-state manifest before any mutation.
-- Revalidation, locking, and DB commit crash-window bugs were found and fixed, but orchestration tests remain absent.
-- Production readiness should remain “UAT canary only” until real-message, queue/terminal-state, and rollback tests pass.
+- Original backup was persisted after mutation, so crash after LINE/DB changes could leave no rollback source.
+- Original `--old-host` semantics did not implement “DB hostname outside whitelist.” Use explicit `--allowed-host` classification.
+- Rollback must exclude dry-run-only entries and restore exact modified DB field values/presence.
+- Confirmation must bind to the reviewed manifest/candidate set; partial failures must exit non-zero.
 
 References:
-- `/Users/tualek/ohochat/script-oho/migrate-line-webhook-endpoint/migrate-line-webhook.ts`
-- `/Users/tualek/ohochat/script-oho/migrate-line-webhook-endpoint/migrate-line-webhook.helpers.ts`
-- `/Users/tualek/ohochat/script-oho/migrate-line-webhook-endpoint/plan.md`
+- `script-oho/migrate-line-webhook-endpoint/migrate-line-webhook.ts`
+- `oho-api/src/services/channel/line/line.hooks.js`
+- `oho-webhook/src/controllers/line/line.controller.ts`
 
-### Task 2: Production command operation
+### Task 2: Plan-only specification
 
-task: run one-channel production dry-run/apply/rollback safely
-task_group: production migration operations
-
-task_outcome: partial
+task: Write an implementation-ready safety plan without editing the migration implementation.
+task_group: script-oho-line-webhook-migration
+ task_outcome: success
 
 Preference signals:
-- The user wants exact, copy-pasteable shell commands -> emit one command with each flag exactly once.
-- Never use `<token>` placeholders in a command shown for zsh; angle brackets are interpreted as redirection. Ask for or use the actual token.
+- The user said `register_webhook_at` may not need updating and then explicitly requested “plan only.” Future agents should not edit code when the user requests plan-only.
 
 Reusable knowledge:
-- Dry-run: `npm run migrate:line-webhook -- --env=prod --channel=<channel-id> --allowed-host=api2.oho.chat`
-- Apply reviewed manifest: `npm run migrate:line-webhook -- --env=prod --manifest=<manifest-path> --execute --confirm=<token> --yes`
-- Rollback reviewed manifest: `npm run migrate:line-webhook -- --env=prod --manifest=<manifest-path> --rollback --execute --confirm=<rollback-token> --yes`
-- The migrate journal recorded channel `6a794f77fc9340171589accf` as `migrated` with `dbUpdatedAt`; rollback dry-run’s `rollback_not_needed` summary was misleading because detail said `would restore ...`.
-
-Failures and how to do differently:
-- A user command failed because `--execute` and `--confirm` were duplicated and a line-continuation backslash had a trailing space. Validate generated commands for duplicate flags and shell syntax.
-- Before interpreting rollback output, inspect both migrate and rollback journals; do not rely solely on the `rollback_not_needed` summary label.
+- `migrate-line-webhook-endpoint/plan.md` specifies explicit whitelist classification, immutable atomic manifest, manifest-bound apply, durable journal, exact rollback, conflict detection, timeout/retry rules, non-zero exit semantics, and canary rollout.
+- `line.register_webhook_at` must not be written or restored.
 
 References:
-- Journal files use `<manifest>.migrate.journal.json` and `<manifest>.rollback.journal.json`.
-- Final rollout did not include explicit confirmation that the last production command completed; treat final operational outcome as unverified.
+- `migrate-line-webhook-endpoint/plan.md`
+
+### Task 3: Implementation status review
+
+task: Verify whether the revised implementation fixed the previously identified P0 issues.
+task_group: script-oho-line-webhook-migration
+ task_outcome: partial
+
+Reusable knowledge:
+- Revised source has state-aware manifest revalidation, an exclusive `<manifest>.lock`, and `db_update_requested` with planned `updated_at` before MongoDB commit.
+- Migration ordering is test → PUT LINE → poll GET verification → conditional DB update → final verification.
+- Exact DB snapshots preserve field presence for `line.webhook_endpoint`, `line.is_webhook_endpoint_valid`, `line.is_webhook_active`, and `updated_at`; `line.register_webhook_at` is intentionally excluded.
+- Verification evidence: focused suite passed 11/11; full suite passed 21/21; CLI help passed.
+- No live DB, LINE API, gateway, or production canary was run in the rollout.
+
+Failures and how to do differently:
+- Full orchestration coverage remains absent for fake Mongo/LINE crash recovery, compensation, concurrent apply, and complete rollback. Treat the result as UAT-canary-ready, not fully production-proven.
+
+References:
+- `migrate-line-webhook-endpoint/migrate-line-webhook.helpers.ts`
+- `migrate-line-webhook-endpoint/migrate-line-webhook.ts`
+- `migrate-line-webhook-endpoint/migrate-line-webhook.helpers.spec.ts`
+- `npm run test:line-webhook` → 11 passed
+- `npm test` → 21 passed
+
+### Task 4: Production command workflow
+
+task: Run a production canary/all-business migration with dry-run manifest and rollback available.
+task_group: script-oho-line-webhook-migration
+ task_outcome: success
+
+Preference signals:
+- The user wants exact copy-pasteable commands. Avoid duplicate flags, trailing spaces after `\`, and literal `<placeholder>` tokens. Use one command per step and substitute actual manifest/token values.
+- Prefer one-channel/business canary, inspect manifest, apply the same manifest, send a real LINE message, verify webhook/queue/terminal processing, then expand.
+
+Reusable knowledge:
+- Dry-run: `npm run migrate:line-webhook -- --env=prod --channel=<id> --allowed-host=api2.oho.chat`.
+- All channels: `npm run migrate:line-webhook -- --env=prod --all-channels --allowed-host=api2.oho.chat`.
+- Apply only from generated manifest: `npm run migrate:line-webhook -- --env=prod --manifest="$MANIFEST" --execute --confirm="$MIGRATE_TOKEN" --yes`.
+- Rollback requires a separate rollback dry-run token, then `--rollback --execute --confirm="$ROLLBACK_TOKEN" --yes`.
+- A rollback summary phase `rollback_not_needed` may still have detail `would restore ...`; inspect the migration journal before interpreting it as untouched.
+
+Failures and how to do differently:
+- Duplicate `--execute`/`--confirm` caused `Flag --confirm given more than once`; provide each exactly once.
+- A trailing space after `\` broke shell continuation.
+- Literal `<rollback-token>` caused zsh redirection; never include angle brackets in the executable command.
+
+References:
+- Manifest pattern: `migrate-line-webhook-manifest-<env>-<timestamp>-<scope-hash>.json`
+- Journal patterns: `<manifest>.migrate.journal.json` and `<manifest>.rollback.journal.json`
 
 ## Thread `019fea91-cc0c-72a0-a973-d5bc782a9d01`
 updated_at: 2026-08-10T07:33:25+00:00
@@ -4444,4 +4480,108 @@ References:
 - `oho-web-app/components/Smartchat/RoomHeader.vue:118-130`
 - `oho-web-app/components/Smartchat/SendMessageDisabled.vue:263-273`
 - Search output also showed `docs/meta-business-ai/07-mvp-implementation-checklist-2026-08-10.md`, `oho-api/config/default.json`, takeover/return services, and compatibility references.
+
+## Thread `019fef13-d776-7dc0-b2b5-fce38b9ab737`
+updated_at: 2026-08-11T04:28:15+00:00
+cwd: /Users/tualek/Documents/Codex/2026-08-11/referenced-chatgpt-conversation-this-is-an
+rollout_path: /Users/tualek/.codex/sessions/2026/08/11/rollout-2026-08-11T11-28-02-019fef13-d776-7dc0-b2b5-fce38b9ab737.jsonl
+rollout_summary_file: 2026-08-11T04-28-02-vw3l-meta_ai_plan_review_aborted.md
+
+---
+description: User requested a detailed, prioritized review of a Meta AI profile-fix plan, but the rollout was aborted before any file inspection or analysis.
+task: review-meta-ai-profile-plan
+task_group: plan-review
+task_outcome: uncertain
+cwd: /Users/tualek/Documents/Codex/2026-08-11/referenced-chatgpt-conversation-this-is-an
+keywords: Meta AI, plan review, assumptions, risks, edge cases, validation, rollback, testing, observability, dependencies, migration, security, acceptance criteria
+---
+
+### Task 1: Review Meta AI profile plan
+
+task: review `/Users/tualek/ohochat/docs/meta-business-ai/plan-fix-meta-ai-profile.md` in detail
+task_group: Meta AI implementation planning
+ task_outcome: uncertain
+
+Preference signals:
+- The user explicitly requested a comprehensive review covering "assumption/risk/edge case/validation/rollback/testing/observability/dependency/migration/security หรือ acceptance criteria" -> future reviews should proactively inspect each of these categories.
+- The user asked for "การแก้ไขที่ actionable และจัดลำดับความสำคัญ" -> provide concrete proposed changes and prioritize them rather than only listing omissions.
+
+Reusable knowledge:
+- The requested plan file is `/Users/tualek/ohochat/docs/meta-business-ai/plan-fix-meta-ai-profile.md`.
+
+Failures and how to do differently:
+- The user aborted before the file was opened, so there are no validated findings, edits, tests, or implementation facts to preserve.
+
+References:
+- Prior conversation ID: `6a7aa49b-df20-83ec-a0b6-c5704cce2124`
+- Exact requested review dimensions: assumptions, risks, edge cases, validation, rollback, testing, observability, dependencies, migration, security, and acceptance criteria.
+
+## Thread `019ff026-fc80-7881-8a12-5ba2c15991bb`
+updated_at: 2026-08-11T10:24:33+00:00
+cwd: /Users/tualek/ohochat
+rollout_path: /Users/tualek/.codex/sessions/2026/08/11/rollout-2026-08-11T16-28-34-019ff026-fc80-7881-8a12-5ba2c15991bb.jsonl
+rollout_summary_file: 2026-08-11T09-28-34-wXtp-meta_business_ai_plan_review_and_scope_correction.md
+
+description: Reviewed and reworked Meta Business AI implementation plan; corrected ai_generated semantics, narrowed MVP, and blocked unsupported authority/control side effects pending activation evidence
+ task: review-and-update-meta-business-ai-plan
+ task_group: /Users/tualek/ohochat / Meta Business AI Messenger
+ task_outcome: partial
+ cwd: /Users/tualek/ohochat
+ keywords: Meta Business AI, ai_generated, standby, activation source, delivery authority, Stream @meta-ai, take_thread_control, pass_thread_control, oho-api, oho-webhook, focused tests
+---
+
+### Task 1: Review Meta Business AI plan
+
+task: review-and-update-meta-business-ai-plan
+task_group: Meta Business AI Messenger architecture
+task_outcome: success
+
+Preference signals:
+- ผู้ใช้ยืนยันว่า `ai_generated` คือ field ที่ Meta webhook ส่งมาเมื่อ Meta AI เป็นผู้ตอบ -> ในงานต่อไปต้อง preserve incoming field และแยก message author identity ออกจาก thread/delivery authority
+- ผู้ใช้ต้องการแผนที่พร้อมทำงาน ไม่ใช่ migration ขนาดใหญ่ที่รวมหลาย concern -> เริ่มจาก scope และ contract ที่พิสูจน์ได้จริง
+- งาน Meta ควรตอบภาษาไทย พร้อม evidence/path และระบุข้อจำกัดอย่างตรงไปตรงมา
+
+Reusable knowledge:
+- `message.ai_generated === true` เป็น per-message author signal สำหรับ Meta AI; ไม่ใช่ Page activation, contact eligibility หรือ delivery ownership
+- `app_id`, `metadata`, `hop_context`, `standby`, `thread_owner` และ `subscribed_apps` ไม่ใช่ activation source ที่เชื่อถือได้โดยลำพังจากหลักฐานใน rollout
+- ไม่มี supported Page/contact activation source ใน repo ณ rollout นี้; Meta Eligibility API ถูกระบุเป็น coming soon ในเอกสารที่เก็บไว้
+- Existing legacy `meta_business_ai` state/schema ต้องไม่ถูกลบโดยไม่มี backfill และ volume verification
+
+Failures and how to do differently:
+- แผนเดิมรวม `meta_ai_profile`, state machine, Redis/Cloud Tasks, provisioning, webhook cleanup และ TypeScript conversion ไว้ด้วยกัน -> แยก concerns และเริ่มจาก sender identity/author labeling ที่เล็กที่สุด
+- ห้ามเปลี่ยน `ai_generated` ให้กลายเป็น authority observation หรือใช้ `standby` เป็นหลักฐานว่าเป็น Meta Business AI โดยอัตโนมัติ
+- Exact handoff text ใช้ได้เฉพาะ handoff-to-queue contract; ห้ามใช้เป็น Page activation หรือปลดล็อก Graph take/return
+
+References:
+- `docs/meta-business-ai/plan-fix-meta-ai-profile.md`
+- `docs/meta-business-ai/meta-biz-ai-payload-samples.md:6-19`
+- `docs/meta-business-ai/meta-official-coming-soon-2026-08-04.md:9-15,29-31`
+
+### Task 2: Update plan and implementation safeguards
+
+task: narrow-meta-business-ai-mvp-and-validate
+ task_group: oho-api/oho-webhook Meta Business AI MVP
+ task_outcome: partial
+
+Preference signals:
+- เมื่อผู้ใช้แก้ว่า `ai_generated` มาจาก Meta webhook -> ใช้ strict boolean จาก payload เท่านั้น; ห้ามสร้างจาก `app_id`, metadata หรือ channel
+
+Reusable knowledge:
+- Updated plan path: `docs/meta-business-ai/plan-fix-meta-ai-profile.md`
+- `hasMetaBusinessAiActivation()` intentionally returns `false` until an explicit activation source exists; this prevents unsupported Meta take/return and Meta-specific send blocking
+- AI echoes from Facebook `messaging`/`standby` can route to `${businessId}@meta-ai`; provisioning failure should fall back to `${businessId}@inbox` while preserving `ai_generated:true`
+- Generic standby and non-Meta external app behavior should remain unchanged until activation is confirmed
+- API focused validation passed 5 suites / 31 tests; webhook focused validation passed 1 suite / 17 tests; both builds and `git diff --check` passed
+
+Failures and how to do differently:
+- Do not call the implementation ready to ship: no real UAT or terminal Mongo/Stream replay was performed, and type-check still has unrelated existing failures
+- Worktrees contained many pre-existing uncommitted changes and deleted canonical/dedup tests; isolate the intended diff before commit/review
+- Verify terminal datastore/Stream state, not HTTP 200 or unit-test success alone
+
+References:
+- API test command: `npm test -- --runInBand --coverage=false src/services/contact/meta-business-ai/control-hooks.spec.js src/utils/meta-business-ai.spec.js src/utils/meta-business-ai-automation-guard.spec.js src/services/member-send-message/inbox/inbox.hooks.spec.js src/utils/meta-business-ai-stream.spec.js`
+- Webhook test command: `npm test -- --runInBand --forceExit --coverage=false __tests__/facebook-meta-business-ai.test.ts`
+- Activation seam: `oho-api/src/utils/meta-business-ai.js:42-50`
+- Author detection: `oho-webhook/src/controllers/facebook/meta-business-ai.ts:34-39`
+- Final status: blocked pending explicit Meta activation/eligibility source and real replay verification
 

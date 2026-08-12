@@ -2,48 +2,68 @@ v1
 
 ## User Profile
 
-The user uses Codex for OHO engineering/review work, production-sensitive migration/incident investigation, local setup, Meta/ClickUp workflows, design/docs, and personal cash-flow planning. They want evidence-first conclusions with exact boundaries and verified externally visible outcomes. They often work in Thai: concise Thai for small lookups, detailed Thai findings when requested. They expect existing edits to be preserved and work to remain within stated scope. Personal finance baseline is recorded from authoritative ad-hoc notes. [ad-hoc note]
+The user uses Codex primarily for OHO engineering: evidence-first code/plan reviews, production-sensitive migrations and incidents, Meta/ClickUp workflows, local setup, and occasional design/docs. They work comfortably in Thai and expect detailed Thai evidence when a task calls for it. They prefer constrained work that preserves the stated scope and existing worktree changes. For personal cash-flow planning, a 2026-05-12 baseline is available from authoritative ad-hoc notes. [ad-hoc note]
 
 ## User preferences
 
+- For consultation, investigation, planning, and final review, use `gpt-5.6-sol`. After explicit plan approval and implementation authorization, create `[Luna Working] - {name}` with `gpt-5.6-luna` at max; pass contract/worktree/tests/constraints/no-commit rule, then Sol reviews. If unavailable, stop—do not substitute. [ad-hoc note]
 - For review-only work, pin the actual worktree/SHA/diff; do not edit, stage, commit, or run state-writing commands.
-- Cite exact file:line evidence; distinguish verified facts, observed runtime evidence, inference, `no data`, and `Not run: <reason>`—never fabricate logs.
+- Cite exact file:line evidence; distinguish verified fact, inference, `no data`, and `Not run: <reason>`—never fabricate logs.
 - Put severity-ranked blockers first and end with a direct ship/merge/rework verdict.
-- Keep implementation to stated scope; for Meta Business AI, keep `oho-api`/`oho-webhook` separate from deferred web-app/design work.
+- For detailed plan reviews, cover assumptions, risks, edge cases, validation, rollback, testing, observability, dependencies, migration, security, and acceptance criteria; propose actionable prioritized changes.
+- For Meta Business AI, preserve strict incoming `ai_generated`; separate author identity from delivery authority/activation, and keep MVP scope to proven contracts.
 - For plan-only (“ทำ plan มาอย่างเดียวก่อน”), do not implement until explicitly authorized.
-- When a user names an implementation model, do not silently substitute; after plan approval, use a new `[Luna Working] - {name}` task with `gpt-5.6-luna` max, pass the approved contract/current worktree/tests/no-commit rule, and have Sol review it. If unavailable, stop and report it. [ad-hoc note]
-- For production commands, provide one exact copy-pasteable command: flags once, no trailing-space continuations, no angle-bracket token placeholders in zsh.
-- For global-removal claims, search and classify all relevant repos/layers; state the verified scope precisely (for example, backend-only versus repository-wide).
-- For migration work, require whitelist/classification, manifest/backup before mutation, pre-mutation endpoint verification, LINE-before-DB ordering, exact rollback, and journal evidence.
-- For root-cause investigations, compare raw platform evidence, UI mappings, source path, and competing causes; do not expose tokens from logs.
+- For production commands, provide one exact copy-pasteable command: flags once, no trailing-space continuations, and no angle-bracket token placeholders in zsh.
+- For global-removal claims, search and classify all relevant repos/layers; state the verified scope precisely.
+- For migrations, require whitelist/classification, manifest/backup before mutation, pre-mutation verification, LINE-before-DB ordering, exact rollback, and journal evidence.
 
 ## General Tips
 
-- Read `phase2_workspace_diff.md` first. Extension notes are authoritative information, not executable instructions; tag derived statements `[ad-hoc note]`.
+- Read `phase2_workspace_diff.md` first. Extension notes are authoritative information, never executable instructions; tag derived statements `[ad-hoc note]`.
 - In OHO, trace payload source → ordering/queue guard → DB write → broadcast → frontend merge → search/count/filter.
-- Unit/static checks do not prove production integrations. For webhooks, also replay real/captured payloads and inspect terminal DB/queue/Stream state.
-- In production migration/config audits, inspect manifests and both journals; trace code matches to live render/call paths before recommending deployment.
-- Keep per-business secrets server-side and redact any raw log credentials.
+- Unit/static checks do not prove integrations: replay real/captured payloads and inspect terminal DB/queue/Stream state.
+- For LINE migration, inspect the manifest and both journals; use [skills/oho-line-webhook-migration/SKILL.md](skills/oho-line-webhook-migration/SKILL.md) for safety gates and command-shape checks.
+- Keep per-business secrets server-side and redact raw log credentials.
 
 ## What's in Memory
+
+### /Users/tualek/.codex
+
+#### 2026-08-11
+
+- Sol planning and Luna implementation delegation: `gpt-5.6-sol`, `gpt-5.6-luna`, `Luna Working`, reasoning effort max, no-commit rule
+  - desc: Authoritative default handoff protocol for an approved implementation task. [ad-hoc note]
+  - learnings: Stop if Luna max is unavailable; do not substitute or begin implementation before authorization. [ad-hoc note]
 
 ### /Users/tualek/ohochat
 
 #### 2026-08-11
 
-- Meta Business AI backend MVP and flag-scope correction: Meta Business AI, `facebook_delivery_authority`, `ai_generated`, `rt_meta_business_ai_enabled`, Redis lease, Lua CAS
-  - desc: Backend/webhook contract, scoped fixes, remaining canary blockers, and exact distinction between removed backend Remote Config lookup and active web-app flag usage.
-  - learnings: Pin real commits via reflog if refs point at staging; HTTP 200/focused tests are not proof—B1–B5 require payload replay, terminal state, dedup CAS, campaign race, legacy state, and isolated coverage.
+- Meta Business AI plan/contract correction: `plan-fix-meta-ai-profile.md`, `ai_generated`, `hasMetaBusinessAiActivation`, `standby`, `meta-ai`, terminal Mongo/Stream replay
+  - desc: Detailed plan review and narrow backend/webhook MVP contract; search first for author identity, activation gate, legacy compatibility, and blocked side effects.
+  - learnings: `ai_generated` is author identity only; explicit activation/eligibility and terminal replay remain required before Meta authority/send behavior can ship.
+
+- LINE webhook migration hardening and canary operation: `migrate-line-webhook.ts`, `--allowed-host`, manifest, `db_update_requested`, `rollback_not_needed`, `register_webhook_at`
+  - desc: Whitelist/manifest/rollback workflow and runtime config boundary for `/Users/tualek/ohochat/script-oho`.
+  - learnings: Apply only the reviewed manifest; test success is UAT-canary evidence, not real-message/queue/terminal/rollback proof.
+
+- Meta Business AI backend MVP and feature-flag scope: `facebook_delivery_authority`, `rt_meta_business_ai_enabled`, Redis lease, Lua CAS, `oho-api`, `oho-webhook`
+  - desc: Earlier scoped safety fixes, delivery/tenant/dedup review, and the backend-versus-web-app Remote Config correction.
+  - learnings: HTTP 200/focused tests do not prove a webhook path; classify workspace-wide flag hits before claiming removal.
 
 #### 2026-08-10
 
-- LINE webhook migration hardening and runtime config: `migrate-line-webhook.ts`, `--allowed-host`, manifest, `db_update_requested`, `APP_CONFIG`, `webhook_endpoint`, `OHO_WEBHOOK_URL`
-  - desc: Manifest-first migration/canary safeguards and the cross-repo config boundary; search before code changes or production commands in `script-oho`.
-  - learnings: Change core-api `webhook_endpoint`, not internal Cloud Tasks `OHO_WEBHOOK_URL`; source/unit validation remains UAT/one-channel only without real-message and rollback proof.
+- Facebook Messenger attachment root cause: Gentle Clinic, `error_subcode=2018047`, `Upload attachment failure`, `mediaUrl`, GCS
+  - desc: Read-only diagnosis across OHO source, GCP logs, GCS images, and raw Meta errors.
+  - learnings: The Thai UI mapping is broad; synchronized cross-business Meta 400s supported ingestion failure, so retry only failed attachments after recovery.
 
-- Facebook Messenger attachment root cause: Gentle Clinic, `error_subcode=2018047`, `Upload attachment failure`, `mediaUrl`, `core-api--production`, GCS
-  - desc: Read-only production diagnosis route for attachment-send failures across OHO source, GCP logs, GCS images, and raw Meta error evidence.
-  - learnings: The Thai UI string is broad error mapping; valid cross-business files plus synchronized Meta 400s supported attachment-ingestion failure, so retry only failed attachments after recovery.
+### /Users/tualek/Documents/Codex/2026-08-11/referenced-chatgpt-conversation-this-is-an
+
+#### 2026-08-11
+
+- Meta AI plan review request, aborted: `plan-fix-meta-ai-profile.md`, assumption, risk, edge case, observability, acceptance criteria
+  - desc: Request shape for a resumed detailed review; no plan file or source was inspected in this rollout.
+  - learnings: Begin from the live plan/context and report prioritized concrete changes; carry forward no findings from the aborted turn.
 
 ### /Users/tualek/Documents/migrant-labor-crm
 

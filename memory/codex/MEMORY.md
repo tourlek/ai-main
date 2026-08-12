@@ -24,12 +24,25 @@ applies_to: cwd=/Users/tualek/ohochat; reuse_rule=reuse the backend/webhook cont
 
 - rt_meta_business_ai_enabled, firebase-remote-config.js, oho-web-app/store/index.js, Conversation.vue, RoomHeader.vue, SendMessageDisabled.vue, utils/meta-business-ai.js, backend RC lookup, workspace-wide rg
 
+## Task 3: Review and narrow the Meta Business AI plan against the actual webhook contract; partial
+
+### rollout_summary_files
+
+- rollout_summaries/2026-08-11T09-28-34-wXtp-meta_business_ai_plan_review_and_scope_correction.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/08/11/rollout-2026-08-11T16-28-34-019ff026-fc80-7881-8a12-5ba2c15991bb.jsonl, updated_at=2026-08-11T10:24:33+00:00, thread_id=019ff026-fc80-7881-8a12-5ba2c15991bb, partial; plan and focused implementation safely narrowed, blocked on activation evidence and terminal replay)
+
+### keywords
+
+- plan-fix-meta-ai-profile.md, ai_generated, meta-ai, inbox, hasMetaBusinessAiActivation, standby, take_thread_control, pass_thread_control, activation source, legacy meta_business_ai, 31 passed, 17 passed
+
 ## User preferences
 
 - when reviewing this feature, the user asked for a detailed plan around “ข้อความไม่เข้าหรอ ? หรือ performance drop” -> trace message delivery, authority correctness, security/tenant scope, DB/Redis hot-path cost, and concrete worst cases rather than only the diff. [Task 1]
 - when the user said to fix “แค่ scope ที่เป็น feature meta business ai ก่อน” and defer web-app design -> preserve dirty worktrees and keep backend/webhook changes separate from UI or unrelated channels. [Task 1]
 - when the user corrected “ฉันบอกให้ใช้ 5.6 Luna max” -> do not silently substitute a nearby model; if the named model is unavailable, stop and report it. Once a plan is confirmed and implementation authorized, use a new `[Luna Working] - {name}` task with `gpt-5.6-luna` at max, hand it the approved contract/current worktree/tests/no-commit rule, then have Sol monitor and review the result; do not substitute if Luna max is unavailable. [Task 1] [ad-hoc note]
 - when the user challenged “บอกว่าไม่มี feature flag แล้วทำไมยังมี ใน firebase config” -> acknowledge the overclaim directly and distinguish backend removal from repository-wide removal. [Task 2]
+- when reviewing a Meta AI plan, the user requested “assumption/risk/edge case/validation/rollback/testing/observability/dependency/migration/security หรือ acceptance criteria” and “การแก้ไขที่ actionable และจัดลำดับความสำคัญ” -> organize concrete, prioritized changes around those categories, not merely a gap list. [Task 3]
+- when the user confirmed `ai_generated` is a field Meta sends when Meta AI replied -> preserve the strict incoming boolean and separate message author identity from delivery authority; do not infer it from `app_id`, metadata, or channel. [Task 3]
+- for Meta work, the user wants detailed Thai answers with evidence/path and honest limits; keep the MVP to proven contracts rather than a large multi-concern migration. [Task 3]
 
 ## Reusable knowledge
 
@@ -38,6 +51,9 @@ applies_to: cwd=/Users/tualek/ohochat; reuse_rule=reuse the backend/webhook cont
 - Use top-level `facebook_delivery_authority` (`oho|other`) plus timestamp. `standby` customer events observe `other`; customer `messaging` returns `oho` only from prior `other`. Tenant-scope Take/Return by `_id + business_id`, validate Facebook, call Graph first, then conditionally persist only non-stale state; Graph failure preserves prior authority. [Task 1]
 - Redis dedup needs pending lease ownership tokens: `completeWithTtl` and `releaseWithToken` must use Lua/CAS so an expired worker cannot mutate a newer claim. Automated Facebook sends use a primary read and fail closed if the authoritative contact is missing; measure p95 and primary load before rollout. [Task 1]
 - Accurate feature-flag statement: backend Remote Config lookup was removed from `oho-api`/`oho-webhook`, but `rt_meta_business_ai_enabled` remains active in web-app store/plugin/Smartchat UI. Before a global-removal claim, run workspace-wide `rg -n -i "meta[_-]?business[_-]?ai|rt_meta_business_ai|business_ai"` with dependency/generated exclusions and classify hits as runtime, UI, config, docs, tests, or compatibility. [Task 2]
+- `message.ai_generated === true` is a per-message Meta AI author signal that must be preserved in Stream. Both Facebook `messaging[]` and `standby[]` AI echoes use `${businessId}@meta-ai`; a human Business Suite echo without the field uses `${businessId}@inbox`. It is neither Page activation nor thread/delivery authority. [Task 3]
+- No trustworthy Page/contact activation source was found: `standby`, `hop_context`, `app_id`, `metadata`, `thread_owner`, and `subscribed_apps` are insufficient alone. Until explicit activation/eligibility evidence exists, `hasMetaBusinessAiActivation()` returns `false` and Meta-specific standby blocking, Graph take/return, and send guards remain intentionally blocked. Preserve legacy `meta_business_ai` schema compatibility. [Task 3]
+- Narrow the MVP to sender identity/author labeling with an explicit activation gate, non-goals, phases, acceptance checklist, rollback, and Definition of Done. Keep `meta_ai_profile`, Redis/Cloud Tasks, state-machine migration, cold provisioning, broad TypeScript conversion, and UI work out unless separately justified. Focused validation was API 5 suites/31 tests, webhook 1 suite/17 tests, builds, and `git diff --check`; full type-check had unrelated failures. [Task 3]
 
 ## Failures and how to do differently
 
@@ -45,6 +61,64 @@ applies_to: cwd=/Users/tualek/ohochat; reuse_rule=reuse the backend/webhook cont
 - Symptom: campaign delivery reaches a contact whose authority changed mid-batch. Cause: authority filtering is a batch snapshot. Fix: add measured per-recipient/send-time checks or gate campaigns. [Task 1]
 - Symptom: a slow Redis worker races a reclaimed 300-second lease. Cause: no ownership token/CAS. Fix: block canary until tokenized Lua/CAS completion/release is present. [Task 1]
 - Symptom: “no feature flag” overclaims scope. Cause: searched only backend/runtime. Fix: search and classify all repositories/layers; say “no backend RC lookup remains” when that is the verified boundary. [Task 2]
+- Symptom: an oversized plan turns `ai_generated` or `standby` into authority/activation and claims performance benefit without a baseline. Cause: author identity, activation, state machine, and optimization were conflated. Fix: split these concerns; never use the fields to write authority or trigger Meta side effects. [Task 3]
+- Symptom: unit tests/builds are called deploy-ready. Cause: no explicit activation source and no real payload replay to terminal Mongo/Stream state; worktree also contained unrelated changes/deleted tests. Fix: isolate the intended diff, restore intended canonical/dedup coverage, and keep status `blocked` until activation/eligibility plus real terminal replay verification. [Task 3]
+
+# Task Group: /Users/tualek/Documents/Codex/2026-08-11/referenced-chatgpt-conversation-this-is-an / Meta AI plan review request
+
+scope: Route a resumed detailed review of `plan-fix-meta-ai-profile.md`; the original review was aborted before file inspection, so this block preserves request shape, not findings.
+applies_to: cwd=/Users/tualek/Documents/Codex/2026-08-11/referenced-chatgpt-conversation-this-is-an; reuse_rule=reuse the review dimensions for the same or similar plan-review requests, but inspect the live plan and source before asserting any conclusion.
+
+## Task 1: Review Meta AI profile plan; aborted before analysis
+
+### rollout_summary_files
+
+- rollout_summaries/2026-08-11T04-28-02-vw3l-meta_ai_plan_review_aborted.md (cwd=/Users/tualek/Documents/Codex/2026-08-11/referenced-chatgpt-conversation-this-is-an, rollout_path=/Users/tualek/.codex/sessions/2026/08/11/rollout-2026-08-11T11-28-02-019fef13-d776-7dc0-b2b5-fce38b9ab737.jsonl, updated_at=2026-08-11T04:28:15+00:00, thread_id=019fef13-d776-7dc0-b2b5-fce38b9ab737, uncertain; user aborted before inspection)
+
+### keywords
+
+- plan-fix-meta-ai-profile.md, Meta AI, plan review, assumption, risk, edge case, validation, rollback, testing, observability, dependency, migration, security, acceptance criteria
+
+## User preferences
+
+- when asking for a detailed plan review, the user requested “assumption/risk/edge case/validation/rollback/testing/observability/dependency/migration/security หรือ acceptance criteria” plus actionable prioritized changes -> inspect the target and context first, then report severity/priority, rationale, suggested wording or concrete changes, and a validation checklist. [Task 1]
+
+## Reusable knowledge
+
+- The requested target is `/Users/tualek/ohochat/docs/meta-business-ai/plan-fix-meta-ai-profile.md`; this rollout did not open or validate it. [Task 1]
+
+## Failures and how to do differently
+
+- Do not carry forward findings from this rollout: it ended before analysis. If resumed, begin with the live file and relevant source/payload context rather than treating the requested categories as completed review evidence. [Task 1]
+
+# Task Group: /Users/tualek/.codex / Sol planning and Luna implementation delegation workflow
+
+scope: User-directed model/task handoff for implementation after an approved plan; use when creating a Codex implementation task.
+applies_to: cwd=/Users/tualek/.codex; reuse_rule=reuse as the default delegated-implementation workflow unless the user names a different model/process; it does not authorize implementation before approval. [ad-hoc note]
+
+## Task 1: Preserve the default model workflow from authoritative ad-hoc notes
+
+### rollout_summary_files
+
+- extensions/ad_hoc/notes/20260811-163011-sol-plan-luna-implement.md (cwd=/Users/tualek/.codex, rollout_path=extensions/ad_hoc/notes/20260811-163011-sol-plan-luna-implement.md, updated_at=2026-08-11, extension=ad_hoc authoritative note only)
+- extensions/ad_hoc/notes/20260811-163349-luna-working-title-prefix.md (cwd=/Users/tualek/.codex, rollout_path=extensions/ad_hoc/notes/20260811-163349-luna-working-title-prefix.md, updated_at=2026-08-11, extension=ad_hoc authoritative note only)
+
+### keywords
+
+- gpt-5.6-sol, gpt-5.6-luna, reasoning effort max, Luna Working, approved plan, no-commit rule, implementation task, Sol review
+
+## User preferences
+
+- for consultation, investigation, grilling, decision-making, planning, and final review, use `gpt-5.6-sol`; after the user confirms a plan and authorizes implementation, create a new `[Luna Working] - {name}` Codex task using `gpt-5.6-luna` with reasoning effort `max`. [Task 1] [ad-hoc note]
+- pass Luna the approved contract, current worktree state, completed partial work, tests, constraints, and no-commit rule; Sol monitors/reviews the result and reports evidence. If Luna max is unavailable, stop and tell the user rather than substituting a model. [Task 1] [ad-hoc note]
+
+## Reusable knowledge
+
+- The required task title prefix is exactly `[Luna Working] - {name}`; rename immediately if the creation flow cannot set it. [Task 1] [ad-hoc note]
+
+## Failures and how to do differently
+
+- Do not silently substitute a nearby model or start a Luna implementation task before explicit plan approval and implementation authorization. [Task 1] [ad-hoc note]
 
 # Task Group: /Users/tualek/ohochat / Facebook Messenger attachment ingestion root-cause investigation
 
@@ -84,12 +158,12 @@ applies_to: cwd=/Users/tualek/ohochat; reuse_rule=reuse the evidence sequence fo
 scope: Evidence-first review, plan, hardening, and one-channel canary operation of `migrate-line-webhook.ts`; use for LINE endpoint domain changes requiring exact rollback.
 applies_to: cwd=/Users/tualek/ohochat/script-oho; reuse_rule=reuse the workflow and safety gates for this migration family, but re-read the current CLI/source and inspect live journals before any production operation; source/unit validation is not end-to-end proof.
 
-## Task 1: Audit, harden, and operate the LINE webhook migration; partial / final production outcome unverified
+## Task 1: Audit, plan, harden, and operate the LINE webhook migration; partial / final production outcome unverified
 
 ### rollout_summary_files
 
 - rollout_summaries/2026-08-10T07-54-21-Wlnm-line_webhook_migration_review_config_audit.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/08/10/rollout-2026-08-10T14-54-21-019feaaa-5edf-7453-8fdb-0bf9b642ca0c.jsonl, updated_at=2026-08-10T10:38:39+00:00, thread_id=019feaaa-5edf-7453-8fdb-0bf9b642ca0c, partial; safety audit and runtime-config boundary)
-- rollout_summaries/2026-08-10T07-15-37-7oWo-line_webhook_migration_hardening_and_production_canary.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/08/10/rollout-2026-08-10T14-15-37-019fea86-e89e-79c3-b1e3-68a6504098fc.jsonl, updated_at=2026-08-10T11:07:05+00:00, thread_id=019fea86-e89e-79c3-b1e3-68a6504098fc, partial; static/unit validation and one-channel workflow, no final production confirmation)
+- rollout_summaries/2026-08-10T07-15-37-7oWo-line_webhook_migration_audit_hardening_and_production_runboo.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/08/10/rollout-2026-08-10T14-15-37-019fea86-e89e-79c3-b1e3-68a6504098fc.jsonl, updated_at=2026-08-11T03:38:57+00:00, thread_id=019fea86-e89e-79c3-b1e3-68a6504098fc, partial; consolidated audit, plan-only boundary, implementation review, and canary guidance)
 - rollout_summaries/2026-08-10T06-14-37-ygPX-harden_line_webhook_migration_recovery.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/08/10/rollout-2026-08-10T13-14-37-019fea4f-0f09-7031-a11f-8b18c23fcf85.jsonl, updated_at=2026-08-10T07:28:25+00:00, thread_id=019fea4f-0f09-7031-a11f-8b18c23fcf85, partial; recovery/crash-window hardening)
 - rollout_summaries/2026-08-10T04-32-13-Idz9-line_webhook_migration_hardening_scoped_dry_run.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/08/10/rollout-2026-08-10T11-32-13-019fe9f1-4dfe-7963-a2c9-f930bfbf93e7.jsonl, updated_at=2026-08-10T06:55:37+00:00, thread_id=019fe9f1-4dfe-7963-a2c9-f930bfbf93e7, partial; one-channel read-only dry-run)
 
@@ -103,6 +177,7 @@ applies_to: cwd=/Users/tualek/ohochat/script-oho; reuse_rule=reuse the workflow 
 - when the user said “ไม่ต้องงั้นนายทำ plan มาอย่างเดียวก่อน” -> keep the run plan-only and do not edit implementation until explicitly authorized. [Task 1]
 - when the user specified `register_webhook_at` should not be updated -> never put it in migrate or rollback payloads. [Task 1]
 - when giving production commands, the user wants one exact copy-pasteable command; no duplicated flags, no trailing-space continuation, and no `<token>` placeholder that zsh reads as redirection. [Task 1]
+- when canarying a migration, the user prefers one channel/business, manifest inspection, applying that exact manifest, then a real LINE message with webhook/queue/terminal processing evidence before broader rollout. [Task 1]
 
 ## Reusable knowledge
 
@@ -111,6 +186,7 @@ applies_to: cwd=/Users/tualek/ohochat/script-oho; reuse_rule=reuse the workflow 
 - Apply must consume the reviewed manifest rather than rebuild candidates. Apply/rollback require exclusive `<manifest>.lock`; journal `line_put_requested`, `db_update_requested` before Mongo commit, `db_updated`, `migrated`, and compensation/conflict states. Exact rollback needs `$set`/`$unset` restoration of field presence. [Task 1]
 - Static/unit validation: focused tests `11/11`, full tests `21/21`, and CLI help passed. The safe status is UAT/one-channel canary only until real-message, queue/terminal-processing, and rollback verification pass. [Task 1]
 - Runtime config boundary: change `oho-api` environment `webhook_endpoint` in the `APP_CONFIG` Secret Manager flow (GitLab config project `294` → `core-api-config--json--<env>`), then deploy `core-api` with the new secret version. Do not change `oho-webhook` `OHO_WEBHOOK_URL`: it is the internal Cloud Tasks callback base. The stale `webhook.oho.chat` text in `oho-web-app/pages/business/_biz_id/setting/integration.vue:824-1140` is in a commented block, so it does not require web-app deployment. [Task 1]
+- Related skill: skills/oho-line-webhook-migration/SKILL.md. [Task 1]
 
 ## Failures and how to do differently
 
