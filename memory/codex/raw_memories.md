@@ -4516,6 +4516,76 @@ References:
 - Prior conversation ID: `6a7aa49b-df20-83ec-a0b6-c5704cce2124`
 - Exact requested review dimensions: assumptions, risks, edge cases, validation, rollback, testing, observability, dependencies, migration, security, and acceptance criteria.
 
+## Thread `019fef19-a05e-7773-9301-06b8ab7c9e37`
+updated_at: 2026-08-11T14:18:06+00:00
+cwd: /Users/tualek/ohochat
+rollout_path: /Users/tualek/.codex/sessions/2026/08/11/rollout-2026-08-11T11-34-21-019fef19-a05e-7773-9301-06b8ab7c9e37.jsonl
+rollout_summary_file: 2026-08-11T04-34-21-HTzp-meta_business_ai_plan_review_and_mvp_correction.md
+
+---
+description: Meta Business AI plan was narrowed from an oversized profile/state migration to a Facebook-only MVP, but implementation still requires rework before merge due to hidden writes, duplicated authority logic, lease expiry risk, and unguarded bulk broadcast.
+task: review-and-correct-meta-business-ai-plan-and-mvp
+task_group: /Users/tualek/ohochat/meta-business-ai
+task_outcome: partial
+cwd: /Users/tualek/ohochat
+keywords: Meta Business AI, ai_generated, meta_business_ai_enabled, standby, facebook_delivery_authority, @meta-ai, @inbox, Stream, Redis lease, Lua CAS, Graph API, upsert.hooks.js, upsert.class.js, broadcast
+---
+
+### Task 1: Narrow and rewrite implementation plan
+
+task: review-plan-fix-meta-ai-profile
+ task_group: Meta Business AI planning
+ task_outcome: partial
+
+Preference signals:
+- ผู้ใช้แก้ว่า `ai_generated คือ field ที่ webhook จาก meta ส่งมาถ้า meta ai เป็นคนตอบ` -> preserve strict incoming `message.ai_generated === true`; never claim OHO creates/infer it from app/channel/metadata.
+- ผู้ใช้ขอให้อัปเดต plan ให้ “พร้อมทำงาน” -> include explicit scope/non-goals, phases, files, tests, rollout/rollback, and honest local-vs-UAT status.
+
+Reusable knowledge:
+- Correct contract: `message.ai_generated === true` identifies the author of one Meta message only. It is not activation or thread-owner evidence.
+- AI Stream identity is tenant-scoped `${businessId}@meta-ai`; provisioning failure falls back to `${businessId}@inbox` while preserving `ai_generated: true`.
+- `standby` means another app may own delivery; it does not itself prove Meta Business AI.
+- The revised plan removed `meta_ai_profile`, cold provisioning/backfill, Redis/Cloud Tasks migration, send-first/HUMAN_AGENT fallback, TypeScript conversion, and UI work from the MVP.
+
+Failures and how to do differently:
+- Do not combine schema/state-machine migration, optimization, Stream provisioning, and webhook cleanup into one rollout. Separate correctness scope from later performance work.
+- Do not call focused tests or a plan update runtime verification; live payload replay and terminal Mongo/Stream state remain separate gates.
+
+References:
+- `/Users/tualek/ohochat/docs/meta-business-ai/plan-fix-meta-ai-profile.md`
+- `docs/meta-business-ai/meta-biz-ai-payload-samples.md:6-19,45-55`
+
+### Task 2: Implement and review MVP corrections
+
+task: implement-approved-facebook-meta-business-ai-mvp
+ task_group: oho-api + oho-webhook
+ task_outcome: partial
+
+Preference signals:
+- Approved scope was Facebook-only in `oho-api`/`oho-webhook`; preserve dirty worktree and do not commit, push, reset, revert, delete, or stage.
+- Treat HTTP 200, focused tests, and queue acknowledgement as insufficient; verify terminal datastore/Stream state for live claims.
+
+Reusable knowledge:
+- Implemented flow wires explicit `channel.meta_business_ai_enabled` through webhook context, contact upsert, automation guard, and control services.
+- Strict AI exception must occur only after Facebook/page/contact validation; unknown external apps without strict `ai_generated:true` remain fail-closed.
+- Enabled Facebook standby customer messages should persist first, then skip OHO chatbot/ARP/greeting/fallback/referral/scheduled automation.
+- Existing Accept/Close Graph control remains tenant-scoped and persists authority only after Graph success.
+- Primary send-time automation guard is tenant-scoped, bounded, and fail-closed on missing/error; however raw bulk Facebook broadcast is outside this guard.
+
+Failures and how to do differently:
+- Final review found disabled channels still trigger contact activation snapshot writes in `upsert.hooks.js:184-240`; remove this traffic-driven write so feature-off has no new side effects.
+- Authority/evidence persistence is duplicated in `upsert.hooks.js:184-390` and `upsert.class.js:51-248`; extract one shared atomic updater or simplify the duplicate fallback.
+- Redis dedup uses a fixed 300-second lease with no renewal (`block.ts:289-321`, `redis.service.ts:224-303`); add renewal or an explicit maximum processing policy and real expiry/CAS integration tests.
+- Remove unused `checkDuplicate()` and deprecated dedup methods if no callers remain, or document why compatibility requires them.
+- Remove `skipped_authority_count` from bulk broadcast unless campaigns are explicitly brought into MVP and guarded per recipient/send time.
+- `upsert.class.spec.js` failed to load on Node 24 due `config` calling `Utils.isRegExp`; report as environment/dependency failure, not a passing code test.
+
+References:
+- Focused webhook tests: 3 suites / 24 tests passed; warnings included missing `OHO_FB_APP_ID` and unavailable local Redis.
+- API guard/control: 2 suites / 13 tests passed; `upsert.class.spec.js` blocked by Node 24/config incompatibility.
+- `git diff --check` passed in both repositories.
+- Final verdict: rework before ship; live Meta replay, real Graph take/return, terminal Mongo/Redis/Stream verification, load test, canary, and rollback remain unverified.
+
 ## Thread `019ff026-fc80-7881-8a12-5ba2c15991bb`
 updated_at: 2026-08-11T10:24:33+00:00
 cwd: /Users/tualek/ohochat
@@ -4584,4 +4654,66 @@ References:
 - Activation seam: `oho-api/src/utils/meta-business-ai.js:42-50`
 - Author detection: `oho-webhook/src/controllers/facebook/meta-business-ai.ts:34-39`
 - Final status: blocked pending explicit Meta activation/eligibility source and real replay verification
+
+## Thread `019ff094-bfe0-7330-b67d-5c37089d39fe`
+updated_at: 2026-08-11T18:47:31+00:00
+cwd: /Users/tualek/ohochat
+rollout_path: /Users/tualek/.codex/sessions/2026/08/11/rollout-2026-08-11T18-28-28-019ff094-bfe0-7330-b67d-5c37089d39fe.jsonl
+rollout_summary_file: 2026-08-11T11-28-28-MoHA-trace_querychannels_call_sites_and_doc_updates.md
+
+---
+description: Traced Stream Chat queryChannels usage in ohochat and identified the exact backend hot paths plus documentation corrections.
+task: querychannels-call-site-analysis
+task_group: ohochat-stream-chat
+task_outcome: success
+cwd: /Users/tualek/ohochat
+keywords: queryChannels, Stream Chat, contact/chat/search, chat-session/group/search, skip_stream_channel_sync, Flutter, docs/queryChannels.md
+---
+
+### Task 1: Locate queryChannels usages
+
+task: repository-wide Stream Chat queryChannels call-site inventory
+task_group: ohochat-stream-chat
+task_outcome: success
+
+Preference signals:
+- The user asked where `queryChannel` is used; future answers should search the workspace, distinguish exact Stream calls from unrelated `queryChannel` variables, and provide paths/lines plus runtime flow.
+
+Reusable knowledge:
+- Active backend calls are `oho-api/src/services/contact/chat-search/chat-search.class.js:46` for `/contact/chat/search` and `oho-api/src/services/chat-session/group/search/search.class.js:28` for `/chat-session/group/search`.
+- Flutter directly calls it at `oho-flutter-mobile/lib/core/services/stream_chat_service.dart:331`, invoked from `oho-flutter-mobile/lib/modules/home/controllers/chat_list_controller.dart:915`; chunks are size 10.
+- Manual callers are `script-oho/unread-unresponded/migrate-unread.ts:716`, `script-oho/unread-unresponded/probe-stream-authority.ts:355`, `oho-cli/lib/fix/fix-chat-room-attachment.js:307`, and `oho-cli/lib/fix/fix-contact.js:74`.
+- `oho-api/src/services/conversations/facebook/facebook.hooks.js:372` is commented out; Flutter test verifications are mocks.
+
+Failures and how to do differently:
+- Broad `queryChannel` searches include docs, incidents, tests, comments, and unrelated export variables. Narrow with `rg '\.queryChannels\\('` and inspect surrounding comment delimiters.
+
+References:
+- `oho-api/src/services/contact/chat-search/chat-search.class.js:46-68`
+- `oho-api/src/services/chat-session/group/search/search.class.js:28-47`
+- `oho-flutter-mobile/lib/core/services/stream_chat_service.dart:323-344`
+
+### Task 2: Review docs/queryChannels.md coverage
+
+task: compare queryChannels documentation with active code and identify required updates
+task_group: ohochat-stream-chat-documentation
+task_outcome: success
+
+Preference signals:
+- The user asked what additional points should be updated in `docs/queryChannels.md`; future documentation reviews should state scope explicitly and verify both positive call paths and no-call guards.
+
+Reusable knowledge:
+- For web hot-path changes, update only the two backend search classes; frontend Smartchat/Groupchat actions converge on those endpoints.
+- Qualify `docs/queryChannels.md:68-70` because Stream is not queried for `$limit === 0`, empty database results, Smartchat `feature_flag.skip_stream_channel_sync`, or unresolved Groupchat starred scope.
+- Add Flutter as a separate direct production caller only if documenting all system calls; scripts/CLI are manual/non-hot-path callers.
+- `Conversation.vue` uses `channel.watch()`, not the search endpoints.
+
+Failures and how to do differently:
+- `git status` from the workspace root failed because the relevant git repository is under a project subdirectory; use `/Users/tualek/ohochat/oho-api` (or the relevant component directory) for git operations.
+- Avoid editing every UI caller when the intended fix is backend Stream-query behavior.
+
+References:
+- `docs/queryChannels.md:68-70`
+- `oho-api/src/services/contact/chat-search/chat-search.class.js:41-63,113-162`
+- `oho-api/src/services/chat-session/group/search/search.class.js:69-84,116-138`
 

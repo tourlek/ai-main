@@ -34,6 +34,16 @@ applies_to: cwd=/Users/tualek/ohochat; reuse_rule=reuse the backend/webhook cont
 
 - plan-fix-meta-ai-profile.md, ai_generated, meta-ai, inbox, hasMetaBusinessAiActivation, standby, take_thread_control, pass_thread_control, activation source, legacy meta_business_ai, 31 passed, 17 passed
 
+## Task 4: Rewrite the Facebook-only MVP plan and review its implementation; rework before ship
+
+### rollout_summary_files
+
+- rollout_summaries/2026-08-11T04-34-21-HTzp-meta_business_ai_plan_review_and_mvp_correction.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/08/11/rollout-2026-08-11T11-34-21-019fef19-a05e-7773-9301-06b8ab7c9e37.jsonl, updated_at=2026-08-11T14:18:06+00:00, thread_id=019fef19-a05e-7773-9301-06b8ab7c9e37, partial; corrected scope, but final review requires rework before merge)
+
+### keywords
+
+- meta_business_ai_enabled, message.ai_generated === true, @meta-ai, @inbox, upsert.hooks.js, upsert.class.js, 300-second lease, checkDuplicate(), skipped_authority_count, Node 24, Utils.isRegExp, broadcast
+
 ## User preferences
 
 - when reviewing this feature, the user asked for a detailed plan around “ข้อความไม่เข้าหรอ ? หรือ performance drop” -> trace message delivery, authority correctness, security/tenant scope, DB/Redis hot-path cost, and concrete worst cases rather than only the diff. [Task 1]
@@ -43,6 +53,8 @@ applies_to: cwd=/Users/tualek/ohochat; reuse_rule=reuse the backend/webhook cont
 - when reviewing a Meta AI plan, the user requested “assumption/risk/edge case/validation/rollback/testing/observability/dependency/migration/security หรือ acceptance criteria” and “การแก้ไขที่ actionable และจัดลำดับความสำคัญ” -> organize concrete, prioritized changes around those categories, not merely a gap list. [Task 3]
 - when the user confirmed `ai_generated` is a field Meta sends when Meta AI replied -> preserve the strict incoming boolean and separate message author identity from delivery authority; do not infer it from `app_id`, metadata, or channel. [Task 3]
 - for Meta work, the user wants detailed Thai answers with evidence/path and honest limits; keep the MVP to proven contracts rather than a large multi-concern migration. [Task 3]
+- when the user asks for a plan “พร้อมทำงาน” -> include scope/non-goals, phases, file boundaries, tests, rollout/rollback, and honest local-versus-UAT status. [Task 4]
+- for approved Facebook-only work in `oho-api`/`oho-webhook`, preserve the dirty worktree: do not commit, push, reset, revert, delete, or stage, and do not expand into `oho-web-app`. Treat HTTP 200, focused tests, and queue acknowledgement as insufficient; inspect terminal datastore/Stream state for live claims. [Task 4]
 
 ## Reusable knowledge
 
@@ -52,8 +64,10 @@ applies_to: cwd=/Users/tualek/ohochat; reuse_rule=reuse the backend/webhook cont
 - Redis dedup needs pending lease ownership tokens: `completeWithTtl` and `releaseWithToken` must use Lua/CAS so an expired worker cannot mutate a newer claim. Automated Facebook sends use a primary read and fail closed if the authoritative contact is missing; measure p95 and primary load before rollout. [Task 1]
 - Accurate feature-flag statement: backend Remote Config lookup was removed from `oho-api`/`oho-webhook`, but `rt_meta_business_ai_enabled` remains active in web-app store/plugin/Smartchat UI. Before a global-removal claim, run workspace-wide `rg -n -i "meta[_-]?business[_-]?ai|rt_meta_business_ai|business_ai"` with dependency/generated exclusions and classify hits as runtime, UI, config, docs, tests, or compatibility. [Task 2]
 - `message.ai_generated === true` is a per-message Meta AI author signal that must be preserved in Stream. Both Facebook `messaging[]` and `standby[]` AI echoes use `${businessId}@meta-ai`; a human Business Suite echo without the field uses `${businessId}@inbox`. It is neither Page activation nor thread/delivery authority. [Task 3]
-- No trustworthy Page/contact activation source was found: `standby`, `hop_context`, `app_id`, `metadata`, `thread_owner`, and `subscribed_apps` are insufficient alone. Until explicit activation/eligibility evidence exists, `hasMetaBusinessAiActivation()` returns `false` and Meta-specific standby blocking, Graph take/return, and send guards remain intentionally blocked. Preserve legacy `meta_business_ai` schema compatibility. [Task 3]
+- In the earlier Task 3 checkout, no trustworthy Page/contact activation source was found: `standby`, `hop_context`, `app_id`, `metadata`, `thread_owner`, and `subscribed_apps` were insufficient alone, so `hasMetaBusinessAiActivation()` returned `false`. The newer Task 4 implementation instead uses explicit per-channel `meta_business_ai_enabled`; preserve legacy `meta_business_ai` schema compatibility and re-verify the current activation wiring before relying on either historical state. [Task 3][Task 4]
 - Narrow the MVP to sender identity/author labeling with an explicit activation gate, non-goals, phases, acceptance checklist, rollback, and Definition of Done. Keep `meta_ai_profile`, Redis/Cloud Tasks, state-machine migration, cold provisioning, broad TypeScript conversion, and UI work out unless separately justified. Focused validation was API 5 suites/31 tests, webhook 1 suite/17 tests, builds, and `git diff --check`; full type-check had unrelated failures. [Task 3]
+- The approved Facebook-only flow passes explicit `channel.meta_business_ai_enabled` through webhook context, contact upsert, automation guard, and controls. AI Stream identity is tenant-scoped `${businessId}@meta-ai`; provisioning may fall back to `${businessId}@inbox` while retaining `ai_generated: true`. Persist enabled Facebook standby customer messages before suppressing OHO chatbot/ARP/greeting/fallback/referral/scheduled automation. [Task 4]
+- The primary automation guard is tenant-scoped and fail-closed on a missing contact/query error; tenant-scoped Accept/Close Graph controls persist authority only after Graph success. Raw bulk Facebook broadcast is outside that per-contact guard. [Task 4]
 
 ## Failures and how to do differently
 
@@ -62,7 +76,41 @@ applies_to: cwd=/Users/tualek/ohochat; reuse_rule=reuse the backend/webhook cont
 - Symptom: a slow Redis worker races a reclaimed 300-second lease. Cause: no ownership token/CAS. Fix: block canary until tokenized Lua/CAS completion/release is present. [Task 1]
 - Symptom: “no feature flag” overclaims scope. Cause: searched only backend/runtime. Fix: search and classify all repositories/layers; say “no backend RC lookup remains” when that is the verified boundary. [Task 2]
 - Symptom: an oversized plan turns `ai_generated` or `standby` into authority/activation and claims performance benefit without a baseline. Cause: author identity, activation, state machine, and optimization were conflated. Fix: split these concerns; never use the fields to write authority or trigger Meta side effects. [Task 3]
-- Symptom: unit tests/builds are called deploy-ready. Cause: no explicit activation source and no real payload replay to terminal Mongo/Stream state; worktree also contained unrelated changes/deleted tests. Fix: isolate the intended diff, restore intended canonical/dedup coverage, and keep status `blocked` until activation/eligibility plus real terminal replay verification. [Task 3]
+- Symptom: unit tests/builds are called deploy-ready. Cause: the earlier Task 3 checkout had no explicit activation source and no real payload replay to terminal Mongo/Stream state; worktree also contained unrelated changes/deleted tests. Fix: isolate the intended diff, verify current `meta_business_ai_enabled` wiring, restore intended canonical/dedup coverage, and keep status blocked until real terminal replay verification. [Task 3][Task 4]
+- Symptom: feature-off Meta channels acquire traffic-driven contact activation writes. Cause: `upsert.hooks.js:184-240` performs the snapshot write. Fix: remove the write so disabled channels have no new side effects. Authority/evidence persistence is also duplicated in `upsert.hooks.js:184-390` and `upsert.class.js:51-248`; use one shared atomic updater or simplify the duplicate fallback. [Task 4]
+- Symptom: a worker outlives the fixed 300-second Redis dedup lease. Cause: no renewal in `block.ts:289-321` / `redis.service.ts:224-303`. Fix: add renewal or an explicit maximum-processing policy plus real Redis expiry/CAS integration tests. Remove dead `checkDuplicate()`/deprecated dedup methods if unused, and remove `skipped_authority_count` unless campaigns are explicitly in scope and guarded at send time. [Task 4]
+- Symptom: `upsert.class.spec.js` fails before running on Node 24. Cause: dependency `config` calls `Utils.isRegExp`. Fix: report it as an environment/dependency blocker, not a passing code suite; focused mock-Redis tests and `git diff --check` do not replace live Meta replay, real Graph take/return, terminal Mongo/Redis/Stream checks, load test, canary, and rollback. [Task 4]
+
+# Task Group: /Users/tualek/ohochat / Stream Chat queryChannels call-site and documentation review
+
+scope: Locate active Stream Chat `queryChannels` traffic and correct `docs/queryChannels.md`; use for request-volume investigations or docs updates, with backend web paths kept distinct from Flutter and manual callers.
+applies_to: cwd=/Users/tualek/ohochat; reuse_rule=reuse the call-site map as a starting point, but re-run exact-call searches against the current checkout; this is documentation/call-path evidence, not a performance measurement.
+
+## Task 1: Inventory active queryChannels uses and qualify documentation; success
+
+### rollout_summary_files
+
+- rollout_summaries/2026-08-11T11-28-28-MoHA-trace_querychannels_call_sites_and_doc_updates.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/08/11/rollout-2026-08-11T18-28-28-019ff094-bfe0-7330-b67d-5c37089d39fe.jsonl, updated_at=2026-08-11T18:47:31+00:00, thread_id=019ff094-bfe0-7330-b67d-5c37089d39fe, success; exact active callers and doc qualifications verified)
+
+### keywords
+
+- queryChannels, .queryChannels(, docs/queryChannels.md, /contact/chat/search, /chat-session/group/search, skip_stream_channel_sync, stream_chat_service.dart, chat_list_controller.dart, Conversation.vue, channel.watch(), $limit === 0
+
+## User preferences
+
+- when the user asks where `queryChannel` is used -> search the workspace, distinguish real Stream calls from variables/comments/tests/docs, and return file:line evidence with runtime flow rather than raw grep output. [Task 1]
+- when the user asks what else to update in documentation -> state whether the scope is web hot paths or every system caller, and qualify broad claims with verified no-call guards. [Task 1]
+
+## Reusable knowledge
+
+- Active production backend calls are `oho-api/src/services/contact/chat-search/chat-search.class.js:46` via `GET /contact/chat/search` and `oho-api/src/services/chat-session/group/search/search.class.js:28` via `GET /chat-session/group/search`; web Smartchat/Groupchat callers converge on these endpoints. [Task 1]
+- Flutter is a separate direct production caller: `oho-flutter-mobile/lib/core/services/stream_chat_service.dart:331`, reached from `lib/modules/home/controllers/chat_list_controller.dart:915`, preconnecting chunks of 10 with `messageLimit: 100`. CLI/migration calls are manual/non-hot-path; the Facebook hook at `oho-api/src/services/conversations/facebook/facebook.hooks.js:372` is commented out. [Task 1]
+- Qualify `docs/queryChannels.md:68-70`: neither backend path queries Stream when `$limit === 0` or database/search results are empty; Smartchat also skips for `feature_flag.skip_stream_channel_sync`, and Groupchat returns zero badges when starred scope cannot resolve an `_id`. `Conversation.vue` uses `channel.watch()`, not these search endpoints. [Task 1]
+
+## Failures and how to do differently
+
+- Symptom: `queryChannel` search overstates active usage. Cause: docs, incidents, tests, comments, and unrelated variables match. Fix: follow broad discovery with `rg '\\.queryChannels\\('` in source/runtime directories and inspect comment delimiters. [Task 1]
+- Symptom: git status fails from `/Users/tualek/ohochat`. Cause: git metadata lives in component repositories. Fix: run git commands from the relevant subdirectory such as `/Users/tualek/ohochat/oho-api`; do not edit every frontend caller if the intended change is backend Stream-query behavior. [Task 1]
 
 # Task Group: /Users/tualek/Documents/Codex/2026-08-11/referenced-chatgpt-conversation-this-is-an / Meta AI plan review request
 

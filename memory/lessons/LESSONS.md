@@ -128,3 +128,7 @@ consolidate: merge duplicates, drop obsolete ones, keep the rule one line each.
 ## 2026-08 — แทน model ที่ผู้ใช้ระบุด้วย model ใกล้เคียงเอง
 - **Mistake**: user สั่งให้ใช้ `5.6 Luna max` แต่ผมส่งงานให้ `gpt-5.6-sol` โดยไม่ได้แจ้งว่า environment ไม่มี Luna ก่อน; user corrected ว่า `ฉันบอกให้ใช้ 5.6 Luna max`.
 - **Rule**: เมื่อผู้ใช้ระบุ model ชัดเจน ให้ใช้ชื่อนั้นเท่านั้น; ถ้า environment ไม่มี model ดังกล่าวให้หยุดและแจ้งข้อจำกัด ห้ามเลือก model ใกล้เคียงแทนเอง.
+
+## 2026-08 — ลาก subsystem ที่ไม่เกี่ยวมาปนกับ bug scope
+- **Mistake**: หลังผู้ใช้ถามเรื่อง JERA tab หาย ผมตามไปวิเคราะห์ `completeClaimedDedup()` ใน Facebook webhook ทั้งที่จุดนั้นไม่อยู่ใน JERA render/fetch path; user corrected ว่า `จริงๆ อันนี้ต้องการแก้ที่ tab jera มันหายเองเพราะเรา render ก่อนที่จะได้ค่ามาหนิใช่ไหม`.
+- **Rule**: ก่อนขยายการแก้ bug ให้ trace จากอาการถึง runtime path และตัด subsystem ที่ไม่อยู่ใน path ออก; สำหรับ JERA tab race ให้จำกัด scope ที่ feature-flag resolution, MaxPanel watcher และ partner-connection fetch เท่านั้น เว้นแต่มีหลักฐานเชื่อมโยงใหม่.
