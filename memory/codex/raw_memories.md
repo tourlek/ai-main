@@ -271,49 +271,6 @@ References:
 - `migrate-unread.ts:2153-2159`
 - `migrate-unread.ts:2317-2326`
 
-## Thread `019f5efc-691c-7000-8729-9eceb1cc207d`
-updated_at: 2026-07-14T06:43:07+00:00
-cwd: /Users/tualek/ohochat
-rollout_path: /Users/tualek/.codex/sessions/2026/07/14/rollout-2026-07-14T11-57-08-019f5efc-691c-7000-8729-9eceb1cc207d.jsonl
-rollout_summary_file: 2026-07-14T04-57-08-S8ep-script_oho_unread_migration_read_by_cleanup_mode.md
-
----
-description: User asked how to delete legacy `read_by` after running unread migration; script-oho already has a dedicated cleanup mode gated by checkpoint + two flags.
-task: explain how to remove legacy read_by after migration
-task_group: /Users/tualek/ohochat/script-oho
-task_outcome: success
-cwd: /Users/tualek/ohochat/script-oho
-keywords: script-oho, migrate-unread.ts, cleanup-read-by, read_by, unread_by, checkpoint, MongoDB, $unset, migration
----
-
-### Task 1: Remove legacy read_by after unread migration
-
-task: explain how to remove legacy read_by after migration
-task_group: script-oho unread-unresponded migration
-task_outcome: success
-
-Preference signals:
-- when the user asked `ขอสรุปสั้นๆ` and then `ถ้างั้นถ้า run migration script ที่ script-oho แล้ว จะลบ read_byยังไง` -> they want short, direct operational instructions once the workflow is understood, not a long conceptual recap.
-- when the user asked whether removing `read_by` would close the blockers -> they care about the exact safety boundary between backfill and cleanup, so future answers should explicitly separate `migrate unread_by` from `unset read_by`.
-
-Reusable knowledge:
-- `script-oho/unread-unresponded/migrate-unread.ts` already has a separate `--mode=cleanup-read-by` path; it is not auto-chained after backfill.
-- Cleanup writes only when both `--execute` and `--confirm-cleanup-read-by` are present.
-- Cleanup is gated by the current env/gate checkpoint: only businesses already marked complete in that checkpoint are eligible.
-- The cleanup mode unsets `read_by` on both `contacts` and `chat-sessions`.
-- The script comments say `read_by` is the rollback path until `unread_by` has been spot-checked.
-
-Failures and how to do differently:
-- Do not assume `read_by` can be dropped immediately after enabling `unread_by`; the script intentionally keeps a separate cleanup step for rollback safety.
-- Treat the cleanup script as mutable/uncommitted until rechecked in the current tree.
-
-References:
-- `package.json: "migrate:unread:cleanup-read-by": "node -r @swc-node/register unread-unresponded/migrate-unread.ts --mode=cleanup-read-by"`
-- `unread-unresponded/migrate-unread.ts` comments around `--mode=cleanup-read-by`
-- Guard text: `--execute alone is not enough — pass --confirm-cleanup-read-by too.`
-- Cleanup update: `{ $unset: { read_by: "" } }`
-- Collections touched: `contacts`, `chat-sessions`
-
 ## Thread `019f5f90-99ef-79c1-9da8-c8468ab76236`
 updated_at: 2026-07-14T07:43:25+00:00
 cwd: /Users/tualek/ohochat/oho-backoffice
@@ -4655,6 +4612,53 @@ References:
 - Author detection: `oho-webhook/src/controllers/facebook/meta-business-ai.ts:34-39`
 - Final status: blocked pending explicit Meta activation/eligibility source and real replay verification
 
+## Thread `019ff083-0ff1-7601-a36c-8514dad1e62b`
+updated_at: 2026-08-11T13:57:23+00:00
+cwd: /Users/tualek/ohochat
+rollout_path: /Users/tualek/.codex/sessions/2026/08/11/rollout-2026-08-11T18-09-08-019ff083-0ff1-7601-a36c-8514dad1e62b.jsonl
+rollout_summary_file: 2026-08-11T11-09-08-rVYn-meta_business_ai_mvp_correction_pass.md
+
+---
+description: Implemented and locally validated a narrowly scoped Facebook Meta Business AI MVP correction pass; runtime/UAT remains unverified.
+task: facebook-meta-business-ai-mvp-corrections
+task_group: /Users/tualek/ohochat backend-webhook workflow
+task_outcome: partial
+cwd: /Users/tualek/ohochat
+keywords: Meta Business AI, meta_business_ai_enabled, ai_generated, Facebook standby, external-app whitelist, handoff, take_thread_control, pass_thread_control, Stream meta-ai, Redis lease, duplicate-create race, git diff check
+---
+
+### Task 1: Facebook Meta Business AI MVP corrections
+
+task: implement approved Meta Business AI corrections in oho-api/oho-webhook without disturbing dirty work
+ task_group: backend/webhook Meta Business AI
+ task_outcome: partial
+
+Preference signals:
+- The user required preserving dirty work and explicitly forbade commit, push, reset, revert, delete, or stage -> future agents should inspect and report worktree state first and never perform destructive Git actions.
+- The user required Facebook Messenger-only scope, no web-app changes, and no unrelated refactors -> keep similar work narrowly bounded.
+- The user required exact validation results and remaining UAT gaps -> distinguish local test success from runtime readiness.
+
+Reusable knowledge:
+- Activation is persisted `channel.meta_business_ai_enabled`, default `false`, manually configured, and not Firebase Remote Config. It is propagated through webhook channel context, contact upsert, persisted contact snapshot, automation guards, and control services.
+- `message.ai_generated === true` is strict per-message author evidence only. It must not be used as activation, thread ownership, or app identity evidence; unknown extra fields including `meta_business_ai.identity` are ignored.
+- External-app whitelist handling must occur after Facebook/page/contact validation. Strict AI evidence is a narrow exception; unknown non-AI external apps remain fail-closed, and mixed batches must not be dropped wholesale.
+- Enabled Facebook standby customer messages are persisted before OHO chatbot/ARP/greeting/fallback/referral/scheduled automation is blocked.
+- Existing Accept/Close hooks invoke Graph takeover/return only under activation/source checks, with tenant scoping and authority persistence only after Graph success. Graph failure leaves prior state unchanged.
+- Lazy Stream identity is `${businessId}@meta-ai`; provisioning failure falls back to `${businessId}@inbox` while retaining `ai_generated:true`. No cold provisioning/backfill/repair.
+- Focused validation passed: API 10 suites/50 tests; webhook 5 suites/46 tests; webhook TypeScript reported no errors; `git diff --check` clean in both repos; nothing staged.
+
+Failures and how to do differently:
+- A duplicate-create race initially lacked activation snapshot coverage. The fallback now persists the channel activation snapshot before applying standby authority, and `src/services/contact/upsert/upsert.class.spec.js` covers it.
+- Local tests showed pre-existing duplicate Jest mock warnings, missing `OHO_FB_APP_ID`, and unavailable localhost Redis. Treat these as environment warnings, not runtime proof.
+- Full suites, live Meta payload replay, Graph calls, terminal Mongo/Redis/Stream checks, canary/rollback, and target app configuration were not verified. Do not label this production-ready without those gates.
+
+References:
+- API HEAD: `afccdd74e8b1f1ca82f6d530ec5561e6d312d7eb`
+- Webhook HEAD: `c3dbadd3d4ed8eedc7f0a3c4938d87fdcc0bc994`
+- Exact handoff text: `เอเจนต์ AI ของคุณโอนแชทนี้ให้คุณ`
+- Plan: `/Users/tualek/ohochat/docs/meta-business-ai/plan-fix-meta-ai-profile.md`
+- Core files: `oho-api/src/models/channel.model.js`, `oho-api/src/services/contact/upsert/upsert.class.js`, `oho-api/src/services/contact/meta-business-ai/control-hooks.js`, `oho-api/src/utils/meta-business-ai-stream.js`, `oho-webhook/src/controllers/facebook/meta-business-ai.ts`, `oho-webhook/src/controllers/facebook/helper.ts`, `oho-webhook/src/controllers/facebook/handler.ts`
+
 ## Thread `019ff094-bfe0-7330-b67d-5c37089d39fe`
 updated_at: 2026-08-11T18:47:31+00:00
 cwd: /Users/tualek/ohochat
@@ -4716,4 +4720,174 @@ References:
 - `docs/queryChannels.md:68-70`
 - `oho-api/src/services/contact/chat-search/chat-search.class.js:41-63,113-162`
 - `oho-api/src/services/chat-session/group/search/search.class.js:69-84,116-138`
+
+## Thread `019ff11b-e580-7052-b2d7-ee32d28d724d`
+updated_at: 2026-08-11T14:09:31+00:00
+cwd: /Users/tualek/ai-main
+rollout_path: /Users/tualek/.codex/sessions/2026/08/11/rollout-2026-08-11T20-56-05-019ff11b-e580-7052-b2d7-ee32d28d724d.jsonl
+rollout_summary_file: 2026-08-11T13-56-05-3WLH-ai_main_obsidian_caveman_token_context_analysis.md
+
+---
+description: Compared Obsidian cold memory, ai-main memory, and caveman token savings; verified ai-main is sufficient and enabled caveman full.
+task: compare-memory-and-output-token-efficiency
+task_group: ai-main-memory-workflow
+ task_outcome: success
+cwd: /Users/tualek/ai-main
+keywords: ai-main, Obsidian, caveman, AGENTS.md, context, tokens, cold-memory, prompt-profiles
+---
+
+### Task 1: Memory architecture and Obsidian viability
+
+task: compare Obsidian memory with ai-main/Codex memory
+task_group: ai-main-memory-workflow
+task_outcome: success
+
+Preference signals:
+- User asked for an evidence-based check of what is installed and whether it truly saves tokens/context -> inspect configured paths and repository structure before recommending a change.
+
+Reusable knowledge:
+- ai-main already has per-repo knowledge, shared cross-tool memory, `full`/`lean`/`min` prompt profiles, and guard scripts that reduce reliance on prompt rules.
+- `/Users/tualek/.codex/AGENTS.md` measured 12,897 bytes and 1,836 words; README documents a 4,000-token ceiling for the full profile.
+- Obsidian should be treated as cold memory: retrieve only relevant notes/excerpts, never load the whole vault. It adds organization and multi-AI portability more than direct token savings.
+- Obsidian skill expects `/mnt/d/Obsidian Vault/AI Research/`, but filesystem verification on this macOS setup found that path absent.
+
+Failures and how to do differently:
+- Verify configured vault paths on the current OS; do not infer availability from an installed skill.
+- Avoid storing the same knowledge in Obsidian and ai-main memory; duplication increases context and can create stale/conflicting facts.
+
+References:
+- `/Users/tualek/.agents/skills/obsidian-vault/SKILL.md`
+- `/Users/tualek/ai-main/README.md`
+- Configured but missing path: `/mnt/d/Obsidian Vault/AI Research/`
+- ai-main memory locations: `memory/SHARED.md`, `memory/codex/`, `memory/lessons/`, and `knowledge/<repo>.md`
+
+### Task 2: Caveman behavior
+
+task: verify caveman operation and select response compression level
+task_group: response-style-and-token-efficiency
+task_outcome: success
+
+Preference signals:
+- User explicitly said `/caveman full` -> keep responses compressed at full level until `/caveman off`, `normal mode`, or session end.
+
+Reusable knowledge:
+- Caveman compresses generated responses and may reduce later conversation-history size, but does not reduce system prompt, `AGENTS.md`, source code, or tool-output context.
+- It is a formatting/prompt skill, not an automatic context-retrieval mechanism.
+- Available controls: `/caveman lite`, `/caveman full`, `/caveman ultra`, `/caveman off`.
+
+Failures and how to do differently:
+- Do not claim the skill's stated “65%” reduction is a verified reduction for Thai or this workflow; it was only a claim in the skill documentation.
+
+References:
+- `/Users/tualek/.agents/skills/caveman/SKILL.md`
+- Exact user command: `/caveman full`
+
+## Thread `019ff914-9f48-7db3-aec9-3c772585e8f1`
+updated_at: 2026-08-13T06:57:27+00:00
+cwd: /Users/tualek/ohochat
+rollout_path: /Users/tualek/.codex/sessions/2026/08/13/rollout-2026-08-13T10-05-06-019ff914-9f48-7db3-aec9-3c772585e8f1.jsonl
+rollout_summary_file: 2026-08-13T03-05-06-BsgF-jera_tab_minimal_watcher_fix_and_mr_squash.md
+
+---
+description: Minimal JERA tab race fix completed in Web MR; over-engineered API/Remote Config changes were excluded, Web commits squashed and force-pushed.
+task: fix JERA tab missing after late feature-flag resolution and clean up MR scope
+task_group: /Users/tualek/ohochat/oho-web-app JERA feature-flag workflow
+task_outcome: success
+cwd: /Users/tualek/ohochat/oho-web-app
+keywords: JERA, MaxPanel, rt_jera_feature_enabled, immediate watcher, partner connections, MR 874, c67c0018, Luna, force-with-lease, over-engineering
+---
+
+### Task 1: Minimal Web-only JERA fix
+
+task: replace mount-only JERA partner fetch with late-flag watcher and remove unrelated complexity
+task_group: JERA tab race / GitLab MR cleanup
+task_outcome: success
+
+Preference signals:
+- when the user clarified the bug, they said `completeClaimedDedup()` was unrelated and asked whether the tab disappears because it renders before the flag arrives -> keep future fixes on the actual JERA render/fetch path; do not pull Facebook webhook or dedup work into this scope.
+- the user required `Luna 5.6 max` -> use that exact model when available; never substitute another model silently.
+- the user wanted the smallest fix and to close unnecessary MR scope -> prefer one immediate watcher and focused tests over cache, realtime, retry, or cross-repo architecture.
+
+Reusable knowledge:
+- Root cause: `MaxPanel` mounted while `rt_jera_feature_enabled` was false, so the old `mounted()` fetch did not run. When the flag later became true, the tab rendered but `fetched_jera_partner_connections` remained empty.
+- Final watcher in `components/MaxPanel.vue` uses `immediate: true`, returns when flag is false, when a request is in flight, or when connections are already non-empty, then calls `fetchJeraPartnerConnections()`.
+- The fetch method itself has an in-flight guard. No interval, focus listener, session cache, or Firebase realtime listener remains, so the watcher does not continuously spam requests.
+- `completeClaimedDedup()` belongs to `/Users/tualek/ohochat/oho-webhook` and is unrelated to this JERA UI path.
+
+Failures and how to do differently:
+- The initial over-engineered Web MR added `sessionStorage` Remote Config caching, realtime updates, window-focus retry, and error state. These were outside the direct late-flag bug and were removed.
+- Direct agent spawning with `gpt-5.6-luna` failed because that API surface reported it unavailable; a Codex task-creation route supported Luna and completed the work. Do not replace the requested model with Sol/Terra without permission.
+- Full Web tests still had four pre-existing verification-token failures; report them separately rather than claiming the full suite is green.
+- Manual Smartchat/contact-tab UAT and a fresh Web build were not completed, so do not call the MR fully merge-ready solely from focused tests.
+
+References:
+- Final commit: `c67c0018d436139d1a74002055ec7e489698daed` (`fix: fetch JERA connections after feature flag resolves`).
+- Final effective diff against `29b3a1b769bf0f1c9fb58e46a5a3e29cfb20d608`: only `components/MaxPanel.vue` and `test/components/MaxPanel.spec.js`, `54 insertions(+), 5 deletions(-)`.
+- Validation: watcher `4/4` passed; store/Remote Config suite `34/34` passed; `git diff --check` passed; full MaxPanel suite `7 passed, 4 pre-existing failures`.
+- Branch `tk-sprint-2616/feature/jera-tab-is-missing` was squashed and pushed with `git push --force-with-lease`; remote matched local and worktree was clean.
+- Web MR: `oho/oho-web-app!874`; API MR `oho/oho-api!1293` was intentionally not modified.
+
+## Thread `019ff9cf-2564-7b40-af25-0306981e9625`
+updated_at: 2026-08-13T06:44:50+00:00
+cwd: /Users/tualek/ohochat
+rollout_path: /Users/tualek/.codex/sessions/2026/08/13/rollout-2026-08-13T13-28-50-019ff9cf-2564-7b40-af25-0306981e9625.jsonl
+rollout_summary_file: 2026-08-13T06-28-50-Iwy9-minimal_jera_tab_watcher_fix_and_commit.md
+
+---
+description: Minimal Web-only fix for JERA tab missing after delayed Firebase flag resolution, validated with focused tests and committed on the feature branch
+ task: fix delayed JERA feature-flag watcher in oho-web-app
+ task_group: oho-web-app JERA MR workflow
+ task_outcome: success
+ cwd: /private/tmp/oho-web-mr874
+ keywords: JERA, MaxPanel, is_jera_feature_enabled, immediate watcher, sessionStorage, onConfigUpdate, Firebase Remote Config, Jest, git diff --check, ffe26f0e
+---
+
+### Task 1: Fix delayed JERA tab rendering
+
+task: Replace mount-only JERA connection fetching with a minimal reactive watcher.
+task_group: oho-web-app JERA MR !874
+task_outcome: success
+
+Preference signals:
+- The user required work only in `/private/tmp/oho-web-mr874`, explicitly forbade touching API MR `!1293`, and required inspecting/preserving dirty work first -> future similar work should verify worktree and scope before edits.
+- The user required the smallest root-cause fix and explicitly prohibited cache, realtime listener, focus retry, extra error state, messaging/webhook changes, and merge-ready claims without UAT -> keep implementation narrow and disclose unrun UAT.
+
+Reusable knowledge:
+- `components/MaxPanel.vue` now uses an immediate watcher on `is_jera_feature_enabled`; it returns when false, when `is_fetching_jera_partner_connections` is true, or when `fetched_jera_partner_connections` is non-empty, otherwise it fetches.
+- `plugins/firebase-remote-config.js` was restored to target base parity. The final patch removes `sessionStorage` cache, `onConfigUpdate`, focus retry, and `has_jera_partner_connections_error`.
+- Focused watcher tests passed 4/4. Store/API-vs-browser Remote Config precedence tests passed 34/34. `git diff --check` passed.
+- Full `MaxPanel.spec.js` retained 4 pre-existing verification-token failures outside the patch; report them separately rather than claiming the full suite passed.
+
+Failures and how to do differently:
+- Dependencies were initially absent (`sh: jest: command not found`); `npm ci` restored them. Node `v26.5.0` is outside the repo’s declared Node `^22.0.0` engine.
+- Build and manual Smartchat/contact-tab UAT were not run. Required residual checks include delayed `false -> true`, hard refresh/deep-link `?room=...`, and connected/incomplete JERA flows.
+
+References:
+- Worktree: `/private/tmp/oho-web-mr874`
+- MR: `oho/oho-web-app!874`
+- Base SHA: `29b3a1b769bf0f1c9fb58e46a5a3e29cfb20d608`
+- Focused test: `npm test -- --runInBand test/components/MaxPanel.spec.js -t 'MaxPanel JERA partner connection fetch'`
+- Store test: `npm test -- --runInBand test/store/index.spec.js`
+
+### Task 2: Commit the approved fix
+
+task: Commit the validated MR changes on the requested feature branch.
+task_group: oho-web-app git workflow
+task_outcome: success
+
+Preference signals:
+- After initially forbidding commits, the user explicitly authorized committing on `tk-sprint-2616/feature/jera-tab-is-missing` -> commit only after explicit later approval; do not push without separate authorization.
+
+Reusable knowledge:
+- Detached worktree was attached to `tk-sprint-2616/feature/jera-tab-is-missing`; only the three MR files were staged.
+- Commit `ffe26f0e fix: fetch jera connections after flag resolution` created successfully.
+- Worktree is clean, branch is ahead 1 of origin, and no push occurred.
+
+Failures and how to do differently:
+- The commit-helper skill said not to mutate git, but the user’s later explicit commit authorization superseded that constraint; preserve this distinction when interpreting similar rollouts.
+
+References:
+- Commit: `ffe26f0e`
+- Branch: `tk-sprint-2616/feature/jera-tab-is-missing`
+- Verification: `git rev-list --left-right --count origin/tk-sprint-2616/feature/jera-tab-is-missing...HEAD` returned `0 1`.
 

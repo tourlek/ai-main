@@ -1,3 +1,39 @@
+# Task Group: /Users/tualek/ohochat/oho-web-app / JERA tab late-feature-flag race fix and MR !874 scope control
+
+scope: Diagnose and minimally fix the JERA tab missing when the flag resolves after `MaxPanel` mounts; use for MR !874 / partner-connection fetch behavior, not webhook or API architecture.
+applies_to: cwd=/private/tmp/oho-web-mr874 with source context `/Users/tualek/ohochat/oho-web-app`; reuse_rule=reuse the watcher pattern only after confirming the current flag/store/fetch contract and MR base; do not treat focused Jest results as manual Smartchat/contact-tab UAT.
+
+## Task 1: Implement, squash, and push the minimal Web-only JERA watcher fix; success
+
+### rollout_summary_files
+
+- rollout_summaries/2026-08-13T03-05-06-BsgF-jera_tab_minimal_watcher_fix_and_mr_squash.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/08/13/rollout-2026-08-13T10-05-06-019ff914-9f48-7db3-aec9-3c772585e8f1.jsonl, updated_at=2026-08-13T06:57:27+00:00, thread_id=019ff914-9f48-7db3-aec9-3c772585e8f1, success; final squashed Web MR scope and remote verified)
+- rollout_summaries/2026-08-13T06-28-50-Iwy9-minimal_jera_tab_watcher_fix_and_commit.md (cwd=/private/tmp/oho-web-mr874, rollout_path=/Users/tualek/.codex/sessions/2026/08/13/rollout-2026-08-13T13-28-50-019ff9cf-2564-7b40-af25-0306981e9625.jsonl, updated_at=2026-08-13T06:44:50+00:00, thread_id=019ff9cf-2564-7b40-af25-0306981e9625, success; focused implementation and pre-squash commit evidence)
+
+### keywords
+
+- JERA, MaxPanel, is_jera_feature_enabled, rt_jera_feature_enabled, immediate watcher, fetched_jera_partner_connections, fetchJeraPartnerConnections, MR 874, c67c0018, Firebase Remote Config, sessionStorage, onConfigUpdate, force-with-lease
+
+## User preferences
+
+- when the user said `completeClaimedDedup()` was unrelated and asked whether the tab disappears because it renders before the flag arrives -> trace the actual render/fetch path first; do not pull Facebook webhook/dedup work into a JERA UI fix. [Task 1]
+- when the user required the “smallest fix,” no API MR `!1293` edits, and preservation of unrelated dirty work -> inspect worktree/scope first and prefer the direct lifecycle fix over cache, realtime, retry, or cross-repo changes. [Task 1]
+- when the user explicitly required `Luna 5.6 max` -> use that exact model when available; never silently substitute another model. [Task 1]
+- when the user required no merge-ready claim without Smartchat/contact-tab UAT -> report focused validation separately and name unrun manual/build checks. [Task 1]
+
+## Reusable knowledge
+
+- Root cause: `MaxPanel` mounted while `rt_jera_feature_enabled` was false, so mount-only fetching never ran. Once the flag became true, the tab rendered with empty `fetched_jera_partner_connections`. [Task 1]
+- The minimal fix is an `immediate: true` watcher on `is_jera_feature_enabled`; return when false, an in-flight request exists, or connections are already non-empty, otherwise call `fetchJeraPartnerConnections()`. The fetch method also has an in-flight guard, so this is not continuous request spam. [Task 1]
+- Final patch against `29b3a1b769bf0f1c9fb58e46a5a3e29cfb20d608` changed only `components/MaxPanel.vue` and `test/components/MaxPanel.spec.js`; cache/realtime/focus-retry/error-state code was removed and `plugins/firebase-remote-config.js` restored to base parity. [Task 1]
+- Validation: watcher tests `4/4`, store/Remote Config tests `34/34`, `git diff --check` passed; final commit `c67c0018d436139d1a74002055ec7e489698daed` was squashed and pushed with `--force-with-lease`, remote matched local, and worktree was clean. [Task 1]
+
+## Failures and how to do differently
+
+- Symptom: a simple late-flag UI race grows into cache/listener/retry/API/webhook work. Cause: proposing before tracing the symptom through mount, flag resolution, render, and fetch. Fix: map that chain first and delete speculative layers not required by the root cause. [Task 1]
+- Symptom: `gpt-5.6-luna` delegation fails through one agent API. Cause: model availability differs by task-creation surface. Fix: use a supported Codex task-creation path or report inability; do not substitute Sol/Terra without permission. [Task 1]
+- Symptom: full `MaxPanel.spec.js` is called green. Cause: four pre-existing verification-token failures remain; build and manual delayed-flag/hard-refresh/deep-link UAT were not run. Fix: label focused results precisely and keep merge readiness pending those checks. [Task 1]
+
 # Task Group: /Users/tualek/ohochat / Meta Business AI backend MVP review, scoped implementation, and feature-flag scope correction
 
 scope: Review and narrowly implement Facebook Meta Business AI across `oho-api` and `oho-webhook`; use for authority, identity, tenant safety, Redis dedup, send guards, and accurate cross-repo feature-flag claims.
@@ -44,6 +80,16 @@ applies_to: cwd=/Users/tualek/ohochat; reuse_rule=reuse the backend/webhook cont
 
 - meta_business_ai_enabled, message.ai_generated === true, @meta-ai, @inbox, upsert.hooks.js, upsert.class.js, 300-second lease, checkDuplicate(), skipped_authority_count, Node 24, Utils.isRegExp, broadcast
 
+## Task 5: Implement approved Facebook Meta Business AI MVP corrections; partial
+
+### rollout_summary_files
+
+- rollout_summaries/2026-08-11T11-09-08-rVYn-meta_business_ai_mvp_correction_pass.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/08/11/rollout-2026-08-11T18-09-08-019ff083-0ff1-7601-a36c-8514dad1e62b.jsonl, updated_at=2026-08-11T13:57:23+00:00, thread_id=019ff083-0ff1-7601-a36c-8514dad1e62b, partial; focused local validation passed, runtime/UAT remains unverified)
+
+### keywords
+
+- meta_business_ai_enabled, ai_generated, external-app whitelist, Facebook standby, take_thread_control, pass_thread_control, Redis lease, duplicate-create race, ${businessId}@meta-ai, ${businessId}@inbox, OHO_FB_APP_ID, git diff --check
+
 ## User preferences
 
 - when reviewing this feature, the user asked for a detailed plan around “ข้อความไม่เข้าหรอ ? หรือ performance drop” -> trace message delivery, authority correctness, security/tenant scope, DB/Redis hot-path cost, and concrete worst cases rather than only the diff. [Task 1]
@@ -55,6 +101,7 @@ applies_to: cwd=/Users/tualek/ohochat; reuse_rule=reuse the backend/webhook cont
 - for Meta work, the user wants detailed Thai answers with evidence/path and honest limits; keep the MVP to proven contracts rather than a large multi-concern migration. [Task 3]
 - when the user asks for a plan “พร้อมทำงาน” -> include scope/non-goals, phases, file boundaries, tests, rollout/rollback, and honest local-versus-UAT status. [Task 4]
 - for approved Facebook-only work in `oho-api`/`oho-webhook`, preserve the dirty worktree: do not commit, push, reset, revert, delete, or stage, and do not expand into `oho-web-app`. Treat HTTP 200, focused tests, and queue acknowledgement as insufficient; inspect terminal datastore/Stream state for live claims. [Task 4]
+- for approved Facebook Messenger-only corrections, keep the work in `oho-api`/`oho-webhook`, preserve dirty work, and report exact changed-file/test results plus runtime/UAT gaps rather than claiming production readiness. [Task 5]
 
 ## Reusable knowledge
 
@@ -68,6 +115,9 @@ applies_to: cwd=/Users/tualek/ohochat; reuse_rule=reuse the backend/webhook cont
 - Narrow the MVP to sender identity/author labeling with an explicit activation gate, non-goals, phases, acceptance checklist, rollback, and Definition of Done. Keep `meta_ai_profile`, Redis/Cloud Tasks, state-machine migration, cold provisioning, broad TypeScript conversion, and UI work out unless separately justified. Focused validation was API 5 suites/31 tests, webhook 1 suite/17 tests, builds, and `git diff --check`; full type-check had unrelated failures. [Task 3]
 - The approved Facebook-only flow passes explicit `channel.meta_business_ai_enabled` through webhook context, contact upsert, automation guard, and controls. AI Stream identity is tenant-scoped `${businessId}@meta-ai`; provisioning may fall back to `${businessId}@inbox` while retaining `ai_generated: true`. Persist enabled Facebook standby customer messages before suppressing OHO chatbot/ARP/greeting/fallback/referral/scheduled automation. [Task 4]
 - The primary automation guard is tenant-scoped and fail-closed on a missing contact/query error; tenant-scoped Accept/Close Graph controls persist authority only after Graph success. Raw bulk Facebook broadcast is outside that per-contact guard. [Task 4]
+- Current approved MVP wiring persists `channel.meta_business_ai_enabled` (default `false`) through webhook channel context, contact upsert/snapshot, automation guards, and control services. `message.ai_generated === true` is strict per-message author evidence only; unknown nested `meta_business_ai.identity` is ignored. [Task 5]
+- External-app whitelist handling occurs after Facebook/page/contact validation: strict AI evidence is a narrow exception, unknown non-AI external apps stay fail-closed, and mixed batches must continue valid AI/customer events. Enabled Facebook standby customer messages persist before chatbot/ARP/greeting/fallback/referral/scheduled automation is blocked. [Task 5]
+- Accept/Close Graph takeover/return is tenant-scoped and writes authority only after Graph success. Lazy Stream identity is `${businessId}@meta-ai`; provisioning failure falls back to `${businessId}@inbox` while retaining `ai_generated:true`; no cold provisioning/backfill/repair. Focused validation passed API `10 suites/50 tests`, webhook `5 suites/46 tests`, webhook TypeScript, and `git diff --check` in both repos with nothing staged. [Task 5]
 
 ## Failures and how to do differently
 
@@ -80,6 +130,8 @@ applies_to: cwd=/Users/tualek/ohochat; reuse_rule=reuse the backend/webhook cont
 - Symptom: feature-off Meta channels acquire traffic-driven contact activation writes. Cause: `upsert.hooks.js:184-240` performs the snapshot write. Fix: remove the write so disabled channels have no new side effects. Authority/evidence persistence is also duplicated in `upsert.hooks.js:184-390` and `upsert.class.js:51-248`; use one shared atomic updater or simplify the duplicate fallback. [Task 4]
 - Symptom: a worker outlives the fixed 300-second Redis dedup lease. Cause: no renewal in `block.ts:289-321` / `redis.service.ts:224-303`. Fix: add renewal or an explicit maximum-processing policy plus real Redis expiry/CAS integration tests. Remove dead `checkDuplicate()`/deprecated dedup methods if unused, and remove `skipped_authority_count` unless campaigns are explicitly in scope and guarded at send time. [Task 4]
 - Symptom: `upsert.class.spec.js` fails before running on Node 24. Cause: dependency `config` calls `Utils.isRegExp`. Fix: report it as an environment/dependency blocker, not a passing code suite; focused mock-Redis tests and `git diff --check` do not replace live Meta replay, real Graph take/return, terminal Mongo/Redis/Stream checks, load test, canary, and rollback. [Task 4]
+- Symptom: duplicate-create fallback lacks the activation snapshot. Cause: the fallback persisted standby authority before channel activation state. Fix: persist the activation snapshot first and keep regression coverage aligned with the actual fallback query shape. [Task 5]
+- Symptom: focused suites are described as runtime proof. Cause: duplicate Jest mock warnings, missing `OHO_FB_APP_ID`, and unavailable localhost Redis do not exercise live behavior. Fix: keep full suites, captured-payload replay, real Graph controls, terminal Mongo/Redis/Stream checks, canary/rollback, and target app configuration as explicit remaining gates. [Task 5]
 
 # Task Group: /Users/tualek/ohochat / Stream Chat queryChannels call-site and documentation review
 
@@ -598,6 +650,48 @@ applies_to: cwd=/Users/tualek/ohochat/docs/react-migration; reuse_rule=the plan 
 - Symptom: a migration plan looks complete but misses production behavior -> generate route/menu/page and dependency usage inventories at the actual pinned SHA. [Task 1]
 - Symptom: generic React examples and cutover diagrams look plausible but drift from runtime -> trace API/auth contracts and client-side navigation directly from source, then test legacy→React and React→legacy paths. [Task 1]
 - Symptom: Phase 5 looks short while observation windows are 2–3 days per path -> require exact/nested LB matchers, calendar duration, IaC, rollback drills, decommission exit criteria, and browser observability before accepting the timeline. [Task 1]
+
+# Task Group: /Users/tualek/ai-main / memory architecture, Obsidian cold memory, and caveman compression
+
+scope: Decide whether ai-main/Codex memory, Obsidian, or caveman reduces token/context usage; use for memory-path and response-compression questions on this macOS setup.
+applies_to: cwd=/Users/tualek/ai-main; reuse_rule=re-check configured vault paths and current prompt-profile docs before changing memory tooling; path availability and measured prompt sizes are time-specific.
+
+## Task 1: Compare Obsidian memory with ai-main/Codex memory; success
+
+### rollout_summary_files
+
+- rollout_summaries/2026-08-11T13-56-05-3WLH-ai_main_obsidian_caveman_token_context_analysis.md (cwd=/Users/tualek/ai-main, rollout_path=/Users/tualek/.codex/sessions/2026/08/11/rollout-2026-08-11T20-56-05-019ff11b-e580-7052-b2d7-ee32d28d724d.jsonl, updated_at=2026-08-11T14:09:31+00:00, thread_id=019ff11b-e580-7052-b2d7-ee32d28d724d, success; installed paths and ai-main setup inspected)
+
+### keywords
+
+- ai-main, Obsidian, cold memory, AGENTS.md, prompt profiles, full, lean, min, /mnt/d/Obsidian Vault/AI Research/, memory/SHARED.md, knowledge/<repo>.md
+
+## Task 2: Verify caveman behavior and select compression level; success
+
+### rollout_summary_files
+
+- rollout_summaries/2026-08-11T13-56-05-3WLH-ai_main_obsidian_caveman_token_context_analysis.md (cwd=/Users/tualek/ai-main, rollout_path=/Users/tualek/.codex/sessions/2026/08/11/rollout-2026-08-11T20-56-05-019ff11b-e580-7052-b2d7-ee32d28d724d.jsonl, updated_at=2026-08-11T14:09:31+00:00, thread_id=019ff11b-e580-7052-b2d7-ee32d28d724d, success; caveman behavior and `/caveman full` recorded)
+
+### keywords
+
+- caveman, /caveman full, /caveman lite, /caveman ultra, /caveman off, response compression, generated response, system prompt, conversation history
+
+## User preferences
+
+- when comparing memory/token options, the user wanted a practical evidence-based check of what is actually installed and whether it truly saves tokens/context -> inspect configured paths, skill files, repository structure, and prompt sizes before recommending change. [Task 1]
+- when the user explicitly invoked `/caveman full` -> keep responses compressed at full level until `/caveman off`, `normal mode`, or session end. [Task 2]
+
+## Reusable knowledge
+
+- ai-main already has per-repo knowledge, shared cross-tool memory, `full`/`lean`/`min` prompt profiles, and guard scripts; on 2026-08-11 its Codex `AGENTS.md` measured 12,897 bytes / 1,836 words and README documented a 4,000-token ceiling for `full`. [Task 1]
+- Treat Obsidian as cold memory: retrieve only relevant notes/excerpts, never load the whole vault. It adds organization and multi-AI portability more than direct token savings; duplicating it with ai-main/Codex memory creates stale/conflicting context. [Task 1]
+- The configured Obsidian skill path `/mnt/d/Obsidian Vault/AI Research/` was absent on this macOS setup, so verify/mount or change that WSL-oriented path before relying on the skill. [Task 1]
+- Caveman is a response-format prompt skill, not automatic context retrieval or system-prompt reduction. It can shorten generated answers and later history, but not already-loaded instructions, source code, or tool output. [Task 2]
+
+## Failures and how to do differently
+
+- Symptom: an installed Obsidian skill is assumed usable. Cause: its configured vault path does not exist on the current OS. Fix: filesystem-check the path before recommending or invoking it. [Task 1]
+- Symptom: “65% savings” is reported as measured for this Thai workflow. Cause: it was only the skill documentation's claim. Fix: distinguish documented claims from observed token measurements. [Task 2]
 
 # Task Group: /Users/tualek/ai-main / workspace-linking deployment and design review
 
@@ -1388,16 +1482,6 @@ applies_to: cwd=/Users/tualek/ohochat/script-oho; reuse_rule=reuse for similar s
 
 - Related skill: skills/script-oho-migrate-unread-review/SKILL.md
 
-## Task 5: Explain how to remove legacy `read_by` after unread migration, cleanup is a separate gated mode
-
-### rollout_summary_files
-
-- rollout_summaries/2026-07-14T04-57-08-S8ep-script_oho_unread_migration_read_by_cleanup_mode.md (cwd=/Users/tualek/ohochat/script-oho, rollout_path=/Users/tualek/.codex/sessions/2026/07/14/rollout-2026-07-14T11-57-08-019f5efc-691c-7000-8729-9eceb1cc207d.jsonl, updated_at=2026-07-14T06:43:07+00:00, thread_id=019f5efc-691c-7000-8729-9eceb1cc207d, operational question answered by tracing the existing cleanup mode and its guards)
-
-### keywords
-
-- script-oho, migrate-unread.ts, cleanup-read-by, read_by, unread_by, checkpoint, MongoDB, $unset, migration, confirm-cleanup-read-by
-
 ## Task 6: Review checkpoint semantics versus cleanup-read-by assumptions, cleanup can trust incomplete proof
 
 ### rollout_summary_files
@@ -1436,8 +1520,6 @@ applies_to: cwd=/Users/tualek/ohochat/script-oho; reuse_rule=reuse for similar s
 - when the user says `do not soften now — but the deliverable this time is ONE DECIDED PLAN, not another catalogue of concerns` -> converge to one choice once the source audit is complete; do not hand back an open-ended concern list. [Task 1]
 - when the central question is whether it is safe to run the migration before enabling flags -> answer with a concrete protocol and test proposed mitigations such as `flag || field-exists` against actual write and read/count paths. [Task 4]
 - when the user says `If you must assume, name the assumption` -> separate evidence from assumptions explicitly in migration plans and rollout advice. [Task 1]
-- when the user asks `ขอสรุปสั้นๆ` and then narrows to `ถ้างั้นถ้า run migration script ที่ script-oho แล้ว จะลบ read_byยังไง` -> switch to short, direct operational instructions once the concept is already established. [Task 5]
-- when the user asks whether removing `read_by` closes the blockers -> separate `migrate unread_by` from `unset read_by` explicitly and state the safety boundary instead of answering as if they are the same step. [Task 5]
 - when the user says `Trace the actual filter/gating logic, not the comments` and asks for line citations -> treat comments as non-binding, ground every behavioral claim in source lines/snippets, and do not smooth over gaps with intent-based reasoning. [Task 6][Task 7]
 - when the user asks for `CONFIRMED / REFUTED / PARTIALLY-CONFIRMED` per item or `Answer EACH question below` -> keep the review tightly structured, question-by-question, and map each verdict to exact code lines. [Task 2][Task 6]
 
@@ -1452,8 +1534,7 @@ applies_to: cwd=/Users/tualek/ohochat/script-oho; reuse_rule=reuse for similar s
 - Catchup’s current write guard checks only `_id`, `last_contact_date`, and `last_active_at`; group `is_unresponded` is not repaired there, and aggregate completion counters (`guardMisses`, `overCap`, `streamMissing`) are weaker than identity-based residual verification. [Task 2][Task 3]
 - For migration execution, `pagedFind()` currently does `_id` keyset pagination without `hint()` / `explain()`. Contacts can reuse `idx_business_id_v1` for tenant-scoped `_id` scans, but group sessions need one minimal `_id`-ordered migration index, and execution should fail closed if explain shows `COLLSCAN` or blocking sort. [Task 1][Task 3]
 - The CLI is already fail-closed: `.env.<env>` selection, matching `--confirm`, and explicit `--execute` are required. Production rollout should stay per-tenant, verify explain/index readiness first, then migrate and enable flags immediately after each tenant pass. [Task 1]
-- `script-oho/unread-unresponded/migrate-unread.ts` already contains a dedicated cleanup path, `--mode=cleanup-read-by`; it is intentionally not auto-chained after backfill. Cleanup writes only when both `--execute` and `--confirm-cleanup-read-by` are present, and it unsets `read_by` on both `contacts` and `chat-sessions`. [Task 5]
-- Cleanup is gated by current checkpoint membership only, and the checkpoint file stores only `{ completed: [...] }`, with no durable proof about reconcile coverage, skipped unresolved channels, or whether a business was verified under the current semantic config. [Task 5][Task 6][Task 8]
+- Cleanup is gated by current checkpoint membership only, and the checkpoint file stores only `{ completed: [...] }`, with no durable proof about reconcile coverage, skipped unresolved channels, or whether a business was verified under the current semantic config. [Task 6][Task 8]
 - `INCLUDE_PARTIAL` is opt-in only (`INCLUDE_STREAM && process.env.INCLUDE_PARTIAL === "true"`), and `runLegacyReadByReconcilePass()` only runs inside that branch. A business can still become checkpoint-complete without legacy Stream verification because `partial` means budget exhaustion only and checkpointing checks only `!isDryRun && !result.partial`. [Task 6][Task 8]
 - Step 0a/0b and legacy reconcile both apply `last_active_at: { $gte: readByCutoffDate }` when a cutoff exists, but cleanup does not carry any date window. It filters only by business, current complete channel IDs, and `HAS_LEGACY_READ_BY`. [Task 7]
 - Cleanup mode reads checkpoint membership only and does not itself write checkpoint/status files, so it cannot overwrite backfill state by itself. `CHECKPOINT_SUFFIX` isolates `-explicit-target`, `-gate-${GATE_FILTER}`, and default runs, but not cutoff/stream/partial semantics. `saveStatus()` uses a temp-file rename, while `saveCheckpoint()` writes directly and `loadCheckpoint()` degrades parse errors into an empty set. [Task 8]
@@ -1466,7 +1547,6 @@ applies_to: cwd=/Users/tualek/ohochat/script-oho; reuse_rule=reuse for similar s
 - Symptom: a catchup proposal sounds exact because it uses current Stream read state plus guards. Cause: eligibility, timestamp changes, and CLEAR paths are not historically invertible from current live inputs. Fix/pivot: frame catchup as best effort or residual-repair only, not as ship-ready exact repair. [Task 2]
 - Symptom: `maxTimeMS` or heartbeat logging is treated as proof the migration scales to 5-6M docs. Cause: timeouts and metrics are failure shields, not plan quality. Fix/pivot: inspect real index compatibility, require explain-based preflight, and fail closed on `COLLSCAN` / blocking sort. [Task 2][Task 3]
 - Symptom: migration completion looks good because residual counts net to zero. Cause: aggregate counters can cancel unrelated documents and hide over-cap / skipped identities. Fix/pivot: use exact-ID residuals and retry tracking instead of numeric-only done criteria. [Task 1][Task 2][Task 3]
-- Symptom: `read_by` cleanup is described as if it naturally follows migration. Cause: the script intentionally splits backfill and cleanup for rollback safety. Fix/pivot: keep the sequence explicit, `backfill/spot-check unread_by` first and `cleanup-read-by` second. [Task 5]
 - Symptom: migration ordering is justified only by field decay or by “clear writes are ungated.” Cause: this ignores ordering guards, Step 0 stale legacy rewrites, live write races, and read/count exposure while a tenant is half-migrated. Fix/pivot: trace both write and read/count paths, separate write-prep from public rollout, and do not claim production facts such as index presence without an artifact. [Task 4]
 - Symptom: comments say a business is "verified" or cleanup is "safe to drop". Cause: the code does not persist any proof beyond membership in `completed`. Fix/pivot: inspect what the code actually stores and what cleanup consumes before accepting safety claims. [Task 6]
 - Symptom: cleanup appears to mirror backfill/reconcile scope. Cause: the file comments suggest full-population behavior, but the actual queries diverge and cleanup omits the `last_active_at` cutoff. Fix/pivot: compare query objects and cutoff propagation across every related pass. [Task 7]
