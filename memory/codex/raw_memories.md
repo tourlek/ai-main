@@ -2,124 +2,6 @@
 
 Merged stage-1 raw memories (stable ascending thread-id order):
 
-## Thread `019f516d-893b-7923-a4b3-96517d54a6c0`
-updated_at: 2026-07-11T14:32:17+00:00
-cwd: /Users/tualek/ohochat
-rollout_path: /Users/tualek/.codex/sessions/2026/07/11/rollout-2026-07-11T20-46-00-019f516d-893b-7923-a4b3-96517d54a6c0.jsonl
-rollout_summary_file: 2026-07-11T13-46-00-iIfu-oho_api_unread_unresponded_code_review.md
-
----
-description: Thai code review of `oho-api` unread/unresponded changes in worktree `mr-1285-fixes`; review-only task with blocker findings around query composition, stale-state rollout, and cache/broadcast behavior
-task: oho-api unread/unresponded code review in mr-1285-fixes
-task_group: /Users/tualek/ohochat/oho-api
-task_outcome: fail
-cwd: /Users/tualek/ohochat/oho-api
-keywords: oho-api, code review, unread, unresponded, convertUnreadUnrespondedQuery, search-query-converter, addVisibilityFilter, countBaseQuery, bulk.class.js, cacheService, Redis, Jest, Mongo query composition
----
-
-### Task 1: Review `oho-api` unread/unresponded and bulk-send changes
-
-task: code review of unread/unresponded and bulk-send changes in oho-api worktree `mr-1285-fixes`
-task_group: /Users/tualek/ohochat/oho-api
-track: review-only
-_task_outcome: fail
-
-Preference signals:
-- when the user asked `review oho-api ที่มีการแก้ไขให้หน่อยว่าโอเคไหม`, the user wanted a direct Thai code review rather than implementation help -> future similar review responses should default to findings-first and judgmental wording.
-- when the user only asked whether the changes were okay, not for implementation help -> future agents should not jump into fixes unless asked.
-
-Reusable knowledge:
-- `convertUnreadUnrespondedQuery.ts` now has a special both-flags path that injects `unread_by` + `is_unresponded` directly and deletes the raw params.
-- Search/count logic for unread/unresponded now depends on `countBaseQuery`, `TYPED_FILTER_FIELDS`, and later visibility rewrites, so a review has to trace the full query lifecycle, not just the helper.
-- `bulk.class.js` now updates `is_unresponded: false` via direct `contactModel.updateOne(...)` and also updates `read_by` / unread state directly in the bulk-send path.
-- Focused Jest on `convert-unread-unresponded-query.spec.ts` is a useful early signal; if the both-flags case fails, it is a blocker before examining downstream hooks.
-- `git diff --check` passed even though the review found logic issues; formatting sanity does not imply semantic correctness.
-
-Failures and how to do differently:
-- The new unread/unresponded filter shape can be corrupted when `search` is present because typed-filter handling only preserves specific fields, not the new query shape.
-- `addVisibilityFilter()` rebuilds `context.params.query` with its own `$or`, which can overwrite unread/unresponded composition on sale-visibility paths.
-- `npm run type-check` was not useful as a pass/fail gate in this repo because unrelated TypeScript errors already exist outside the touched diff.
-- The review surfaced blocker-level query-composition regressions; future reviews in this area should explicitly walk the hook chain and not stop at the first helper.
-
-References:
-- `src/services/contact/helper-hook/convert-unread-unresponded-query.ts:41-49` — both-flags branch.
-- `src/services/contact/chat-search/chat-search.hooks.js:89-118, 159-177` — typed filters and badge-count base query.
-- `src/services/contact/chat-search/shared-hooks.js:314-413, 690-694` — visibility rewrite that can overwrite earlier query composition.
-- `src/services/member-send-message/bulk/bulk.class.js:179-214` — bulk-send contact-state update and `is_unresponded` clear.
-- `src/services/contact/helper-hook/convert-unread-unresponded-query.spec.ts:97-126` — both-flags test area.
-
-### Task 2: Verification of rollout and remaining blockers
-
-task: focused validation of the unread/unresponded rollout and its new shared helpers/cache paths
-task_group: /Users/tualek/ohochat/oho-api
-task_outcome: partial
-
-Preference signals:
-- the review remained review-only; user did not ask for code changes, so later work should stay on verification and findings.
-- the rollout’s conversational flow was in Thai, so concise Thai findings were appropriate for direct reporting back to the user.
-
-Reusable knowledge:
-- `src/models/contact.model.spec.ts` and `src/models/chat-session.model.spec.ts` verify that `unread_by` and `is_unresponded` are absent on bare documents when flags are off.
-- `src/utils/compute-badge-counts.ts` now uses `Promise.allSettled`, so unread and unresponded badge counts fail independently instead of both collapsing to null.
-- `src/utils/channel-eligible-members.ts` returns `null` on lookup failure or >2000 eligible members so callers skip writing `unread_by` instead of wiping state with `[]`.
-- `src/utils/cache/index.js` adds a 3s Redis command timeout wrapper; this changes all cacheService callers, not just unread-related paths.
-- `src/webhook/stream.js` now caches channel-business resolution in Redis with a 7-day positive TTL and a 60s negative TTL.
-
-Failures and how to do differently:
-- Mongo-backed integration tests could not run because there was no `MONGODB_URI`; without a DB, there is still no `explain()` evidence for the index/query-shape question.
-- `src/services/bot-send-message/bot-send-message.hooks.spec.js` still has 6 unrelated quick-reply failures, so it should not be used as a blanket success signal for the rollout.
-- The customer-message and reply write paths still merit race analysis; targeted unit tests pass, but live interleaving behavior was not fully proven in this rollout.
-
-References:
-- Focused Jest result on the selected suites: `12 passed, 2 skipped, 128 passed`.
-- Mongo-backed tests failed with `Could not find MongoDB URI. Set NODE_ENV to use config file or set MONGODB_URI env var.` plus follow-up `deleteMany` errors.
-- `src/services/bot-send-message/bot-send-message.hooks.spec.js` output shows 6 failing quick-reply cases, while the new atomic `updateContactProfile` tests passed.
-- `src/utils/cache/index.js:5-13, 21-38, 49-77, 104-121` — Redis command timeout wrapper implementation.
-- `src/services/contact-send-message/contact-send-message.hooks.js:226-241` and `src/services/chat-session/group/contact-user/send-message/send-message.class.js:29-42` — shared customer-message unread payload path.
-
-## Thread `019f51c4-bc6d-7223-a93d-e4ee27e97fe7`
-updated_at: 2026-07-11T15:24:30+00:00
-cwd: /Users/tualek/ohochat
-rollout_path: /Users/tualek/.codex/sessions/2026/07/11/rollout-2026-07-11T22-21-15-019f51c4-bc6d-7223-a93d-e4ee27e97fe7.jsonl
-rollout_summary_file: 2026-07-11T15-21-15-jDcH-unread_unresponded_db_performance_root_cause.md
-
----
-description: Diagnosed unread/unresponded performance in oho-api; root cause was unread count query shape and missing timeout, not write-side stamping.
-task: performance investigation of unread/unresponded slowdown
-task_group: oho-api performance debugging
-task_outcome: success
-cwd: /Users/tualek/ohochat/oho-api
-keywords: unread, unresponded, unread_by, is_unresponded, countDocuments, $nin, maxTimeMS, MongoDB, chat-search, message.read, performance regression
----
-
-### Task 1: Diagnose unread/unresponded slowdown
-
-task: investigate whether unread/unresponded slowdown comes from count queries or write-side stamping
-task_group: oho-api performance debugging
-task_outcome: success
-
-Preference signals:
-- when the user asked "ลองดูให้หน่อยว่า Feature unread/unrespone มีจุดไหนหรอที่ทำให้ Performance ของ databse slow" -> they want a root-cause performance analysis, not a blind fix.
-- when the user narrowed it to "ตอน count unread unresponded หรอ ตอนที่ ส่ง message แล้วต้อง stamp is_unresponded กับ เอา id ออกจาก unread_by หรอ" -> future similar investigations should explicitly compare read/query cost versus write/stamp cost.
-
-Reusable knowledge:
-- The incident note says the bad path was unread `countDocuments` using `read_by: { $nin: [null, memberId] }`; that shape on a multikey array forced fetch-heavy counts across essentially the whole business and could dominate cluster CPU/connection usage.
-- Current code has already moved unread counting to equality on `unread_by`, added `maxTimeMS(timeout || 30000)` and fail-soft `null` handling, which is the mitigation pattern to preserve.
-- `message.read` handling in `src/webhook/stream.js` resolves the channel’s business before checking the per-business feature flag, then `$pull`s the member id from `unread_by` on contact/chat-session.
-- Write-side updates (`contact-send-message`, `member-send-message`) are point updates by `_id`; they can add write load, but they were not the primary cause of the incident described in the rollout.
-
-Failures and how to do differently:
-- The old unread query shape (`$nin` on an array field) is the failure mode to watch for; future performance investigations should treat that as a red flag immediately.
-- If a similar incident recurs, verify `docsExamined`/`keysExamined` on the count path before spending time on write-path stamping.
-
-References:
-- `incident-unread-count-slowdown-2026-07-08.md:27-79` — incident writeup and root cause explanation.
-- `src/services/contact/chat-search/chat-search.class.js:129-167` — unread/unresponded badge count implementation with timeout/fail-soft.
-- `src/services/contact-send-message/contact-send-message.hooks.js:230-255` — customer message sets `unread_by`.
-- `src/services/member-send-message/member-send-message.hooks.js:648-663` — member reply clears `unread_by` and `is_unresponded`.
-- `src/webhook/stream.js:520-574` — Stream read event clears `unread_by` for contact/chat-session.
-- `src/models/contact.model.js` — unread/unresponded index definitions aligned to the new equality-based shape.
-
 ## Thread `019f5ec7-6f0f-7e72-a7b6-720887ff0ac8`
 updated_at: 2026-07-14T04:02:56+00:00
 cwd: /Users/tualek/ohochat/script-oho
@@ -856,104 +738,6 @@ References:
 - `src/services/index.js:439` configures `contactSendMessages`, making the startup regression user-visible immediately
 - `src/services/contact-send-message/contact-send-message.hooks.js:497` is the extra export that breaks whole-module hook registration
 - `node_modules/@feathersjs/feathers/lib/hooks/index.js:141-166` is the validation path that throws on unknown hook types
-
-## Thread `019f650a-4163-70e3-b3ce-6fa49d681272`
-updated_at: 2026-07-15T09:20:54+00:00
-cwd: /Users/tualek/ohochat/oho-api
-rollout_path: /Users/tualek/.codex/sessions/2026/07/15/rollout-2026-07-15T16-09-58-019f650a-4163-70e3-b3ce-6fa49d681272.jsonl
-rollout_summary_file: 2026-07-15T09-09-58-II02-oho_api_uncommitted_unresponded_review_boot_regression_and_c.md
-
----
-description: Read-only review workflow for an uncommitted oho-api unread/unresponded diff; confirmed a Feathers boot regression caused by exporting a helper alongside hooks, while the business_id guard, paginate.max=50 change, and postback preview typing were safe; the largest remaining risk was deleted coverage not fully replaced.
-task: review uncommitted oho-api unread/unresponded diff for runtime regressions and coverage loss
-task_group: oho-api review workflows
-cwd: /Users/tualek/ohochat/oho-api
-keywords: unread, unresponded, Feathers hooks, service.hooks(hooks), hook export, computeBadgeCounts, business_id guard, paginate.max, getMessagePreviewText, qs.parse, deleted specs, coverage loss, read-only review
----
-
-### Task 1: Live diff review of unread/unresponded changes
-
-task: review uncommitted unread/unresponded MR !1285 diff
-
-task_group: oho-api review workflows
-task_outcome: partial
-
-Preference signals:
-- The user explicitly said “This is a READ-ONLY REVIEW. Do not edit any code or files.” -> keep similar review tasks strictly read-only.
-- The user required “run git status/git diff to see them” and “verify with actual code inspection (not assumption)” -> always inspect the live repo state first, not summaries.
-- The user asked for a compact report in fixed sections (`CONFIRMED REGRESSIONS`, `RISKS / NEEDS-HUMAN-JUDGMENT`, `VERDICT ON QUALITY`, `CONCRETE SUGGESTIONS`) -> use a tight, findings-first format on similar reviews.
-- The user asked direct safety questions about runtime behavior, not implementation help -> default to judgmental review, not fix proposals.
-
-Reusable knowledge:
-- `computeBadgeCounts()` must be guarded by explicit `business_id`, not just truthiness, because `buildCountBaseQuery()` can return `{}` on api-key paths.
-- `config/default.json` has `paginate.max: 50`; the new dynamic max in group search resolves to the same value.
-- `getMessagePreviewText()` now treats non-string `data.label` as invalid; the real malformed shape comes from query-string parsing of postback data.
-- `service.hooks(hooks)` is only safe when the module exports exactly hook namespaces; any extra enumerable export becomes an invalid Feathers hook type.
-
-Failures and how to do differently:
-- `contact-send-message.service.js` still passed the whole hooks namespace while `contact-send-message.hooks.js` exported a helper, which caused a boot-time invalid hook type error.
-- In this sandbox, Jest is not reliable as a proving step because duplicate manual mocks under `.claude/worktrees` and haste-map write permission errors prevent clean runs; report those blockers explicitly instead of overstating validation.
-
-References:
-- `src/services/contact-send-message/contact-send-message.service.js:12`
-- `src/services/contact-send-message/contact-send-message.hooks.js:497`
-- `node_modules/@feathersjs/commons/src/hooks.ts:163-167`
-- `src/utils/compute-badge-counts.ts:96-102`
-- `src/services/contact/chat-search/chat-search.hooks.js:40-44, 78-80`
-- `src/services/chat-session/group/search/search.hooks.js:26-44, 111-157`
-- `config/default.json:6-9`
-- `src/utils/get-message-preview-text.ts:19-25`
-
-### Task 2: Coverage and regression judgment
-
-task: compare deleted specs against remaining coverage
-
-task_group: oho-api review workflows
-task_outcome: partial
-
-Preference signals:
-- The user asked whether deleted specs still had coverage elsewhere or whether “real test coverage was lost” -> compare deleted assertions against surviving tests, not just file names.
-- The user wanted “concrete improvements only where clearly warranted” -> only recommend restoring tests when there is a real gap.
-
-Reusable knowledge:
-- The deleted `contact.model.spec.ts` and `chat-session.model.spec.ts` were the only direct proof of the schema “absence contract” via `toObject()` on new documents.
-- Several deleted hook specs covered distinct branches that are not all recreated elsewhere: guarded clears, `$lte` ordering, fallback-message exclusion, and emitter wiring.
-- Shared-helper specs can validate payload shape, but they do not replace hook-registration or service-boot assertions for concrete services.
-
-Failures and how to do differently:
-- The review found that many deleted tests were not fully redundant; at least one exact write-shape or pipeline-level test per path is still warranted.
-- The duplicate-helper alias approach in `is-unresponded.spec.ts` does not prove that end-case and no-case pipelines actually register the helper in the service hook chain.
-
-References:
-- `src/models/contact.model.js:223-235`
-- `src/models/chat-session.model.js:78-90`
-- `src/services/contact/close-chat/is-unresponded.spec.ts:36-40, 62-112`
-- `src/services/bot-send-message/broadcast/broadcast.hooks.spec.js:502-508`
-- `src/services/bot-send-message/inform-message/inform-message.hooks.spec.js:291-297`
-- `src/services/member-send-message/bulk/bulk.class.spec.js:552-681`
-
-### Task 3: Final review verdict and suggestions
-
-task: judge net quality of cleanup and spec deletions
-task_group: oho-api review workflows
-task_outcome: partial
-
-Preference signals:
-- The user wanted an explicit verdict on whether the change set is a genuine improvement and whether the comment sweep / un-export / spec deletions are net-positive or net-negative -> provide an explicit quality judgment.
-
-Reusable knowledge:
-- The one confirmed runtime blocker was caused by `contact-send-message.service.js` booting Feathers with an extra exported helper in the hooks module.
-- `notify.service.js` is safe because its hooks module exports only `before`, `after`, and `error`.
-
-Failures and how to do differently:
-- The change set is not a clean net-positive until the deleted coverage is restored or replaced, because the cleanup removed direct tests for model default behavior and several hook write paths.
-
-References:
-- `src/services/contact-send-message/contact-send-message.service.js:12`
-- `src/services/contact-send-message/contact-send-message.hooks.js:497, 523-580`
-- `src/services/bot-send-message/notify/notify.service.js:15`
-- `src/services/bot-send-message/notify/notify.hooks.js:739-800`
-- `src/utils/build-clear-unread-unresponded-payload.spec.ts:36-63`
 
 ## Thread `019f654e-423f-7483-bdd6-494aba0e6b12`
 updated_at: 2026-07-15T10:56:47+00:00
@@ -5101,65 +4885,66 @@ References:
 - Verification: `git rev-list --left-right --count origin/tk-sprint-2616/feature/jera-tab-is-missing...HEAD` returned `0 1`.
 
 ## Thread `019ffa0c-a821-7e62-9ee7-6f5b71ace63c`
-updated_at: 2026-08-13T08:52:54+00:00
+updated_at: 2026-08-14T01:50:14+00:00
 cwd: /Users/tualek/thaivagroups
 rollout_path: /Users/tualek/.codex/sessions/2026/08/13/rollout-2026-08-13T14-36-01-019ffa0c-a821-7e62-9ee7-6f5b71ace63c.jsonl
-rollout_summary_file: 2026-08-13T07-36-01-4exm-disable_cookie_wow_and_deploy_v1_7_6.md
+rollout_summary_file: 2026-08-13T07-36-01-4exm-disable_cookie_wow_deploy_and_sync_main.md
 
-description: Temporarily disable Cookie Wow in Thaiva frontend, commit/tag it, and verify production deployment; preserve unrelated lockfile changes
- task: disable Cookie Wow frontend integration and deploy production
- task_group: thaiva-frontend release deployment
+description: ปิด Cookie Wow ใน Thaiva frontend, deploy production ผ่าน tag v1.7.6 และ fast-forward release เข้า main; lesson สำคัญคือ tag deploy ต้อง sync main ก่อนสรุปงาน
+ task: disable-cookie-wow-and-release
+ task_group: /Users/tualek/thaivagroups/thaiva-frontend
  task_outcome: success
  cwd: /Users/tualek/thaivagroups/thaiva-frontend
- keywords: Cookie Wow, cookiecdn.com, next/script, layout.tsx, git tag, v1.7.6, deploy-production.yml, production verification, dirty worktree
+ keywords: Cookie Wow, Next.js, layout.tsx, git tag, v1.7.6, production deploy, main, fast-forward, dirty lockfiles
 
-### Task 1: Disable Cookie Wow
+### Task 1: Disable Cookie Wow and deploy
 
-task: Comment out the active Cookie Wow scripts in the Thaiva frontend.
-task_group: thaiva-frontend frontend change
+task: Comment out the active Cookie Wow scripts in the Thaiva frontend, commit only that change, tag and deploy production.
+task_group: frontend release/deployment
 task_outcome: success
 
 Preference signals:
-- The user asked to remove Cookie Wow temporarily and accepted commenting the code -> preserve the original integration when implementing temporary disablements.
-- `package-lock.json` and `yarn.lock` had pre-existing changes; the agent deliberately did not touch or stage them -> preserve unrelated dirty worktree changes.
+- when asking to remove it temporarily, the user said: "เอาตัว cookie wow ออกไปก่อน comment code ก็ได้" -> preserve the old integration as comments when disabling temporarily.
+- when asking for release, the user said: "commit และ deploy ปิด tag ให้ก่อนเลย" -> inspect existing dirty changes and deployment workflow, then commit only the requested scope.
 
 Reusable knowledge:
-- The active integration is in `src/app/[locale]/layout.tsx`, not `src/components/CookieBanner.tsx`. The layout renders `https://cookiecdn.com/cwc.js` and the config script with id `cookieWow`.
-- The block was wrapped in a JSX comment beginning `Temporarily disabled Cookie Wow.`
+- Active Cookie Wow loading was in `src/app/[locale]/layout.tsx`, with scripts for `https://cookiecdn.com/cwc.js` and config ID `LFXyXJb3exYPCcS7zqsnEMNM`.
+- `package-lock.json` and `yarn.lock` had unrelated pre-existing modifications; they were intentionally left unstaged.
+- Commit `606d216` (`fix: temporarily disable Cookie Wow`) changed only `src/app/[locale]/layout.tsx` by wrapping the script block in a JSX comment.
+- Production tag workflow triggers on tags matching `v*`. Existing remote tags had advanced through `v1.7.5`, so `v1.7.6` was selected after checking the remote.
+- Production verification via cache-busting curl eventually showed no `cookiecdn.com`, `cookieWow`, or Cookie Wow config ID in the returned HTML.
 
 Failures and how to do differently:
-- `npm run lint -- --file 'src/app/[locale]/layout.tsx'` could not run because `next` was missing from `node_modules` (`sh: next: command not found`). Report validation limits explicitly.
+- `npm run lint -- --file ...` could not run because `next` was absent from `node_modules`; record lint as unverified rather than passing it.
+- `gh` could not inspect Actions because the stored GitHub token was invalid and private-repo API calls returned 404. Verify deployment from the production artifact/HTML when CI visibility is unavailable.
+- Do not treat a text search hit as active runtime code; inspect comments, feature gates, and render/call reachability first.
 
 References:
-- Changed file: `src/app/[locale]/layout.tsx`
-- Validation: `git diff --check` passed.
+- `/Users/tualek/thaivagroups/thaiva-frontend/src/app/[locale]/layout.tsx`
+- `606d216 fix: temporarily disable Cookie Wow`
+- `v1.7.6`
+- Remote tag peeled commit: `606d2169a0f21966aa4c5b0ce1e3dafccad3482d`
 
-### Task 2: Commit, tag, and deploy
+### Task 2: Sync release into main
 
-task: Commit only the Cookie Wow change, create a release tag, push it, and verify production.
-task_group: thaiva-frontend release deployment
+task: Merge the deployed tag release into `main` and push it.
+task_group: git release hygiene
 task_outcome: success
 
 Preference signals:
-- The user asked to commit and deploy; the implementation used a tag-only push rather than pushing directly to `main` -> inspect and follow the repo’s actual release workflow.
-- Production was checked directly before claiming success -> verify live behavior, not just git/tag state.
+- after the tag deploy, the user corrected: "merge เข้า main ไว้ด้วยสิ" -> a tag-only production release is incomplete; ensure the main branch contains the deployed release before reporting completion.
 
 Reusable knowledge:
-- `.github/workflows/deploy-production.yml` deploys on pushed tags matching `v*`.
-- Remote releases `v1.7.3`–`v1.7.5` existed beyond local `main`; the hotfix branch was based on fetched `v1.7.5` before applying the change.
-- Commit `606d216` contains only the layout change. Annotated tag `v1.7.6` was pushed successfully.
-- GitHub CLI could not inspect Actions because the configured auth token was invalid and private-repo requests returned 404; production HTML polling was the effective verification fallback.
-- After deployment, fetching `https://thaivagroups.com/?deploy_check=v1.7.6-1` and searching the response found no `cookiecdn.com`, `cookieWow`, or `LFXyXJb3exYPCcS7zqsnEMNM`.
+- The release branch contained `v1.7.3` through `v1.7.6`, while remote `main` had already advanced to `v1.7.5` from another session. After confirming this with `git ls-remote`, `main` was fast-forwarded to `606d216` using `git merge --ff-only hotfix/disable-cookie-wow`.
+- `git push origin main:main` succeeded; final remote `main` and tag `v1.7.6` point to the same commit.
+- Final worktree intentionally still contains only the unrelated dirty lockfiles.
 
 Failures and how to do differently:
-- Do not treat a successful tag push as proof of deployment. Poll the live endpoint with cache busting and search for the removed scripts/config.
-- Leave unrelated lockfile modifications unstaged and visible in final status.
+- The initial release left production history only on tags/release branch and did not update `main`; add a mandatory post-tag check: compare `origin/main` with the deployed tag and fast-forward main when appropriate.
 
 References:
-- Branch: `hotfix/disable-cookie-wow`
-- Commit: `606d216 fix: temporarily disable Cookie Wow`
-- Tag: `v1.7.6`
-- Final status retained only unrelated modifications: `M package-lock.json`, `M yarn.lock`.
+- Final verification: `606d2169a0f21966aa4c5b0ce1e3dafccad3482d refs/heads/main`
+- Final status: `## main...origin/main` with `M package-lock.json` and `M yarn.lock` only
 
 ## Thread `019ffa4b-53d6-7f53-ab12-aac360e69732`
 updated_at: 2026-08-13T08:54:13+00:00

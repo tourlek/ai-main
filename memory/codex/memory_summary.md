@@ -9,6 +9,7 @@ The user primarily uses Codex for OHO engineering: evidence-first code/plan revi
 - For consultation, investigation, planning, and final review, use `gpt-5.6-sol`. After explicit plan approval and implementation authorization, create `[Luna Working] - {name}` with `gpt-5.6-luna` at max; pass contract/worktree/tests/constraints/no-commit rule, then Sol reviews. If unavailable, stop—do not substitute. [ad-hoc note]
 - For review-only work, pin the actual worktree/SHA/diff; do not edit, stage, commit, or run state-writing commands.
 - Preserve dirty work and repository boundaries; trace the actual runtime path before adding cache, retry, realtime, or cross-repo changes. For temporary disablement, preserve accepted original code as comments.
+- A production release is not complete at tag deployment alone: verify the live artifact, then ensure `origin/main` contains the deployed commit while leaving unrelated dirty files untouched.
 - Cite exact file:line and production evidence; distinguish verified fact, inference, `no data`, and `Not run: <reason>`. Never fabricate logs or retain credentials.
 - Put severity-ranked blockers first and finish with a direct ship/merge/rework verdict. Focused tests, HTTP 200, webhook test, or static checks are not runtime/UAT proof.
 - For detailed plans, cover assumptions, risks, edge cases, validation, rollback, testing, observability, dependencies, migration, security, and acceptance criteria; prioritize actionable changes.
@@ -57,11 +58,11 @@ The user primarily uses Codex for OHO engineering: evidence-first code/plan revi
 
 ### /Users/tualek/thaivagroups/thaiva-frontend
 
-#### 2026-08-13
+#### 2026-08-14
 
-- Cookie Wow temporary disablement and `v1.7.6` release: `cookiecdn.com`, `layout.tsx`, `deploy-production.yml`, `hotfix/disable-cookie-wow`
-  - desc: Active integration location, unrelated lockfile preservation, tag-triggered deployment, and live HTML verification.
-  - learnings: Fetch remote release tags before hotfixing; a tag push is not deployment proof—cache-bust and inspect production HTML.
+- Cookie Wow temporary disablement, `v1.7.6` release, and main sync: `cookiecdn.com`, `layout.tsx`, `deploy-production.yml`, `git merge --ff-only`, `origin/main`
+  - desc: Active integration location, unrelated lockfile preservation, tag-triggered deployment, live HTML verification, and release-to-main fast-forward.
+  - learnings: Fetch remote release tags before hotfixing; a tag push is not deployment proof—cache-bust the live HTML and verify `origin/main` equals the deployed tag.
 
 ### Older Memory Topics
 

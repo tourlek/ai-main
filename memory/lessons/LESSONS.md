@@ -140,7 +140,7 @@ consolidate: merge duplicates, drop obsolete ones, keep the rule one line each.
 
 ## 2026-08 — สรุป production routing จากชื่อ Load Balancer โดยไม่ตรวจ DNS
 - **Mistake**: เห็น resource ชื่อ `oho-webhook-lb` แล้วสรุปว่า `webhook.oho.chat` วิ่งผ่าน LB นั้น ทั้งที่ DNS จริง CNAME ไป Cloud Run domain mapping และ certificate/LB IP เป็นของ `webhook2.oho.chat`; ทำให้แนะนำ URL-map canary ที่ไม่มีผลกับ production domain.
-- **Rule**: ก่อนสรุป ingress topology หรือแก้ routing ให้ยืนยันครบ DNS A/CNAME → frontend IP → target proxy/certificate SAN → URL map/backend → request logs; ห้ามอนุมานจากชื่อ resource.
+- **Rule**: ก่อนสรุป ingress topology, cron guard หรือการใช้งานจริง ให้ยืนยันครบ DNS A/CNAME → frontend IP → target proxy/certificate SAN → URL map/backend → request logs และ trace validation precedence ใน code ว่าใช้ DB หรือ env ก่อน; แยก manual/test traffic ออกจาก historical production traffic และห้ามสมมติว่ามี whitelist/config guard โดยยังไม่พบ consumer จริง.
 
 ## 2026-08 — สรุปว่า webapp ไม่เรียก Stream จากการค้นชื่อ method อย่างเดียว
 - **Mistake**: ค้นหา `queryChannels` ใน source แล้วสรุปว่า webapp ไม่เรียก Stream ตรง โดยไม่ได้ trace network request ที่ Stream Chat SDK ยิงไป `chat-proxy-singapore.stream-io-api.com`; user corrected: `แต่หน้าบ้านมีเรียก https://chat-proxy-singapore.stream-io-api.com/ ด้วยนะ`.

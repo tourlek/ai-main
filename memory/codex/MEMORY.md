@@ -82,35 +82,48 @@ applies_to: cwd=/Users/tualek/ohochat; reuse_rule=requery the exact business/tim
 
 - Symptom: broad Cloud Logging reads are noisy/truncated or fail matching bare `jsonPayload`. Fix: narrow by service, business/Page, exact error/event, and tight time range; use `jsonPayload.message:` or `SEARCH(...)`, output selected fields, and redact credentials as `[REDACTED_SECRET]`. [Task 1][Task 2]
 
-# Task Group: /Users/tualek/thaivagroups/thaiva-frontend / temporary Cookie Wow disablement and tag-triggered production release
+# Task Group: /Users/tualek/thaivagroups/thaiva-frontend / temporary Cookie Wow disablement, tag-triggered production release, and main sync
 
-scope: Temporarily disable the active Cookie Wow loader while preserving unrelated worktree changes, then release and verify the deployed HTML.
-applies_to: cwd=/Users/tualek/thaivagroups/thaiva-frontend; reuse_rule=inspect the current workflow/tags and active integration before changing or deploying; release facts below are historical.
+scope: Temporarily disable the active Cookie Wow loader while preserving unrelated worktree changes, then release, verify deployed HTML, and align `origin/main` with the deployed tag.
+applies_to: cwd=/Users/tualek/thaivagroups/thaiva-frontend; reuse_rule=inspect the current workflow/tags, branch topology, and active integration before changing or deploying; release facts below are historical.
 
 ## Task 1: Disable Cookie Wow, tag v1.7.6, and verify production; success
 
 ### rollout_summary_files
 
-- rollout_summaries/2026-08-13T07-36-01-4exm-disable_cookie_wow_and_deploy_v1_7_6.md (cwd=/Users/tualek/thaivagroups, rollout_path=/Users/tualek/.codex/sessions/2026/08/13/rollout-2026-08-13T14-36-01-019ffa0c-a821-7e62-9ee7-6f5b71ace63c.jsonl, updated_at=2026-08-13T08:52:54+00:00, thread_id=019ffa0c-a821-7e62-9ee7-6f5b71ace63c, success; deployed tag verified from live HTML)
+- rollout_summaries/2026-08-13T07-36-01-4exm-disable_cookie_wow_deploy_and_sync_main.md (cwd=/Users/tualek/thaivagroups, rollout_path=/Users/tualek/.codex/sessions/2026/08/13/rollout-2026-08-13T14-36-01-019ffa0c-a821-7e62-9ee7-6f5b71ace63c.jsonl, updated_at=2026-08-14T01:50:14+00:00, thread_id=019ffa0c-a821-7e62-9ee7-6f5b71ace63c, success; deployed tag verified from live HTML)
 
 ### keywords
 
 - Cookie Wow, cookiecdn.com, src/app/[locale]/layout.tsx, deploy-production.yml, v1.7.6, hotfix/disable-cookie-wow, package-lock.json, yarn.lock, next: command not found
+
+## Task 2: Fast-forward the deployed release into main; success
+
+### rollout_summary_files
+
+- rollout_summaries/2026-08-13T07-36-01-4exm-disable_cookie_wow_deploy_and_sync_main.md (cwd=/Users/tualek/thaivagroups, rollout_path=/Users/tualek/.codex/sessions/2026/08/13/rollout-2026-08-13T14-36-01-019ffa0c-a821-7e62-9ee7-6f5b71ace63c.jsonl, updated_at=2026-08-14T01:50:14+00:00, thread_id=019ffa0c-a821-7e62-9ee7-6f5b71ace63c, success; `origin/main` and v1.7.6 converged on 606d216)
+
+### keywords
+
+- origin/main, git merge --ff-only, git ls-remote, git push origin main:main, 606d216, v1.7.6, release branch, dirty lockfiles
 
 ## User preferences
 
 - when the user requests a temporary disablement and accepts comments -> preserve the original integration as a commented block. [Task 1]
 - when unrelated lockfile changes already exist -> do not reset, touch, or stage them. [Task 1]
 - when asked to “commit and deploy” -> inspect the repository's actual release workflow and verify live production rather than just git/tag state. [Task 1]
+- when the user corrected “merge เข้า main ไว้ด้วยสิ” -> a tag-only production release is incomplete; ensure `origin/main` contains the deployed commit before reporting completion. [Task 2]
 
 ## Reusable knowledge
 
 - Active Cookie Wow was the two-script block in `src/app/[locale]/layout.tsx`, not `CookieBanner.tsx`; it was temporarily commented. `.github/workflows/deploy-production.yml` deploys pushed `v*` tags. [Task 1]
 - Latest remote tags can be ahead of local `main`; fetch the current release base before hotfixing. Stage only intended files, and if Actions access is unavailable, cache-bust/fetch production HTML and search for the removed loader/config strings. [Task 1]
+- For a linear release branch, check `git ls-remote origin refs/heads/main`, use `git merge --ff-only`, push `main:main`, and verify the remote branch and deployed tag point to the same commit. [Task 2]
 
 ## Failures and how to do differently
 
 - Symptom: tag push or file lint is called complete validation. Cause: tag does not prove deployment, and lint failed here because `next` was absent (`sh: next: command not found`). Fix: report the dependency limit, run `git diff --check`, then independently verify the deployed artifact. [Task 1]
+- Symptom: deployed production is left only on a tag/release branch. Cause: release completion stopped after tag deployment. Fix: make branch-topology comparison and `main` sync a release-checklist step, while preserving unrelated dirty files. [Task 2]
 
 # Task Group: /Users/tualek/ohochat/oho-web-app / JERA tab late-feature-flag race fix and MR !874 scope control
 
@@ -1367,16 +1380,15 @@ applies_to: cwd=/Users/tualek/ohochat/oho-api; reuse_rule=reuse for similar code
 
 - oho-api, unread, unresponded, badge-count-cache, computeBadgeCounts, cacheService, raceCommandTimeout, Redis, offline_queue, single-flight, stampede, Bluebird, ObjectId, EPERM, Jest haste map
 
-## Task 2: Review uncommitted `oho-api` unread/unresponded diff, one boot-time regression plus coverage-loss risk
+## Task 2: Review uncommitted `oho-api` unread/unresponded diff, one boot-time regression
 
 ### rollout_summary_files
 
 - rollout_summaries/2026-07-15T09-05-53-eBHL-oho_api_uncommitted_review_startup_blocker_and_behavior_pres.md (cwd=/Users/tualek/ohochat/oho-api, rollout_path=/Users/tualek/.codex/sessions/2026/07/15/rollout-2026-07-15T16-05-53-019f6506-8353-7c13-9dda-4d97fcfab9ad.jsonl, updated_at=2026-07-15T09:18:31+00:00, thread_id=019f6506-8353-7c13-9dda-4d97fcfab9ad, live-diff read-only review confirmed a Feathers startup blocker while the other targeted refactors preserved behavior)
-- rollout_summaries/2026-07-15T09-09-58-II02-oho_api_uncommitted_unresponded_review_boot_regression_and_c.md (cwd=/Users/tualek/ohochat/oho-api, rollout_path=/Users/tualek/.codex/sessions/2026/07/15/rollout-2026-07-15T16-09-58-019f650a-4163-70e3-b3ce-6fa49d681272.jsonl, updated_at=2026-07-15T09:20:54+00:00, thread_id=019f650a-4163-70e3-b3ce-6fa49d681272, parallel live-diff review also found coverage-loss risk)
 
 ### keywords
 
-- oho-api, unread, unresponded, read-only review, uncommitted diff, service.hooks(hooks), invalid hook type, contact-send-message, getContactSendMessagePreviewText, paginate.max, getMessagePreviewText, checkJs, deleted specs
+- oho-api, unread, unresponded, read-only review, uncommitted diff, service.hooks(hooks), invalid hook type, contact-send-message, getContactSendMessagePreviewText, paginate.max, getMessagePreviewText, checkJs
 
 ## Task 3: Review unread/unresponded flag-gated changes in `mr-1285-fixes`, flag-off contract regressions found
 
@@ -1388,28 +1400,6 @@ applies_to: cwd=/Users/tualek/ohochat/oho-api; reuse_rule=reuse for similar code
 
 - unread, unresponded, flag-off, mr-1285-fixes, emitChatSessionStatusUpdatedEvent, emitContactUnrespondedStatusUpdatedEvent, buildClearUnreadUnrespondedPayload, convertUnreadUnrespondedQuery, channel-eligible-members, worktree verification, Thai review
 
-## Task 4: Review `oho-api` unread/unresponded and bulk-send changes in `mr-1285-fixes`, blocker findings
-
-### rollout_summary_files
-
-- rollout_summaries/2026-07-11T13-46-00-iIfu-oho_api_unread_unresponded_code_review.md (cwd=/Users/tualek/ohochat/oho-api, rollout_path=/Users/tualek/.codex/sessions/2026/07/11/rollout-2026-07-11T20-46-00-019f516d-893b-7923-a4b3-96517d54a6c0.jsonl, updated_at=2026-07-11T14:32:17+00:00, thread_id=019f516d-893b-7923-a4b3-96517d54a6c0, worktree-specific review found blocker-level query-composition risks)
-
-### keywords
-
-- oho-api, code review, unread, unresponded, convertUnreadUnrespondedQuery, search-query-converter, addVisibilityFilter, countBaseQuery, bulk.class.js, cacheService, Redis, Jest, Mongo query composition
-
-- Related skill: skills/oho-smartchat-debugging/SKILL.md
-
-## Task 5: Verify unread/unresponded rollout coverage and remaining blockers, partial confidence
-
-### rollout_summary_files
-
-- rollout_summaries/2026-07-11T13-46-00-iIfu-oho_api_unread_unresponded_code_review.md (cwd=/Users/tualek/ohochat/oho-api, rollout_path=/Users/tualek/.codex/sessions/2026/07/11/rollout-2026-07-11T20-46-00-019f516d-893b-7923-a4b3-96517d54a6c0.jsonl, updated_at=2026-07-11T14:32:17+00:00, thread_id=019f516d-893b-7923-a4b3-96517d54a6c0, targeted Jest passed but Mongo-backed proof was unavailable)
-
-### keywords
-
-- MONGODB_URI, compute-badge-counts, Promise.allSettled, channel-eligible-members, cacheService, Redis timeout, bot-send-message.hooks.spec.js, quick-reply failures, updateContactProfile
-
 ## User preferences
 
 - when the user says `do NOT modify files` or `This is a REVIEW ONLY task. Do not edit any files.` -> keep similar `oho-api` reviews strictly read-only. [Task 1][Task 2]
@@ -1417,7 +1407,7 @@ applies_to: cwd=/Users/tualek/ohochat/oho-api; reuse_rule=reuse for similar code
 - when a final concurrency re-review asks for `ship`/`no-ship`, event-loop ordering, Promise interop, and test timing -> inspect current files and regression tests directly; prove the claimed race rather than trusting the fix description. [Task 7]
 - when the user says `run git status/git diff` and `verify with actual code inspection (not assumption)` -> inspect the live repo state first, not summaries or stale worktree assumptions. [Task 2][Task 3]
 - when the user calls out pre-existing failing suites that must not be blamed on the diff -> separate environment/repo noise from a diff-caused regression. [Task 2]
-- when the user asked `review oho-api ที่มีการแก้ไขให้หน่อยว่าโอเคไหม` -> future similar review responses should be direct, Thai, and judgmental instead of generic or hedged. [Task 3][Task 4]
+- when the user asked `review oho-api ที่มีการแก้ไขให้หน่อยว่าโอเคไหม` -> future similar review responses should be direct, Thai, and judgmental instead of generic or hedged. [Task 3]
 - when the user emphasized `correctness bugs (especially cross-member cache poisoning)` -> prioritize scope isolation, member identity, and stale-data correctness before style or minor test coverage. [Task 1]
 - when the user asked `ถ้าปิด flag แล้วต้องหมายความว่า feature นี้ต้องไม่ทำงานแต่ feature อื่นๆ ก็ไม่กระทบด้วยเช่นกันต้องใช้งานได้เหมือนเดิม` -> review against the contract `feature off = no behavior + no collateral impact`, not just whether the flag is referenced somewhere. [Task 3]
 - when the user asks for an “Adversarial review round 2” with “verdict ... numbered findings with file:line evidence ... prioritized 2-week backlog with explicit cut-line” -> challenge scope aggressively, pin revisions, and finish with a hard production-enablement boundary rather than rubber-stamping a revised plan. [Task 8]
@@ -1429,9 +1419,7 @@ applies_to: cwd=/Users/tualek/ohochat/oho-api; reuse_rule=reuse for similar code
 - `getCachedBadgeCount()` treats numeric `0` as a hit and `undefined` as a miss; the reviewed TTL is numeric Redis seconds. `src/index.js` sets `global.Promise = require('bluebird')`, so production settlement inspection differs from native Jest promises. [Task 1]
 - `service.hooks(hooks)` is only safe when the hooks module exports exactly lifecycle namespaces; any extra enumerable export becomes an invalid Feathers hook type, which is why `contact-send-message.service.js` booted incorrectly while `notify.service.js` stayed safe. [Task 2]
 - `config/default.json` sets `paginate.max` to `50`; the reviewed dynamic max preserved that behavior. `getMessagePreviewText()` safely ignores non-string `data.label` from `qs.parse` and falls back to `message.text` / `กดปุ่ม`; `allowJs: true` with `checkJs: false` does not typecheck JS callers. [Task 2]
-- `convertUnreadUnrespondedQuery.ts` has a special both-flags path; trace the full lifecycle through `countBaseQuery`, `TYPED_FILTER_FIELDS`, parser coercion, and later visibility rewrites. Any query shape that adds `$or` / `$and` needs matching parser/converter updates. [Task 4]
 - `buildClearUnreadUnrespondedPayload` is intentionally unconditional on the clear-write side so feature toggles do not leave stuck `is_unresponded` / unread state. [Task 3]
-- `bulk.class.js`, `compute-badge-counts.ts`, `channel-eligible-members.ts`, and `cache/index.js` affect propagation and failure behavior; `cache/index.js` uses a 3s race timeout. [Task 4][Task 5]
 - In the OHO-1272 worktree, `getOrComputeBadgeCount` synchronously registers the complete cache-read-plus-compute lifecycle before its first await. A local `expired` flag is set before timeout rejection and checked immediately before `setCachedBadgeCount`; `Promise.race(...).finally(...)` clears the timer and deletes the flight on every settlement path. This closes staggered-GET admission and late-success stale-write races. [Task 7]
 - The reviewed specs cover concurrent one-read/one-compute, pending-GET joining, timeout then fresh retry, and a first computation resolving after timeout without overwriting the second flight's cached `7`. Production uses Bluebird as `global.Promise`; a focused probe confirmed native async promise assimilation and `.finally()`. [Task 7]
 - `buildCountBaseQuery()` preserves tab/search filters such as status, assignment, starred, tags, and visibility after stripping pagination/meta and badge filters. A state collection containing only business/channel/spam/unread fields cannot reproduce present badge counts without a contract change or join/mirror design. [Task 8]
@@ -1448,9 +1436,7 @@ applies_to: cwd=/Users/tualek/ohochat/oho-api; reuse_rule=reuse for similar code
 - Symptom: a timeout rejects joiners but a late compute still writes stale cache state, or staggered callers each enter Redis/compute. Cause: lifecycle registration occurred after an await, or a wall-clock timeout was mistaken for cancellation. Fix/pivot: synchronously install the entire flight before Redis I/O, bound it independently of Mongo `maxTimeMS`, and gate every post-compute side effect on flight-local expiration. [Task 7]
 - Symptom: cache specs look sufficient but hide boundary failures. Cause: `badge-count-cache` is mocked, so orchestration tests do not exercise serialization or Redis behavior. Fix/pivot: inspect the real helper boundary and use targeted runtime probes; `ObjectId` stringification was verified not to be the collision source. [Task 1]
 - Symptom: removing a helper export looks like safe cleanup but the service fails at boot. Cause: whole-module hook registration sees an extra export as an invalid hook type. Fix/pivot: inspect `service.hooks(hooks)` bootstrap semantics before approving hook-module cleanup. [Task 2]
-- Symptom: deleted tests look redundant by file name but real coverage drops. Cause: payload-helper specs do not replace service-boot assertions, hook-registration coverage, or exact write-shape / ordering assertions. Fix/pivot: compare deleted assertions against surviving tests branch by branch. [Task 2]
-- Symptom: unread/unresponded filter breaks with `search` or sale visibility. Cause: typed-filter coercion and `addVisibilityFilter()` can rebuild `context.params.query`. Fix/pivot: audit the full hook chain, not only the injection helper. [Task 4]
-- Symptom: sandboxed Jest failures are misattributed to the diff. Cause: duplicate-worktree mocks and haste-map write `EPERM`; repo-wide typecheck may also contain unrelated errors. Fix/pivot: report the exact blocker and use static tracing/targeted probes rather than claim behavioral proof. [Task 1][Task 2][Task 4][Task 5]
+- Symptom: sandboxed Jest failures are misattributed to the diff. Cause: duplicate-worktree mocks and haste-map write `EPERM`; repo-wide typecheck may also contain unrelated errors. Fix/pivot: report the exact blocker and use static tracing/targeted probes rather than claim behavioral proof. [Task 1][Task 2]
 - Symptom: a final review claims the full suite passed. Cause: known Node 24/config incompatibility and pre-existing TypeScript errors prevented independent Jest/tsc runs. Fix/pivot: describe the OHO-1272 result as static/spec verification plus focused Promise probe, not full-suite validation. [Task 7]
 - Symptom: Track B dual-write is scheduled as a one-sprint default. Cause: no prerequisite measurement of eligible-member distribution, document/index size, or SET latency; its proposed state cannot satisfy the existing badge contract. Fix/pivot: first land OHO-1272, decide historical semantics, build dry-run-default/resumable migration tooling, verify Atlas indexes with `explain()`, then measure/canary existing storage before approving the design. [Task 8]
 - Symptom: dark verification uses snapshot `diff = 0`, or Track A ships API-only. Cause: dual writes interleave/fail-soft and the web still triggers inline count work. Fix/pivot: compare normalized semantics with mismatch-age grace windows, repair and repeated scans; ship a minimal web consumer that disables inline counts or drop Track A. [Task 8]
@@ -1670,38 +1656,6 @@ applies_to: cwd=/Users/tualek/ohochat/script-oho; reuse_rule=reuse for similar s
 - Symptom: comments say a business is "verified" or cleanup is "safe to drop". Cause: the code does not persist any proof beyond membership in `completed`. Fix/pivot: inspect what the code actually stores and what cleanup consumes before accepting safety claims. [Task 6]
 - Symptom: cleanup appears to mirror backfill/reconcile scope. Cause: the file comments suggest full-population behavior, but the actual queries diverge and cleanup omits the `last_active_at` cutoff. Fix/pivot: compare query objects and cutoff propagation across every related pass. [Task 7]
 - Symptom: future resume logic assumes checkpoint files are durable and config-specific. Cause: checkpoint writes are non-atomic and the suffix key omits semantic dimensions such as cutoff/stream/partial choices. Fix/pivot: treat checkpoint correctness and resume safety as separate review items, not as implied by shared file names alone. [Task 8]
-
-# Task Group: /Users/tualek/ohochat/oho-api / unread-unresponded performance debugging
-scope: Root-cause performance memory for unread/unresponded slowdowns in `oho-api`; use for attribution work that must separate expensive count paths from write-side stamping.
-applies_to: cwd=/Users/tualek/ohochat/oho-api; reuse_rule=reuse for similar unread/unresponded performance investigations in this repo, but re-check the current query shape, indexes, and incident evidence before assuming the same bottleneck still exists.
-
-## Task 1: Diagnose unread/unresponded slowdown, root cause attributed to unread count query
-
-### rollout_summary_files
-
-- rollout_summaries/2026-07-11T15-21-15-jDcH-unread_unresponded_db_performance_root_cause.md (cwd=/Users/tualek/ohochat/oho-api, rollout_path=/Users/tualek/.codex/sessions/2026/07/11/rollout-2026-07-11T22-21-15-019f51c4-bc6d-7223-a93d-e4ee27e97fe7.jsonl, updated_at=2026-07-11T15:24:30+00:00, thread_id=019f51c4-bc6d-7223-a93d-e4ee27e97fe7, confirmed count-path root cause from incident evidence)
-
-### keywords
-
-- unread, unresponded, unread_by, is_unresponded, countDocuments, $nin, maxTimeMS, MongoDB, chat-search, message.read, performance regression
-
-## User preferences
-
-- when the user asked `ลองดูให้หน่อยว่า Feature unread/unrespone มีจุดไหนหรอที่ทำให้ Performance ของ databse slow` -> default to root-cause analysis with evidence, not a speculative fix. [Task 1]
-- when the user narrowed it to `ตอน count unread unresponded หรอ ตอนที่ ส่ง message แล้วต้อง stamp is_unresponded กับ เอา id ออกจาก unread_by หรอ` -> compare read/query cost versus write/stamp cost explicitly and say which side dominates. [Task 1]
-
-## Reusable knowledge
-
-- The incident-backed bad path was unread `countDocuments` using `read_by: { $nin: [null, memberId] }`; on a multikey array this forced fetch-heavy counting across essentially the whole business and could dominate cluster CPU and connections. [Task 1]
-- The mitigation pattern already present in the repo is: count unread with equality on `unread_by`, add `maxTimeMS(timeout || 30000)`, and fail soft with `null` so badge counts do not stall the main response. [Task 1]
-- `message.read` in `src/webhook/stream.js` resolves the channel business before the feature-flag check, then `$pull`s the member id from `unread_by` on contact/chat-session; this is a real write path, but it is still targeted update-by-`_id`, not the main incident bottleneck described here. [Task 1]
-- Write-side updates in `contact-send-message` and `member-send-message` mutate `unread_by` / `is_unresponded`, but this rollout validated they were secondary load compared with the old badge-count query shape. [Task 1]
-
-## Failures and how to do differently
-
-- Symptom: database slowdown around unread/unresponded polling. Cause: old unread count path used `$nin` on `read_by` without a timeout. Fix/pivot: treat `$nin` on an array count as an immediate red flag and inspect the count query before spending time on stamping writes. [Task 1]
-- Symptom: performance debate gets stuck on whether stamping writes are expensive. Cause: read-path versus write-path costs were not separated. Fix/pivot: compare `countDocuments` path, write frequency, and targeted `_id` updates side by side and attribute the dominant cost explicitly. [Task 1]
-- If a similar incident recurs, verify `docsExamined` / `keysExamined` or equivalent incident evidence on the count path first; do not rely on speculative code reading alone. [Task 1]
 
 # Task Group: /Users/tualek/life / monthly finance baseline from ad-hoc notes
 scope: Current personal-finance baseline figures and planning rules preserved only by authoritative ad-hoc notes after rollout-backed memory was pruned.
