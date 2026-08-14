@@ -2,51 +2,6 @@
 
 Merged stage-1 raw memories (stable ascending thread-id order):
 
-## Thread `019f0366-4780-7b21-a9b4-c309436efcc5`
-updated_at: 2026-06-26T10:19:09+00:00
-cwd: /Users/tualek/ohochat
-rollout_path: /Users/tualek/.codex/sessions/2026/06/26/rollout-2026-06-26T17-07-42-019f0366-4780-7b21-a9b4-c309436efcc5.jsonl
-rollout_summary_file: 2026-06-26T10-07-42-z14x-oho_api_unread_unresponded_code_review.md
-
----
-description: Thai code review of `oho-api` unread/unresponded + bulk-send changes; review found blocker-level query-composition regressions and a stale/failing spec, so the diff was not okay to merge yet.
-task: review oho-api modified diff
-task_group: /Users/tualek/ohochat/oho-api
-task_outcome: fail
-cwd: /Users/tualek/ohochat/oho-api
-keywords: oho-api, code review, unread, unresponded, search-query-converter, addVisibilityFilter, bulk send, Jest, type-check, Mongo query composition
----
-
-### Task 1: Review `oho-api` unread/unresponded and bulk-send changes
-
-task: review modified diff in `oho-api` for correctness/security/performance/testing
-task_group: code review / backend API
-task_outcome: fail
-
-Preference signals:
-- when the user asked `review oho-api ที่มีการแก้ไขให้หน่อยว่าโอเคไหม` -> future similar review responses should be direct, Thai, and judgmental instead of generic or hedged.
-- when the user asked for review only, not implementation -> default to review-first and findings-first; do not jump into fixing code unless asked.
-
-Reusable knowledge:
-- `convertUnreadUnrespondedQuery.ts` now has a special both-flags path that returns `$or` / `$and` instead of the older top-level AND-style injection.
-- `chat-search.hooks.js` and `chat-session/group/search/search.hooks.js` now omit `$or` from `countBaseQuery`, which is part of compensating for the new filter shape.
-- `search-query-converter.ts` preserves only `read_by`, `is_unresponded`, and `read_by.0` as typed filters; any future query-shape change that introduces `$or` / `$and` needs matching converter updates.
-- `bulk.class.js` now writes `is_unresponded: false` and optionally `$addToSet` on `read_by` directly via `contactModel.updateOne(...)` instead of the previous shared helper.
-
-Failures and how to do differently:
-- The both-flags OR branch failed the focused spec, so the implementation and the current test contract were not aligned.
-- The new `$or` shape is vulnerable to later query composition: the search parser can corrupt typed values if `$or` leaks into its coercion path, and `addVisibilityFilter()` can overwrite the unread/unresponded filter by rebuilding `context.params.query` with its own `$or`.
-- `npm run type-check` was not useful as a signal for this diff because the repo already had unrelated TypeScript errors elsewhere.
-
-References:
-- `rtk proxy npx jest src/services/contact/helper-hook/convert-unread-unresponded-query.spec.ts --runInBand --forceExit --detectOpenHandles` → failed at `convert-unread-unresponded-query.spec.ts:106` because `context.params.query.read_by` was `undefined` in the both-flags case.
-- `src/services/contact/helper-hook/convert-unread-unresponded-query.ts:43-57` → new both-flags branch injects `$or`/`$and` and deletes the raw params.
-- `src/services/contact/chat-search/chat-search.hooks.js:33-36, 84-107, 151-158, 181-188` → typed-filter split only preserves `read_by`, `is_unresponded`, and `read_by.0`, and countBaseQuery now omits `$or`.
-- `src/services/chat-session/utils/search-query-converter.ts:9-10, 145-168` → same typed-filter list in the group-chat converter.
-- `src/services/contact/chat-search/shared-hooks.js:124-150` → parser coercion still runs `+currentValue` first, so non-string typed structures need careful exclusion.
-- `src/services/contact/chat-search/shared-hooks.js:314-413, 690-694` → `addVisibilityFilter()` rebuilds `context.params.query` with its own `$or`, which can drop unread/unresponded conditions.
-- `src/services/member-send-message/bulk/bulk.class.js:169-176, 255, 393, 526` → bulk send now updates contact state directly via `contactModel.updateOne(...)`.
-
 ## Thread `019f516d-893b-7923-a4b3-96517d54a6c0`
 updated_at: 2026-07-11T14:32:17+00:00
 cwd: /Users/tualek/ohochat
@@ -4827,6 +4782,260 @@ References:
 - Branch `tk-sprint-2616/feature/jera-tab-is-missing` was squashed and pushed with `git push --force-with-lease`; remote matched local and worktree was clean.
 - Web MR: `oho/oho-web-app!874`; API MR `oho/oho-api!1293` was intentionally not modified.
 
+## Thread `019ff927-ae16-79f0-a3ae-eaee875badce`
+updated_at: 2026-08-13T03:30:22+00:00
+cwd: /Users/tualek/ohochat
+rollout_path: /Users/tualek/.codex/sessions/2026/08/13/rollout-2026-08-13T10-25-55-019ff927-ae16-79f0-a3ae-eaee875badce.jsonl
+rollout_summary_file: 2026-08-13T03-25-55-GBgq-analyze_line_cronjob_token_webhook_health_checks.md
+
+description: วิเคราะห์ cronjob และ health check ของ LINE แยกการตรวจ token/webhook configuration ออกจาก synthetic message pipeline; outcome สำเร็จ
+ task: inspect LINE cronjob logic and distinguish access-token, webhook, and end-to-end messaging checks
+ task_group: ohochat LINE integration monitoring
+ task_outcome: success
+ cwd: /Users/tualek/ohochat
+ keywords: validate-business-integration-status, check_line_messaging_health, LINE, access-token, webhook-endpoint, bot-info, Stream-Chat, x-line-signature, oho-webhook, bulkWrite
+---
+
+### Task 1: LINE integration-status validation
+
+task: trace `POST /cronjob/validate-business-integration-status` and document LINE checks
+task_group: oho-api cronjob validation
+task_outcome: success
+
+Preference signals:
+- เมื่อผู้ใช้ถามว่า cronjob ตรวจ “webhook หรือ access token” -> ควร trace source และสรุปทั้ง checks และ non-checks อย่างชัดเจน แทนการตอบจากชื่อ job
+
+Reusable knowledge:
+- Source: `oho-api/src/services/cronjob/validate-business-integration-status/validate-business-integration-status.hooks.js`
+- Selects non-disabled businesses and `connection_status: complete` channels; limits 2,000 businesses/channels and runs platform checks with concurrency 2.
+- LINE calls `GET https://api.line.me/v2/bot/info` with the channel access token, then `GET https://api.line.me/v2/bot/channel/webhook/endpoint`.
+- Validates webhook `active` and compares LINE’s endpoint (trailing slash trimmed) with `channel.line.webhook_endpoint`, falling back to `${webhook_endpoint}/line/webhook/${businessId}`.
+- Non-429 errors mark `is_access_token_valid: false` and `connection_status: incomplete`; 429 is skipped without changing state.
+- Inactive/mismatched webhook marks channel incomplete and stores `line.is_webhook_active` and `line.is_webhook_endpoint_valid`. Results are persisted with `channelModel.bulkWrite()`.
+- Does not test real message delivery, queue/Stream Chat processing, LINE channel secret, or auto-recover incomplete channels.
+
+Failures and how to do differently:
+- Webhook endpoint errors are currently classified as token invalid, so distinguish token failure from webhook/API/network failure when interpreting status.
+- No tests were found specifically covering `validateLineConnectionStatus`; source inspection is not runtime proof.
+
+References:
+- `oho-api/src/services/cronjob/validate-business-integration-status/validate-business-integration-status.hooks.js:210-305`
+- `oho-api/src/services/cronjob/validate-business-integration-status/validate-business-integration-status.class.js:10-22`
+- `oho-api/docs/modules/cronjob.md:196-214`
+
+### Task 2: Synthetic LINE messaging health check
+
+task: trace `check_line_messaging_health` in oho-cronjob and verify whether it checks LINE Platform directly
+task_group: oho-cronjob synthetic monitoring
+task_outcome: success
+
+Reusable knowledge:
+- `oho-cronjob` remote `origin/develop` at SHA `50f5149` contains Firebase HTTPS function `check_line_messaging_health`; schedule configuration was not present in the repository and live deployment was not verified.
+- Function creates a synthetic LINE webhook payload, POSTs directly to OHO `/line/webhook/{businessId}`, stores the message in Firestore, waits 30 seconds, queries Stream Chat, and compares the text. Match => healthy; mismatch/error => unhealthy; state changes notify Slack.
+- Its configured channel access token is not used to call LINE Platform APIs, so this job does not validate access tokens and does not test the true LINE Platform → OHO path.
+- Receiver calls `/business/:businessId/line/verify-signature`; `oho-api/src/services/business/line/verify-signature/verify-signature.class.js` computes HMAC-SHA256 but currently logs mismatches and returns `{ ok: true }` instead of rejecting. Synthetic success is therefore not proof of real signature validation.
+- For webhook monitoring, HTTP 200 is insufficient; inspect downstream terminal state such as Stream Chat or source-message metrics.
+
+Failures and how to do differently:
+- `rtk find` does not support compound predicates; use native `find` or `rg --files | rg` for file discovery.
+- Initial `git ls-remote` failed due DNS/network; rerun with network permission succeeded. Keep local branch evidence separate from live remote/deployment evidence.
+
+References:
+- `oho-cronjob:functions/service/check-oho-line-messaging-health/check-oho-line-messaging-health-service.js:17-153`
+- `oho-cronjob:functions/utils/send-oho-webook.js:11-30`
+- `oho-webhook/src/controllers/line/line.controller.ts:38-210`
+- `oho-webhook/src/controllers/line/handler.ts:93-108, 1186-1257`
+- `oho-api/src/services/business/line/verify-signature/verify-signature.class.js:12-61`
+
+## Thread `019ff928-f2ca-73c0-b341-947ac2fac315`
+updated_at: 2026-08-13T03:41:12+00:00
+cwd: /Users/tualek/ohochat
+rollout_path: /Users/tualek/.codex/sessions/2026/08/13/rollout-2026-08-13T10-27-18-019ff928-f2ca-73c0-b341-947ac2fac315.jsonl
+rollout_summary_file: 2026-08-13T03-27-18-nG9D-jera_mr_ponytail_cleanup_and_validation.md
+
+---
+description: Applied ponytail scope reduction to JERA feature-flag MRs in isolated worktrees; API timeout hardening and Web cache/retry deletion validated partially, but changes were not pushed and UAT remained unrun
+task: JERA MR cleanup and ship-readiness implementation
+task_group: /Users/tualek/ohochat / GitLab MR implementation workflow
+task_outcome: partial
+cwd: /Users/tualek/ohochat
+keywords: JERA, oho-api, oho-web-app, MR-1293, MR-874, ponytail, Remote Config, immediate watcher, feature_flags, Promise.race, timeout, isolated worktree, baseline test failures
+---
+
+### Task 1: Apply minimal JERA MR cleanup
+
+task: Reduce over-engineering in API/Web JERA feature-flag MRs and validate merge readiness.
+task_group: GitLab MR implementation and review
+ task_outcome: partial
+
+Preference signals:
+- The user required ponytail simplification and approved deleting speculative `sessionStorage` cache, realtime listener, and focus/error retry behavior; similar work should prefer the smallest diff that still satisfies the source plan.
+- The user initially required Luna 5.6 max, but after two unavailable-model errors explicitly said to proceed; do not substitute unavailable models without explicit authorization.
+
+Reusable knowledge:
+- Approved scope: keep Level 1 immediate `is_jera_feature_enabled` watcher and Level 3 API login `feature_flags`; defer Level 2 retry/error recovery.
+- API changes in `/private/tmp/oho-api-mr1293`: 2-second fail-soft login feature-flag timeout, duplicate assertion removal, and pass-through assertion consolidation.
+- Web changes in `/private/tmp/oho-web-mr874`: remove sessionStorage cache, realtime `onConfigUpdate` listener, `has_jera_partner_connections_error`, window-focus retry, and related tests; retain immediate watcher and in-flight guard.
+- Validation passed: API Node 20, 2 suites/14 tests, SWC build, diff check; Web Node 22 targeted watcher 5/5, store 34/34, Nuxt build with `OHO_WEBSOCKET_URL=https://localhost`, diff check.
+- Full MaxPanel-related suites have four baseline failures each on both base and patched worktrees; classify these separately from cleanup regressions.
+
+Failures and how to do differently:
+- Changes were made only in isolated detached worktrees and never committed/pushed; remote MR HEADs therefore did not contain the implementation. Before claiming merge readiness, commit/push and re-fetch MR diff/pipeline.
+- Real Smartchat `?room=` refresh/deep-link and contact-tab UAT was not run; keep verdict NO-GO until those flows are verified.
+- `Promise.race` timeout does not cancel the Firebase request. Add a delayed-rejection test or explicitly verify the promise is consumed after timeout before relying on the 2-second hardening.
+- Isolated Web worktrees lack `node_modules`; temporarily symlink dependencies only inside the worktree, supply required config env (`OHO_WEBSOCKET_URL=https://localhost`), then remove the symlink and verify status.
+
+References:
+- `/private/tmp/oho-api-mr1293/src/services/authentication-member/login/login.hooks.js:17,103-134`
+- `/private/tmp/oho-web-mr874/components/MaxPanel.vue:359-368`
+- `/private/tmp/oho-web-mr874/plugins/firebase-remote-config.js:8-57`
+- API MR: `oho/oho-api!1293`; Web MR: `oho/oho-web-app!874`
+- User-authorized fallback after Luna failure: “งั้นก็ทำได้เลย ฉันเปลี่ยนเองไปแล้ว”
+
+## Thread `019ff93b-c85a-7c20-af5f-a0727251ac2f`
+updated_at: 2026-08-13T03:52:47+00:00
+cwd: /Users/tualek/ohochat
+rollout_path: /Users/tualek/.codex/sessions/2026/08/13/rollout-2026-08-13T10-47-52-019ff93b-c85a-7c20-af5f-a0727251ac2f.jsonl
+rollout_summary_file: 2026-08-13T03-47-52-NxJZ-fastship_facebook_recipient_send_error_gcp_diagnosis.md
+
+---
+description: Diagnosed Fastship Facebook message failures as recipient-specific Meta rejections, not a confirmed platform-wide outage; identified misleading generic UI mapping.
+task: diagnose Fastship Facebook Messenger send failures from GCP logs
+task_group: /Users/tualek/ohochat / Facebook production incident diagnosis
+task_outcome: success
+cwd: /Users/tualek/ohochat
+keywords: Fastship, Facebook, Meta, GCP Logging, code 551, subcode 1893047, is_transient=false, get-error-message-send-message-fail.js, core-api--production
+---
+
+### Task 1: Diagnose Facebook recipient send errors
+
+task: correlate Fastship Facebook send failures with raw Meta responses and determine whether Meta or OHO is responsible
+task_group: Facebook production incident diagnosis
+task_outcome: success
+
+Preference signals:
+- When the user asks whether Meta is broken and requests GCP logs, correlate business ID, Page ID, timestamps, raw platform errors, and successful sends before declaring an outage; separate UI wording from platform evidence.
+- Keep the investigation read-only unless edits are explicitly requested.
+
+Reusable knowledge:
+- Fastship business `636b3215359066889e4edfe6` maps in the investigated logs to Facebook Page `595166650687417 (FastShip.co)`.
+- The incident produced HTTP 400 Meta `OAuthException`, `code=551`, `error_subcode=1893047`, `is_transient=false`, with `This person isn't available right now/at the moment.`
+- There were 11 matching failures from `10:00:07` through `10:07:31` ICT on 2026-08-13; no matching FastShip Page error was found after `10:07:31` through the checked window, while many other Fastship messages succeeded.
+- Evidence supports a recipient/conversation-level restriction (possible block, deactivated/restricted account, or Meta recipient eligibility restriction), not a confirmed Meta-wide outage. `is_transient=false` means immediate retry is unlikely to help.
+- OHO maps only Facebook `551/1545041` to the specific “ลูกค้าบล็อกช่องทาง” message in `oho-api/src/utils/get-error-message-send-message-fail.js:93-100`. Subcode `1893047` falls through to the generic platform-error fallback at lines `181-195`, explaining the misleading UI.
+
+Failures and how to do differently:
+- Broad `gcloud logging read` searches are noisy and truncate output. Narrow queries by `resource.labels.service_name="core-api--production"`, business/Page ID, exact subcode, and a tight timestamp range; output selected fields only.
+- Do not infer a Meta outage from the generic UI message. Compare failed and successful sends and inspect the raw `code`, `error_subcode`, and `is_transient` fields.
+- Logs included credentials in Axios URLs; never store or echo them. Replace with `[REDACTED_SECRET]`.
+
+References:
+- GCP project/service: `oho-platform` / `core-api--production`.
+- Source mapping: `oho-api/src/utils/get-error-message-send-message-fail.js:93-100,181-195`.
+- Raw error signature: `HTTP 400`, `OAuthException`, `code=551`, `error_subcode=1893047`, `is_transient=false`.
+- Recommended conclusion wording: recipient-specific Meta rejection; advise contacting the customer through another channel rather than repeatedly retrying.
+
+## Thread `019ff944-2c61-78d0-ab18-072ed186d997`
+updated_at: 2026-08-13T16:44:14+00:00
+cwd: /Users/tualek/ohochat
+rollout_path: /Users/tualek/.codex/sessions/2026/08/13/rollout-2026-08-13T10-57-02-019ff944-2c61-78d0-ab18-072ed186d997.jsonl
+rollout_summary_file: 2026-08-13T03-57-02-TJMH-line_webhook_migration_hardening_and_canary_risk_review.md
+
+---
+description: Reviewed and planned hardening for LINE webhook domain migration; identified backup/rollback, whitelist, manifest, and zero-message-loss requirements.
+task: line-webhook-migration-review-and-safe-rollout
+ task_group: script-oho operational migration / LINE webhook rollout
+ task_outcome: partial
+cwd: /Users/tualek/ohochat/script-oho
+keywords: LINE webhook, migrate-line-webhook, allowed-host, manifest, rollback, checkpoint, register_webhook_at, Cloud Tasks, zero message loss, URL map, canary
+---
+
+### Task 1: LINE migration audit
+
+task: audit LINE webhook migration end-to-end
+task_group: script-oho/migrate-line-webhook-endpoint
+task_outcome: partial
+
+Preference signals:
+- The user required DB whitelist discovery, new-endpoint verification before LINE mutation, LINE PUT before DB update, and complete backup/rollback. Similar reviews should trace the full operational state machine and cite concrete files/lines.
+- The user prefers read-only review unless edits are explicitly requested.
+
+Reusable knowledge:
+- Existing `oho-api` endpoint shape is `${webhook_endpoint}/line/webhook/${businessId}` (`oho-api/src/services/channel/line/line.hooks.js:91,237-286`).
+- Correct safe order is inventory DB + LINE → persist immutable before-state → test new endpoint → PUT LINE → GET verify → update DB → final verify.
+- Original implementation wrote backup only after `processChannel()` returned, creating a crash window after mutation. Backup must be durable before the first mutation.
+- `--old-host` is not a whitelist. Requirement needs explicit `--allowed-host` classification and reporting of DB/LINE drift.
+- Rollback must use per-channel journal state, not every dry-run entry; never rollback untouched channels.
+- DB rollback must preserve exact values and field presence for every touched field. `line.register_webhook_at` is intentionally excluded from both migration and rollback.
+- Partial failures must produce non-zero exit status.
+
+Failures and how to do differently:
+- Do not claim production readiness from the happy path alone. Verify crash windows, partial failures, candidate drift, and exact rollback.
+- Do not use giant unbounded source dumps; inspect focused ranges to avoid truncation.
+
+References:
+- `/Users/tualek/ohochat/script-oho/migrate-line-webhook-endpoint/migrate-line-webhook.ts`
+- `oho-api/src/services/channel/line/line.hooks.js`
+- `oho-webhook/src/controllers/line/line.controller.ts`
+
+### Task 2: Plan-only hardening
+
+task: write implementation-ready plan without editing migration code
+task_group: script-oho/migrate-line-webhook-endpoint
+ task_outcome: success
+
+Preference signals:
+- The user explicitly changed scope to “plan only” and said `register_webhook_at` may not need updating. Future agents should stop implementation immediately when scope is narrowed.
+- The user requested a specific sub-agent model; `gpt-5.6-luna` was unavailable, so no substitution was made after the user said not to proceed.
+
+Reusable knowledge:
+- `plan.md` specifies explicit `--allowed-host`, immutable manifest, manifest-bound apply/rollback, digest validation, atomic writes, durable journals, compensation, conflict detection, timeouts, non-zero exits, tests, and canary rollout.
+- Manifest must contain DB/LINE before-state, field-presence markers, candidate IDs/count, scope, whitelist, environment, digest, and no credentials.
+- Apply must revalidate exact live DB/LINE state before the first PUT; rollback must detect conflicts and only target channels that actually mutated.
+
+References:
+- `/Users/tualek/ohochat/script-oho/migrate-line-webhook-endpoint/plan.md`
+- Key contract strings: `--allowed-host`, `--manifest`, `line_put_requested`, `rollback_not_needed`, `line.register_webhook_at`, `exit non-zero`.
+
+### Task 3: Cloud load-balancer canary
+
+task: interpret GCP URL-map routing and update risk
+task_group: GCP global external Application Load Balancer / LINE webhook canary
+task_outcome: partial
+
+Preference signals:
+- The user wants direct, precise explanations of YAML priority, backend weights, propagation, and message-loss risk, without absolute safety claims unsupported by evidence.
+
+Reusable knowledge:
+- Priority 1 exact path match wins over Priority 2; Priority 2 is not a fallback if Priority 1’s backend returns 5xx/timeout.
+- `defaultService: old` handles unmatched requests only; it does not rescue requests already selected for the new backend.
+- Old 99/new 1 limits blast radius but does not provide zero message loss.
+- Keep old as default, preserve old backend/NEG, validate the URL map, canary one business, monitor both backends, and prepare rollback to old 100/new 0.
+
+References:
+- Canary path: `/line/webhook/604ee3c35c2d9e573e8e9873`.
+- Correct YAML nesting: `routeAction:` followed by indented `weightedBackendServices:`.
+
+### Task 4: Cloud Tasks message-loss failure
+
+task: verify whether Cloud Tasks failure can cause LINE webhook loss
+task_group: oho-webhook LINE controller / Cloud Tasks
+ task_outcome: success
+
+Reusable knowledge:
+- `oho-webhook/src/helpers/cloud_tasks.api.ts:125-135` catches `createTask` errors, logs them, and does not rethrow.
+- `oho-webhook/src/controllers/line/line.controller.ts:145-174` then records `add_queue_success` and responds HTTP 200.
+- Failure path: task creation fails → error swallowed → 200 returned → LINE considers webhook received → message can be lost.
+- Required contract: task creation success before 200; on failure record `add_queue_failed` and return 5xx. Add `webhookEventId` idempotency, enable LINE webhook redelivery, and reconcile events lacking terminal processing state.
+- LINE redelivery reduces risk but is not an absolute guarantee; load-balancer settings alone cannot provide zero message loss.
+
+Failures and how to do differently:
+- Do not describe `POST /webhook/test` or HTTP 200 as proof of end-to-end message safety. Verify queue creation, task completion, persistence, and real-message evidence.
+
+References:
+- `oho-webhook/src/helpers/cloud_tasks.api.ts:125-135`
+- `oho-webhook/src/controllers/line/line.controller.ts:145-174`
+
 ## Thread `019ff9cf-2564-7b40-af25-0306981e9625`
 updated_at: 2026-08-13T06:44:50+00:00
 cwd: /Users/tualek/ohochat
@@ -4890,4 +5099,114 @@ References:
 - Commit: `ffe26f0e`
 - Branch: `tk-sprint-2616/feature/jera-tab-is-missing`
 - Verification: `git rev-list --left-right --count origin/tk-sprint-2616/feature/jera-tab-is-missing...HEAD` returned `0 1`.
+
+## Thread `019ffa0c-a821-7e62-9ee7-6f5b71ace63c`
+updated_at: 2026-08-13T08:52:54+00:00
+cwd: /Users/tualek/thaivagroups
+rollout_path: /Users/tualek/.codex/sessions/2026/08/13/rollout-2026-08-13T14-36-01-019ffa0c-a821-7e62-9ee7-6f5b71ace63c.jsonl
+rollout_summary_file: 2026-08-13T07-36-01-4exm-disable_cookie_wow_and_deploy_v1_7_6.md
+
+description: Temporarily disable Cookie Wow in Thaiva frontend, commit/tag it, and verify production deployment; preserve unrelated lockfile changes
+ task: disable Cookie Wow frontend integration and deploy production
+ task_group: thaiva-frontend release deployment
+ task_outcome: success
+ cwd: /Users/tualek/thaivagroups/thaiva-frontend
+ keywords: Cookie Wow, cookiecdn.com, next/script, layout.tsx, git tag, v1.7.6, deploy-production.yml, production verification, dirty worktree
+
+### Task 1: Disable Cookie Wow
+
+task: Comment out the active Cookie Wow scripts in the Thaiva frontend.
+task_group: thaiva-frontend frontend change
+task_outcome: success
+
+Preference signals:
+- The user asked to remove Cookie Wow temporarily and accepted commenting the code -> preserve the original integration when implementing temporary disablements.
+- `package-lock.json` and `yarn.lock` had pre-existing changes; the agent deliberately did not touch or stage them -> preserve unrelated dirty worktree changes.
+
+Reusable knowledge:
+- The active integration is in `src/app/[locale]/layout.tsx`, not `src/components/CookieBanner.tsx`. The layout renders `https://cookiecdn.com/cwc.js` and the config script with id `cookieWow`.
+- The block was wrapped in a JSX comment beginning `Temporarily disabled Cookie Wow.`
+
+Failures and how to do differently:
+- `npm run lint -- --file 'src/app/[locale]/layout.tsx'` could not run because `next` was missing from `node_modules` (`sh: next: command not found`). Report validation limits explicitly.
+
+References:
+- Changed file: `src/app/[locale]/layout.tsx`
+- Validation: `git diff --check` passed.
+
+### Task 2: Commit, tag, and deploy
+
+task: Commit only the Cookie Wow change, create a release tag, push it, and verify production.
+task_group: thaiva-frontend release deployment
+task_outcome: success
+
+Preference signals:
+- The user asked to commit and deploy; the implementation used a tag-only push rather than pushing directly to `main` -> inspect and follow the repo’s actual release workflow.
+- Production was checked directly before claiming success -> verify live behavior, not just git/tag state.
+
+Reusable knowledge:
+- `.github/workflows/deploy-production.yml` deploys on pushed tags matching `v*`.
+- Remote releases `v1.7.3`–`v1.7.5` existed beyond local `main`; the hotfix branch was based on fetched `v1.7.5` before applying the change.
+- Commit `606d216` contains only the layout change. Annotated tag `v1.7.6` was pushed successfully.
+- GitHub CLI could not inspect Actions because the configured auth token was invalid and private-repo requests returned 404; production HTML polling was the effective verification fallback.
+- After deployment, fetching `https://thaivagroups.com/?deploy_check=v1.7.6-1` and searching the response found no `cookiecdn.com`, `cookieWow`, or `LFXyXJb3exYPCcS7zqsnEMNM`.
+
+Failures and how to do differently:
+- Do not treat a successful tag push as proof of deployment. Poll the live endpoint with cache busting and search for the removed scripts/config.
+- Leave unrelated lockfile modifications unstaged and visible in final status.
+
+References:
+- Branch: `hotfix/disable-cookie-wow`
+- Commit: `606d216 fix: temporarily disable Cookie Wow`
+- Tag: `v1.7.6`
+- Final status retained only unrelated modifications: `M package-lock.json`, `M yarn.lock`.
+
+## Thread `019ffa4b-53d6-7f53-ab12-aac360e69732`
+updated_at: 2026-08-13T08:54:13+00:00
+cwd: /Users/tualek/ohochat
+rollout_path: /Users/tualek/.codex/sessions/2026/08/13/rollout-2026-08-13T15-44-28-019ffa4b-53d6-7f53-ab12-aac360e69732.jsonl
+rollout_summary_file: 2026-08-13T08-44-28-1ngu-diagnose_thaimetal_line_postback_gcp_logs.md
+
+---
+description: Diagnosed Thaimetal LINE rich-menu postbacks that appear as “กดปุ่ม”; production evidence shows external/custom postbacks are synced before automation detection, so suppression must be narrowly scoped.
+task: diagnose-thaimetal-line-postback-and-ignore-scope
+task_group: line-webhook-gcp-production-debugging
+task_outcome: success
+cwd: /Users/tualek/ohochat
+keywords: LINE, postback, rich-menu, Thaimetal, กดปุ่ม, GCP Logging, oho-webhook, contact-send-message, Auto Reply Trigger, URI action
+---
+
+### Task 1: Diagnose Thaimetal LINE postback display and ignore scope
+
+task: trace production LINE events for business 6a422c6fae5398680bf7d837 and determine whether custom rich-menu button events can be ignored
+task_group: line-webhook-gcp-production-debugging
+task_outcome: success
+
+Preference signals:
+- The user asked to “หา log ใน gcp ให้หน่อยว่ามาแบบไหน” and asked whether these events can be ignored -> for similar incidents, inspect real production payloads and source flow before recommending a filter or code change.
+- The user’s concern is specifically removing unwanted customer-facing button activity, not disabling all postback functionality -> preserve existing Oho Auto Reply Trigger behavior and propose the narrowest business/payload-scoped suppression.
+
+Reusable knowledge:
+- Production evidence for Thaimetal showed LINE events shaped as `type: "postback"` with only `postback.data`, commonly `แคตตาล็อค`; no `displayText` or label was present.
+- Observed payload values also included `ผลงานและการออกแบบประตู-หน้าต่าง`, `ข้อควรรู้ก่อนติดตั้งประตู-หน้าต่าง`, and `ตัวแทนจำหน่ายอลูมิเนียมเส้นไทยเม็ททอล`.
+- `oho-webhook/src/controllers/line/helper.ts:127-133` parses `entry.postback.data` using `qs.parse` and sets `text` from `label`. For raw Thai data without `label=...`, text is undefined.
+- `oho-webhook/src/controllers/line/handler.ts:691-708` calls `/contact-send-message` with the transformed postback before pattern detection.
+- `oho-api/src/utils/message-converter/youpin-to-stream.js:296-301` and `oho-api/src/services/contact-send-message/contact-send-message.hooks.js:386-399` fall back to the visible text `กดปุ่ม`.
+- `handleEventTypePostback` checks `art_id`/`arp_id` for automation, but that check occurs after message synchronization; merely having no ART/ARP does not prevent the Stream message/notification.
+- Existing Oho-managed postbacks use payloads such as `art_id=...&label=...`; a global postback ignore would break legitimate Auto Reply Trigger behavior.
+- Preferred product-level options from the evidence: use LINE `URI action` for buttons that only open an external system; otherwise namespace external postbacks (for example `external_action=thaimetal_catalog`) and suppress only that namespace for business `6a422c6fae5398680bf7d837`. Adding `label=แคตตาล็อค` changes the preview text but does not suppress the event.
+
+Failures and how to do differently:
+- Querying `jsonPayload` without a nested member failed: `INVALID_ARGUMENT: Cannot match a nested type 'jsonPayload'.` Use `jsonPayload.message:` or `SEARCH(...)` in Cloud Logging filters.
+- Broad business-ID searches returned noisy, very large output. Narrow by `resource.labels.service_name`, `jsonPayload.message`, timestamp, and event type; summarize only timestamp, service, payload shape, and relevant IDs.
+- GCP CLI initially could not write `~/.config/gcloud` due to permissions. Elevated execution was required for the historical payload aggregation; never preserve signed headers, reply tokens, channel tokens, or other secrets in memory.
+
+References:
+- `/Users/tualek/ohochat/oho-webhook/src/controllers/line/helper.ts:127-133`
+- `/Users/tualek/ohochat/oho-webhook/src/controllers/line/handler.ts:206-214`
+- `/Users/tualek/ohochat/oho-webhook/src/controllers/line/handler.ts:691-708`
+- `/Users/tualek/ohochat/oho-api/src/utils/message-converter/youpin-to-stream.js:296-301`
+- `/Users/tualek/ohochat/oho-api/src/services/contact-send-message/contact-send-message.hooks.js:386-399`
+- GCP query pattern: `gcloud logging read 'timestamp>=... AND resource.type="cloud_run_revision" AND resource.labels.service_name="oho-webhook-production" AND jsonPayload.message:"/webhook/<businessId>" AND jsonPayload.message:"\"type\":\"postback\""' --project=oho-platform --format=json`
+- Representative event: `type=postback`, `postback.data="แคตตาล็อค"`, business `6a422c6fae5398680bf7d837`, timestamp `2026-08-13T08:35:42Z`.
 

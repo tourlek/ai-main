@@ -132,3 +132,16 @@ consolidate: merge duplicates, drop obsolete ones, keep the rule one line each.
 ## 2026-08 — ลาก subsystem ที่ไม่เกี่ยวมาปนกับ bug scope
 - **Mistake**: หลังผู้ใช้ถามเรื่อง JERA tab หาย ผมตามไปวิเคราะห์ `completeClaimedDedup()` ใน Facebook webhook ทั้งที่จุดนั้นไม่อยู่ใน JERA render/fetch path; user corrected ว่า `จริงๆ อันนี้ต้องการแก้ที่ tab jera มันหายเองเพราะเรา render ก่อนที่จะได้ค่ามาหนิใช่ไหม`.
 - **Rule**: ก่อนขยายการแก้ bug ให้ trace จากอาการถึง runtime path และตัด subsystem ที่ไม่อยู่ใน path ออก; สำหรับ JERA tab race ให้จำกัด scope ที่ feature-flag resolution, MaxPanel watcher และ partner-connection fetch เท่านั้น เว้นแต่มีหลักฐานเชื่อมโยงใหม่.
+
+
+## 2026-08 — Deploy ผ่าน tag แล้วไม่อัปเดต main
+- **Mistake**: สร้างและ push production tag จาก release branch แล้วสรุปงานเสร็จ ทั้งที่ `origin/main` ยังอยู่หลัง production หลาย commit; user corrected: `merge เข้า main ไว้ด้วยสิ`.
+- **Rule**: เมื่อ release workflow ใช้ tag ให้ตรวจและทำให้ branch หลักมี release commit เดียวกับ tag ตาม repo flow ก่อนสรุปงานเสร็จ; ห้ามทิ้ง production history ไว้เฉพาะ tag หรือ local release branch.
+
+## 2026-08 — สรุป production routing จากชื่อ Load Balancer โดยไม่ตรวจ DNS
+- **Mistake**: เห็น resource ชื่อ `oho-webhook-lb` แล้วสรุปว่า `webhook.oho.chat` วิ่งผ่าน LB นั้น ทั้งที่ DNS จริง CNAME ไป Cloud Run domain mapping และ certificate/LB IP เป็นของ `webhook2.oho.chat`; ทำให้แนะนำ URL-map canary ที่ไม่มีผลกับ production domain.
+- **Rule**: ก่อนสรุป ingress topology หรือแก้ routing ให้ยืนยันครบ DNS A/CNAME → frontend IP → target proxy/certificate SAN → URL map/backend → request logs; ห้ามอนุมานจากชื่อ resource.
+
+## 2026-08 — สรุปว่า webapp ไม่เรียก Stream จากการค้นชื่อ method อย่างเดียว
+- **Mistake**: ค้นหา `queryChannels` ใน source แล้วสรุปว่า webapp ไม่เรียก Stream ตรง โดยไม่ได้ trace network request ที่ Stream Chat SDK ยิงไป `chat-proxy-singapore.stream-io-api.com`; user corrected: `แต่หน้าบ้านมีเรียก https://chat-proxy-singapore.stream-io-api.com/ ด้วยนะ`.
+- **Rule**: ก่อนสรุปว่า frontend ไม่เรียก third-party API ตรง ให้ตรวจ SDK call path และ browser network endpoint/method ด้วย; การไม่พบชื่อ SDK method ใน source ไม่ได้พิสูจน์ว่าไม่มี network call.
