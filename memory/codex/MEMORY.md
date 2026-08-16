@@ -17,7 +17,7 @@ applies_to: cwd=/Users/tualek/ohochat; reuse_rule=retrace current source/config 
 
 ### rollout_summary_files
 
-- rollout_summaries/2026-08-13T03-57-02-TJMH-line_webhook_migration_hardening_and_canary_risk_review.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/08/13/rollout-2026-08-13T10-57-02-019ff944-2c61-78d0-ab18-072ed186d997.jsonl, updated_at=2026-08-13T16:44:14+00:00, thread_id=019ff944-2c61-78d0-ab18-072ed186d997, partial; migration plan and production-risk analysis)
+- rollout_summaries/2026-08-13T03-57-02-TJMH-line_webhook_migration_safety_review_and_canary_rollout.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/08/13/rollout-2026-08-13T10-57-02-019ff944-2c61-78d0-ab18-072ed186d997.jsonl, updated_at=2026-08-14T09:53:26+00:00, thread_id=019ff944-2c61-78d0-ab18-072ed186d997, partial; verified webhook2 routing and end-to-end canary gates)
 
 ### keywords
 
@@ -34,6 +34,7 @@ applies_to: cwd=/Users/tualek/ohochat; reuse_rule=retrace current source/config 
 - `validate-business-integration-status` runs `/v2/bot/info` with the channel access token, then `/v2/bot/channel/webhook/endpoint`; it validates `active` and expected endpoint (trailing slash trimmed), bulk-writes state, skips HTTP 429, but does not send a real message, validate channel secret, queue/Stream processing, or auto-recover incomplete channels. Webhook-info failures are currently classified as token invalid even when network/API failure is possible. [Task 1]
 - `check_line_messaging_health` creates a synthetic signed payload and POSTs directly to OHO, then waits and checks Stream Chat. Its configured token is not used against LINE APIs, so it checks OHO ingestion/terminal state, not token validity or the true LINE Platform path. `verify-signature` logs a mismatch and returns `{ ok: true }`, so synthetic success is not signature-enforcement proof. [Task 1]
 - Safe endpoint migration is inventory DB + LINE -> durable immutable before-state -> test new endpoint -> PUT LINE -> GET verify -> DB update -> final verify. Use explicit `--allowed-host`, manifest-bound apply/rollback, journal only mutated channels, exact `$set`/`$unset` restoration, and non-zero partial-failure status; omit `line.register_webhook_at`. [Task 2]
+- `webhook2.oho.chat` had an ACTIVE certificate and `/line` returned HTTP 200. Use old `oho-webhook-production` as default and exact business-path rules to `webhook--production`; multiple `fullPathMatch` rules in one route rule are OR semantics. This is staged-routing evidence, not message-delivery proof. [Task 2]
 - Priority 1 exact URL-map path wins over Priority 2; `defaultService: old` handles only unmatched requests, not a selected new backend's 5xx/timeout. Old 99/new 1 reduces blast radius but cannot guarantee zero loss. [Task 2]
 - Current loss path: `createTask` catches/logs failure, controller records `add_queue_success` and returns 200, so LINE may stop retrying while the message is lost. Require task creation before 200; on failure record `add_queue_failed` and return 5xx, with `webhookEventId` idempotency, enabled redelivery, and terminal-state reconciliation. [Task 2]
 
@@ -282,26 +283,30 @@ applies_to: cwd=/Users/tualek/ohochat; reuse_rule=reuse the call-site map as a s
 
 ### rollout_summary_files
 
-- rollout_summaries/2026-08-11T11-28-28-MoHA-trace_querychannels_call_sites_and_doc_updates.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/08/11/rollout-2026-08-11T18-28-28-019ff094-bfe0-7330-b67d-5c37089d39fe.jsonl, updated_at=2026-08-11T18:47:31+00:00, thread_id=019ff094-bfe0-7330-b67d-5c37089d39fe, success; exact active callers and doc qualifications verified)
+- rollout_summaries/2026-08-11T11-28-28-MoHA-stream_querychannels_best_practices_review.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/08/11/rollout-2026-08-11T18-28-28-019ff094-bfe0-7330-b67d-5c37089d39fe.jsonl, updated_at=2026-08-14T09:31:07+00:00, thread_id=019ff094-bfe0-7330-b67d-5c37089d39fe, success; call-site, SDK-network, and official best-practices review)
 
 ### keywords
 
-- queryChannels, .queryChannels(, docs/queryChannels.md, /contact/chat/search, /chat-session/group/search, skip_stream_channel_sync, stream_chat_service.dart, chat_list_controller.dart, Conversation.vue, channel.watch(), $limit === 0
+- queryChannels, .queryChannels(, chat-proxy-singapore.stream-io-api.com, recoverStateOnReconnect, POST /channels, CID, docs/queryChannels.md, /contact/chat/search, /chat-session/group/search, stream_chat_service.dart, Conversation.vue, $limit === 0
 
 ## User preferences
 
-- when the user asks where `queryChannel` is used -> search the workspace, distinguish real Stream calls from variables/comments/tests/docs, and return file:line evidence with runtime flow rather than raw grep output. [Task 1]
-- when the user asks what else to update in documentation -> state whether the scope is web hot paths or every system caller, and qualify broad claims with verified no-call guards. [Task 1]
+- when the user asks where `queryChannel`/`queryChannels` is used -> distinguish active production calls, SDK-generated traffic, scripts, tests, docs, and commented-out code; return file:line evidence with runtime flow rather than raw grep output. [Task 1]
+- when the user corrected “แต่หน้าบ้านมีเรียก https://chat-proxy-singapore.stream-io-api.com/ ด้วยนะ” -> inspect SDK integration and browser network paths before saying the frontend does not call a third-party API directly. [Task 1]
+- when the user said “ทำเป็น .md ไฟล์ให้หน่อย” and requested official GetStream comparison -> save research as a reviewable Markdown artifact, cite primary documentation, and separate verified facts from inference and unrun validation. [Task 1]
 
 ## Reusable knowledge
 
 - Active production backend calls are `oho-api/src/services/contact/chat-search/chat-search.class.js:46` via `GET /contact/chat/search` and `oho-api/src/services/chat-session/group/search/search.class.js:28` via `GET /chat-session/group/search`; web Smartchat/Groupchat callers converge on these endpoints. [Task 1]
 - Flutter is a separate direct production caller: `oho-flutter-mobile/lib/core/services/stream_chat_service.dart:331`, reached from `lib/modules/home/controllers/chat_list_controller.dart:915`, preconnecting chunks of 10 with `messageLimit: 100`. CLI/migration calls are manual/non-hot-path; the Facebook hook at `oho-api/src/services/conversations/facebook/facebook.hooks.js:372` is commented out. [Task 1]
 - Qualify `docs/queryChannels.md:68-70`: neither backend path queries Stream when `$limit === 0` or database/search results are empty; Smartchat also skips for `feature_flag.skip_stream_channel_sync`, and Groupchat returns zero badges when starred scope cannot resolve an `_id`. `Conversation.vue` uses `channel.watch()`, not these search endpoints. [Task 1]
+- `Conversation.vue:1517-1525` creates `StreamChat` with `https://chat-proxy-singapore.stream-io-api.com`, calls `channel.watch()` at `1595` and `channel.query()` at `2460`. The SDK’s reconnect recovery can call `queryChannels` through `POST /channels` using active CIDs, `last_message_at`, and limit 30; watch/query use `/channels/{type}/{id}/query`. [Task 1]
+- The report `/Users/tualek/ohochat/queryChannels-best-practices-review.md` records official guidance: selective filters, CID preferred, explicit sort, max 30 channels, avoid redundant watch, and use `state:false`/`watch:false` when state/realtime is unnecessary. Current gaps include backend pass-through limits up to 50, no backend sort, Groupchat `type + id`, Flutter `id` only/no sort/`messageLimit: 100`, and a source-backed active-channel accumulation risk. Dashboard/runtime confirmation remains unrun. [Task 1]
 
 ## Failures and how to do differently
 
 - Symptom: `queryChannel` search overstates active usage. Cause: docs, incidents, tests, comments, and unrelated variables match. Fix: follow broad discovery with `rg '\\.queryChannels\\('` in source/runtime directories and inspect comment delimiters. [Task 1]
+- Symptom: “webapp has no direct Stream call.” Cause: searching application-level `queryChannels` only. Fix: trace SDK source and network endpoint/method paths; do not reduce Flutter `messageLimit: 100` or treat Groupchat CID/active-channel concerns as proven performance fixes without Dashboard or runtime evidence. [Task 1]
 - Symptom: git status fails from `/Users/tualek/ohochat`. Cause: git metadata lives in component repositories. Fix: run git commands from the relevant subdirectory such as `/Users/tualek/ohochat/oho-api`; do not edit every frontend caller if the intended change is backend Stream-query behavior. [Task 1]
 
 # Task Group: /Users/tualek/Documents/Codex/2026-08-11/referenced-chatgpt-conversation-this-is-an / Meta AI plan review request
@@ -402,7 +407,7 @@ applies_to: cwd=/Users/tualek/ohochat/script-oho; reuse_rule=reuse the workflow 
 
 ### rollout_summary_files
 
-- rollout_summaries/2026-08-13T03-57-02-TJMH-line_webhook_migration_hardening_and_canary_risk_review.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/08/13/rollout-2026-08-13T10-57-02-019ff944-2c61-78d0-ab18-072ed186d997.jsonl, updated_at=2026-08-13T16:44:14+00:00, thread_id=019ff944-2c61-78d0-ab18-072ed186d997, partial; reinforces plan-only, canary, and Cloud Tasks loss gates)
+- rollout_summaries/2026-08-13T03-57-02-TJMH-line_webhook_migration_safety_review_and_canary_rollout.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/08/13/rollout-2026-08-13T10-57-02-019ff944-2c61-78d0-ab18-072ed186d997.jsonl, updated_at=2026-08-14T09:53:26+00:00, thread_id=019ff944-2c61-78d0-ab18-072ed186d997, partial; fail-closed manifest plan, verified webhook2 routing, and terminal canary checks)
 - rollout_summaries/2026-08-10T07-54-21-Wlnm-line_webhook_migration_review_config_audit.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/08/10/rollout-2026-08-10T14-54-21-019feaaa-5edf-7453-8fdb-0bf9b642ca0c.jsonl, updated_at=2026-08-10T10:38:39+00:00, thread_id=019feaaa-5edf-7453-8fdb-0bf9b642ca0c, partial; safety audit and runtime-config boundary)
 - rollout_summaries/2026-08-10T07-15-37-7oWo-line_webhook_migration_audit_hardening_and_production_runboo.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/08/10/rollout-2026-08-10T14-15-37-019fea86-e89e-79c3-b1e3-68a6504098fc.jsonl, updated_at=2026-08-11T03:38:57+00:00, thread_id=019fea86-e89e-79c3-b1e3-68a6504098fc, partial; consolidated audit, plan-only boundary, implementation review, and canary guidance)
 - rollout_summaries/2026-08-10T06-14-37-ygPX-harden_line_webhook_migration_recovery.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/08/10/rollout-2026-08-10T13-14-37-019fea4f-0f09-7031-a11f-8b18c23fcf85.jsonl, updated_at=2026-08-10T07:28:25+00:00, thread_id=019fea4f-0f09-7031-a11f-8b18c23fcf85, partial; recovery/crash-window hardening)
@@ -419,6 +424,7 @@ applies_to: cwd=/Users/tualek/ohochat/script-oho; reuse_rule=reuse the workflow 
 - when the user specified `register_webhook_at` should not be updated -> never put it in migrate or rollback payloads. [Task 1]
 - when giving production commands, the user wants one exact copy-pasteable command; no duplicated flags, no trailing-space continuation, and no `<token>` placeholder that zsh reads as redirection. [Task 1]
 - when canarying a migration, the user prefers one channel/business, manifest inspection, applying that exact manifest, then a real LINE message with webhook/queue/terminal processing evidence before broader rollout. [Task 1]
+- when evaluating historical production usage, the user corrected that manual/test traffic is not historical evidence -> exclude the user’s own test events before drawing an adoption or safety conclusion. [Task 1]
 
 ## Reusable knowledge
 
@@ -427,6 +433,7 @@ applies_to: cwd=/Users/tualek/ohochat/script-oho; reuse_rule=reuse the workflow 
 - Apply must consume the reviewed manifest rather than rebuild candidates. Apply/rollback require exclusive `<manifest>.lock`; journal `line_put_requested`, `db_update_requested` before Mongo commit, `db_updated`, `migrated`, and compensation/conflict states. Exact rollback needs `$set`/`$unset` restoration of field presence. [Task 1]
 - Static/unit validation: focused tests `11/11`, full tests `21/21`, and CLI help passed. The safe status is UAT/one-channel canary only until real-message, queue/terminal-processing, and rollback verification pass. [Task 1]
 - URL-map priority/fallback is not a delivery guarantee, and current Cloud Tasks error swallowing can return 200 after failed enqueue. Preserve old backend/NEG, canary one business, and require task-create success before 200 plus event idempotency/redelivery/reconciliation for any zero-loss claim. [Task 1]
+- `webhook2.oho.chat` had an ACTIVE certificate and `/line` returned HTTP 200. The staged topology is old `oho-webhook-production` by default with exact business `fullPathMatch` routes to `webhook--production`; DNS, certificate, URL map, backend, logs, Cloud Task attempts, `source-messages` terminal state, and a real OHO message must all be checked before claiming delivery. [Task 1]
 - Runtime config boundary: change `oho-api` environment `webhook_endpoint` in the `APP_CONFIG` Secret Manager flow (GitLab config project `294` → `core-api-config--json--<env>`), then deploy `core-api` with the new secret version. Do not change `oho-webhook` `OHO_WEBHOOK_URL`: it is the internal Cloud Tasks callback base. The stale `webhook.oho.chat` text in `oho-web-app/pages/business/_biz_id/setting/integration.vue:824-1140` is in a commented block, so it does not require web-app deployment. [Task 1]
 - Related skill: skills/oho-line-webhook-migration/SKILL.md. [Task 1]
 
@@ -437,6 +444,7 @@ applies_to: cwd=/Users/tualek/ohochat/script-oho; reuse_rule=reuse the workflow 
 - Symptom: rollback says `rollback_not_needed` even though the channel was migrated. Cause: dry-run summary label is misleading; detail can say `would restore ...`. Fix: inspect both `<manifest>.migrate.journal.json` and `<manifest>.rollback.journal.json`, especially durable `migrated`/`dbUpdatedAt`, before declaring rollback unnecessary. [Task 1]
 - Symptom: exact shell command fails. Cause: duplicate `--execute`/`--confirm` flags or `\\ ` with trailing space. Fix: produce a single clean command, validate flags occur once, and avoid multiline continuations unless essential. Do not record production tokens/identifiers in memory. [Task 1]
 - Symptom: a cross-repo `rg` hit is called a deployment dependency. Cause: reachability/comments were not inspected. Fix: inspect enclosing comments, feature gates, route registration, and execution/render path; do not read an entire production secret merely to inspect one field. [Task 1]
+- Symptom: a route/certificate or `add_queue_success` is called a safe rollout. Cause: it proves only a partial chain, and `createTask()` can be swallowed while the controller returns 200. Fix: revert to old `100`/new `0` on task-create failure, non-OK attempt, `sync_message_fail`, `dropped`, stuck `inprogress`, or canary 5xx/timeout. [Task 1]
 
 # Task Group: /Users/tualek/Documents/migrant-labor-crm / new-machine local development setup
 
@@ -1197,17 +1205,7 @@ applies_to: cwd=/Users/tualek/ohochat/oho-backoffice; reuse_rule=reuse for simil
 
 - glab, merge request 32, code review, external-message, whitelist, pagination, request_seq, race condition, prettier, git diff --check, nuxt2, element-ui
 
-## Task 2: Read-only OHO-1177 pagination/select-all review, four correctness risks found while cross-page model and recursion were safe
-
-### rollout_summary_files
-
-- rollout_summaries/2026-07-16T12-27-20-o4b5-oho_1177_pagination_select_all_read_only_review.md (cwd=/Users/tualek/ohochat/oho-backoffice, rollout_path=/Users/tualek/.codex/sessions/2026/07/16/rollout-2026-07-16T19-27-20-019f6ae5-4dea-7a62-b818-7b3d28db18df.jsonl, updated_at=2026-07-16T12:35:11+00:00, thread_id=019f6ae5-4dea-7a62-b818-7b3d28db18df, uncommitted OHO-1177 review found save/select-all, duplicate-validation, business-switch, and stale-page races)
-
-### keywords
-
-- OHO-1177, Vue2, Nuxt2, element-ui, pagination, select-all, checkbox-group, stale-response, whitelist_request_seq, duplicate-name, $limit, BadRequest
-
-## Task 3: Read-only UI/UX review of external-message whitelist/app catalog screens, root cause and data-safety findings
+## Task 2: Read-only UI/UX review of external-message whitelist/app catalog screens, root cause and data-safety findings
 
 ### rollout_summary_files
 
@@ -1219,34 +1217,28 @@ applies_to: cwd=/Users/tualek/ohochat/oho-backoffice; reuse_rule=reuse for simil
 
 ## User preferences
 
-- when the user says `read-only, do NOT edit any files`, `Do NOT edit any files -- this is review only`, or asks `review mr นี้ให้หน่อย` -> inspect without editing, staging, committing, or drifting into implementation. [Task 1][Task 2][Task 3]
-- when the user requires every correctness claim to cite actual lines and wants severity-ranked findings -> report evidence-first, blocker-oriented, and omit speculative issues. [Task 1][Task 2][Task 3]
+- when the user says `read-only, do NOT edit any files`, `Do NOT edit any files -- this is review only`, or asks `review mr นี้ให้หน่อย` -> inspect without editing, staging, committing, or drifting into implementation. [Task 1][Task 2]
+- when the user requires every correctness claim to cite actual lines and wants severity-ranked findings -> report evidence-first, blocker-oriented, and omit speculative issues. [Task 1][Task 2]
 - when the task is a GitLab MR review in this repo -> use the live MR metadata/diff, not a paraphrased summary, and keep the output merge-oriented with P1/P2-style findings. [Task 1]
-- when the user supplies a checklist for cross-page state, select-all, async races, recursion, API contract adherence, and comments -> explicitly use that checklist rather than review only visible UI behavior. [Task 2]
-- when the user specifies `root-cause first` and then High/Medium/Low findings with concrete suggested fixes -> preserve that severity ordering and actionable output shape. [Task 3]
-- when the user asks to grep the wider repo for other `filterable remote` usages -> check wider repo usage before claiming a pattern or divergence. [Task 3]
+- when the user specifies `root-cause first` and then High/Medium/Low findings with concrete suggested fixes -> preserve that severity ordering and actionable output shape. [Task 2]
+- when the user asks to grep the wider repo for other `filterable remote` usages -> check wider repo usage before claiming a pattern or divergence. [Task 2]
 
 ## Reusable knowledge
 
 - `glab mr view 32 -F json` and `glab mr diff 32` were reliable sources for `oho-backoffice` GitLab MR review, and `git diff --check` is a useful quick sanity check even when functional races remain. `prettier --check` can still catch formatting drift separately. [Task 1]
-- This feature area is highly race-prone: business switching, save, page refresh, dialog open/close, and debounced search each need their own request-identity or snapshot guard. Do not treat one existing `request_seq` guard as blanket coverage. [Task 1][Task 2]
-- Element UI checkbox-group keeps the full model, so toggling visible-page checkboxes preserves IDs from other pages. Deriving all/indeterminate from `selected_app_ids.length` versus catalog `total` is correct under the supplied cascade-delete contract. [Task 2]
-- Last-page step-back recursion is bounded and refetches the corrected page without leaving loading stuck. [Task 2]
-- `fetchAllExternalMessageApps()` walks every page because the API wrapper only supports paginated reads. It is used for whole-catalog validation and select-all behavior, so Save/dirty-baseline updates must be serialized against that async fetch and tied to the initiating business/request sequence. [Task 1][Task 2]
+- This feature area is highly race-prone: business switching, save, page refresh, dialog open/close, and debounced search each need their own request-identity or snapshot guard. Do not treat one existing `request_seq` guard as blanket coverage. [Task 1]
+- `fetchAllExternalMessageApps()` walks every page because the API wrapper only supports paginated reads. It is used for whole-catalog validation, so Save/dirty-baseline updates must be serialized against that async fetch and tied to the initiating business/request sequence. [Task 1]
 - In `pages/external-message-whitelist.vue`, changing business or resetting `app_page = 1` is not sufficient by itself; the visible page-1 list must be refetched or stale rows can remain on screen. [Task 1]
-- The edit flow intentionally keeps `app_id` immutable to avoid orphaning existing whitelists, which matches the earlier mock-model data-integrity warning. [Task 1][Task 3]
-- Page loaders need stale-response guards; duplicate-name validation must be loaded/gated before Save because the backend does not enforce unique names. The adapter's `_.clamp` of `$limit` hides the verified `BadRequest` contract for values above 50. [Task 2]
-- Element UI `el-select` with `remote && filterable` intentionally omits the default arrow; no repo CSS override was found. The mock backend models `external_message_apps` and `business_external_app_whitelist`, cascades app deletion, and does not propagate mutable `app_id` edits to existing whitelist rows. [Task 3]
+- The edit flow intentionally keeps `app_id` immutable to avoid orphaning existing whitelists, which matches the earlier mock-model data-integrity warning. [Task 1][Task 2]
+- Element UI `el-select` with `remote && filterable` intentionally omits the default arrow; no repo CSS override was found. The mock backend models `external_message_apps` and `business_external_app_whitelist`, cascades app deletion, and does not propagate mutable `app_id` edits to existing whitelist rows. [Task 2]
 
 ## Failures and how to do differently
 
 - Symptom: a late whitelist save corrupts the newly selected business baseline. Cause: `saved_app_ids` from an older save overwrites `loaded_app_ids` after the user switches business. Fix/pivot: bind save completion to the business/dialog state that initiated it before mutating clean-baseline state. [Task 1]
 - Symptom: the pager shows page 1 while stale rows from another page remain visible. Cause: code resets `app_page = 1` without refetching page 1 data. Fix/pivot: treat page reset as its own fetch boundary and verify the reload follows the state change. [Task 1]
-- Symptom: Save persists old IDs then marks newly fetched select-all IDs clean. Cause: select-all fetches the whole catalog asynchronously while Save stays enabled. Fix/pivot: disable/serialize Save until the selection fetch resolves and only update dirty baseline after the matching PATCH succeeds. [Task 2]
-- Symptom: business A select-all overwrites business B after a switch, or rapid paging/search shows old rows/loading state. Cause: responses are not tied to the initiating business/request sequence and page/search loaders lack stale-response guards. Fix/pivot: bind each request to current sequence/context and discard stale results. [Task 1][Task 2]
-- Symptom: a fast create/update bypasses duplicate-name validation or a reopened dialog saves against the wrong form state. Cause: validation/save awaits before snapshotting dialog state and whole-catalog validation is not fully gated. Fix/pivot: snapshot dialog/form state before the first await and await/gate validation before Save. [Task 1][Task 2]
-- Symptom: a missing dropdown arrow looks like a CSS bug. Cause: Element UI hides the suffix icon for `remote && filterable`. Fix/pivot: inspect component source before blaming styling. [Task 3]
-- Symptom: whitelist/admin mockups appear safe because the UI has warning text. Cause: the data model still allows cascade delete and `app_id` rename orphaning. Fix/pivot: inspect the mock service/data layer, not only page copy. [Task 3]
+- Symptom: business switching, save, or rapid page/search loading applies an older response. Cause: UI state mutations are not tied to the initiating business, dialog, or request sequence. Fix/pivot: snapshot context before the first await and discard stale completion before updating rows or clean baselines. [Task 1]
+- Symptom: a missing dropdown arrow looks like a CSS bug. Cause: Element UI hides the suffix icon for `remote && filterable`. Fix/pivot: inspect component source before blaming styling. [Task 2]
+- Symptom: whitelist/admin mockups appear safe because the UI has warning text. Cause: the data model still allows cascade delete and `app_id` rename orphaning. Fix/pivot: inspect the mock service/data layer, not only page copy. [Task 2]
 
 # Task Group: /Users/tualek/ohochat / cross-repo unread-unresponded deploy-gate reviews
 scope: Read-only cross-repo review memory for unread/unresponded fixes spanning `oho-api`, `oho-websocket`, and `oho-web-app`; use for deploy-gate audits, MR review follow-ups, or "is this actually fixed?" checks where write gates, realtime broadcasts, and frontend counters must align.
@@ -1390,26 +1382,14 @@ applies_to: cwd=/Users/tualek/ohochat/oho-api; reuse_rule=reuse for similar code
 
 - oho-api, unread, unresponded, read-only review, uncommitted diff, service.hooks(hooks), invalid hook type, contact-send-message, getContactSendMessagePreviewText, paginate.max, getMessagePreviewText, checkJs
 
-## Task 3: Review unread/unresponded flag-gated changes in `mr-1285-fixes`, flag-off contract regressions found
-
-### rollout_summary_files
-
-- rollout_summaries/2026-07-14T10-49-31-cVgx-thai_unread_unresponded_flag_off_review_mr_1285_fixes.md (cwd=/Users/tualek/ohochat/oho-api, rollout_path=/Users/tualek/.codex/sessions/2026/07/14/rollout-2026-07-14T17-49-31-019f603f-0763-7a32-9125-816c9dd5f2b5.jsonl, updated_at=2026-07-14T11:40:37+00:00, thread_id=019f603f-0763-7a32-9125-816c9dd5f2b5, corrected to the real `.claude/worktrees/mr-1285-fixes` diff and found flag-off contract / emitter-audience blockers)
-
-### keywords
-
-- unread, unresponded, flag-off, mr-1285-fixes, emitChatSessionStatusUpdatedEvent, emitContactUnrespondedStatusUpdatedEvent, buildClearUnreadUnrespondedPayload, convertUnreadUnrespondedQuery, channel-eligible-members, worktree verification, Thai review
-
 ## User preferences
 
 - when the user says `do NOT modify files` or `This is a REVIEW ONLY task. Do not edit any files.` -> keep similar `oho-api` reviews strictly read-only. [Task 1][Task 2]
 - when the user asks for `findings ranked by severity with file:line references` and an `overall verdict` -> provide concise, judgmental, evidence-backed output with an explicit ship/needs-fix/block recommendation. [Task 1][Task 2]
 - when a final concurrency re-review asks for `ship`/`no-ship`, event-loop ordering, Promise interop, and test timing -> inspect current files and regression tests directly; prove the claimed race rather than trusting the fix description. [Task 7]
-- when the user says `run git status/git diff` and `verify with actual code inspection (not assumption)` -> inspect the live repo state first, not summaries or stale worktree assumptions. [Task 2][Task 3]
+- when the user says `run git status/git diff` and `verify with actual code inspection (not assumption)` -> inspect the live repo state first, not summaries or stale worktree assumptions. [Task 2]
 - when the user calls out pre-existing failing suites that must not be blamed on the diff -> separate environment/repo noise from a diff-caused regression. [Task 2]
-- when the user asked `review oho-api ที่มีการแก้ไขให้หน่อยว่าโอเคไหม` -> future similar review responses should be direct, Thai, and judgmental instead of generic or hedged. [Task 3]
 - when the user emphasized `correctness bugs (especially cross-member cache poisoning)` -> prioritize scope isolation, member identity, and stale-data correctness before style or minor test coverage. [Task 1]
-- when the user asked `ถ้าปิด flag แล้วต้องหมายความว่า feature นี้ต้องไม่ทำงานแต่ feature อื่นๆ ก็ไม่กระทบด้วยเช่นกันต้องใช้งานได้เหมือนเดิม` -> review against the contract `feature off = no behavior + no collateral impact`, not just whether the flag is referenced somewhere. [Task 3]
 - when the user asks for an “Adversarial review round 2” with “verdict ... numbered findings with file:line evidence ... prioritized 2-week backlog with explicit cut-line” -> challenge scope aggressively, pin revisions, and finish with a hard production-enablement boundary rather than rubber-stamping a revised plan. [Task 8]
 - when the user asks for `SHIP / NEEDS-CHANGES / NO-SHIP`, all eight concerns, cross-repo writers, and omitted work -> trace SET -> ordering guard -> storage -> realtime -> search/count/filter and enumerate direct writers, rather than reviewing only the proposed schema. [Task 9]
 
@@ -1419,7 +1399,6 @@ applies_to: cwd=/Users/tualek/ohochat/oho-api; reuse_rule=reuse for similar code
 - `getCachedBadgeCount()` treats numeric `0` as a hit and `undefined` as a miss; the reviewed TTL is numeric Redis seconds. `src/index.js` sets `global.Promise = require('bluebird')`, so production settlement inspection differs from native Jest promises. [Task 1]
 - `service.hooks(hooks)` is only safe when the hooks module exports exactly lifecycle namespaces; any extra enumerable export becomes an invalid Feathers hook type, which is why `contact-send-message.service.js` booted incorrectly while `notify.service.js` stayed safe. [Task 2]
 - `config/default.json` sets `paginate.max` to `50`; the reviewed dynamic max preserved that behavior. `getMessagePreviewText()` safely ignores non-string `data.label` from `qs.parse` and falls back to `message.text` / `กดปุ่ม`; `allowJs: true` with `checkJs: false` does not typecheck JS callers. [Task 2]
-- `buildClearUnreadUnrespondedPayload` is intentionally unconditional on the clear-write side so feature toggles do not leave stuck `is_unresponded` / unread state. [Task 3]
 - In the OHO-1272 worktree, `getOrComputeBadgeCount` synchronously registers the complete cache-read-plus-compute lifecycle before its first await. A local `expired` flag is set before timeout rejection and checked immediately before `setCachedBadgeCount`; `Promise.race(...).finally(...)` clears the timer and deletes the flight on every settlement path. This closes staggered-GET admission and late-success stale-write races. [Task 7]
 - The reviewed specs cover concurrent one-read/one-compute, pending-GET joining, timeout then fresh retry, and a first computation resolving after timeout without overwriting the second flight's cached `7`. Production uses Bluebird as `global.Promise`; a focused probe confirmed native async promise assimilation and `.finally()`. [Task 7]
 - `buildCountBaseQuery()` preserves tab/search filters such as status, assignment, starred, tags, and visibility after stripping pagination/meta and badge filters. A state collection containing only business/channel/spam/unread fields cannot reproduce present badge counts without a contract change or join/mirror design. [Task 8]

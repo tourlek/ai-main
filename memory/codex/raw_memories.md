@@ -201,49 +201,6 @@ References:
 - [4] `components/Smartchat/Conversation.vue:1649-1680` decrements unread on mark-read; `:1975-1979` sets `room.is_unresponded = false` before decrementing.
 - [5] `components/Smartchat/RoomList.vue:170-176` fallback treats null/undefined `is_read_by_me` as read.
 
-## Thread `019f603f-0763-7a32-9125-816c9dd5f2b5`
-updated_at: 2026-07-14T11:40:37+00:00
-cwd: /Users/tualek/ohochat
-rollout_path: /Users/tualek/.codex/sessions/2026/07/14/rollout-2026-07-14T17-49-31-019f603f-0763-7a32-9125-816c9dd5f2b5.jsonl
-rollout_summary_file: 2026-07-14T10-49-31-cVgx-thai_unread_unresponded_flag_off_review_mr_1285_fixes.md
-
----
-description: Thai review of unread/unresponded flag-off behavior in oho-api; found contract regressions, incomplete emitter wiring, and a zero-work/visibility mismatch across send paths
-subtask: code_review, flag_contract, worktree_verification
-outcome: fail
-cwd: /Users/tualek/ohochat/oho-api
-keywords: unread, unresponded, flag-off, code review, Thai, worktree, mr-1285-fixes, emitChatSessionStatusUpdatedEvent, emitContactUnrespondedStatusUpdatedEvent, buildClearUnreadUnrespondedPayload, convertUnreadUnrespondedQuery, chat-search, remote-config, jest, channel-eligible-members
----
-
-### Task 1: Review unread/unresponded flag-gated changes in `mr-1285-fixes`
-
-task: Thai code review of unread/unresponded flag-off behavior in `oho-api` worktree `mr-1285-fixes`
-task_group: oho-api / code review
-task_outcome: fail
-
-Preference signals:
-- when the user asked `review เกี่ยวกับ unread&unresponded ให้หน่อยว่าถ้าปิด flag แล้วต้องหมายความว่า feature นี้ต้องไม่ทำงานแต่ feature อื่นๆ ก็ไม่กระทบด้วยเช่นกันต้องใช้งานได้เหมือนเดิม` -> default to Thai, findings-first, contract-focused review that explicitly checks zero-behavior / zero-side-effect when the flag is off.
-- when the user’s requirement was that the feature must not work with the flag off and other features must remain usable -> future reviews should verify both functional correctness and collateral impact on unrelated flows, not just presence/absence of the feature.
-- when multiple worktrees exist, the assistant had to correct the review target to the actual diff in `.claude/worktrees/mr-1285-fixes` -> future similar reviews should verify branch/worktree before judging the diff.
-
-Reusable knowledge:
-- `buildClearUnreadUnrespondedPayload` is intentionally unconditional for the clear-write side and is used by many runtime paths; it exists to avoid stuck `is_unresponded` / unread state when flags toggle off and back on.
-- `convertUnreadUnrespondedQuery` + its spec are the early gate for unread/unresponded query semantics; they are the right first place to validate query shape before tracing hooks.
-- `emit-chat-session-event.spec.ts` now covers both group-session and contact-unresponded broadcasts, including flag-off behavior and eligibility-scoped fan-out.
-- Focused Jest on the new helper/spec areas is the most useful validation signal for this change family; broad repo tests were less useful because unrelated quick-reply failures still existed elsewhere.
-
-Failures and how to do differently:
-- The new contact unresponded emitter was only wired into some send paths (`member-send-message`, `bot-send-message`) while `contact-send-message` still used the older emitter, so realtime `is_unresponded` updates were not handled uniformly across all transitions.
-- Some flag-off paths still performed DB reads and Remote Config evaluation before deciding whether to emit, which adds latency/work even when the feature is off.
-- The new emitter audience was based on channel eligibility only, while chat search visibility has stricter sale-owner/assignee/team rules; that can leak contact metadata to members who can open the channel but should not see the contact.
-- The earlier wrong-worktree review should be ignored; always re-check worktree/branch before making assertions in a multi-worktree repo.
-
-References:
-- [1] Correct worktree: `/Users/tualek/ohochat/oho-api/.claude/worktrees/mr-1285-fixes`.
-- [2] User wording: `ถ้าปิด flag แล้วต้องหมายความว่า feature นี้ต้องไม่ทำงานแต่ feature อื่นๆ ก็ไม่กระทบด้วยเช่นกันต้องใช้งานได้เหมือนเดิม`.
-- [3] Passing focused tests: `src/services/chat-session/hooks/emit-chat-session-event.spec.ts` passed 20/20; `src/services/contact/helper-hook/convert-unread-unresponded-query.spec.ts` and `src/utils/build-clear-unread-unresponded-payload.spec.ts` passed 24/24.
-- [4] Emitter wiring handles: `src/services/contact-send-message/contact-send-message.hooks.js:582`, `src/services/member-send-message/member-send-message.hooks.js:1338`, `src/services/bot-send-message/bot-send-message.hooks.js:929`, `src/services/chat-session/hooks/emit-chat-session-event.js:362`.
-
 ## Thread `019f6135-9fb1-7b72-b968-52241fd501a2`
 updated_at: 2026-07-14T15:35:19+00:00
 cwd: /Users/tualek/ohochat/oho-api/.claude/worktrees/mr-1285-fixes
@@ -830,56 +787,6 @@ References:
 - `store/modules/groupchat.js:215-321`
 - `pages/business/_biz_id/groupchat/index.vue:26-31,449-567`
 - `utils/optimistic-flag-count-tracker.js:1-27`
-
-## Thread `019f6ae5-4dea-7a62-b818-7b3d28db18df`
-updated_at: 2026-07-16T12:35:11+00:00
-cwd: /Users/tualek/ohochat/oho-backoffice
-rollout_path: /Users/tualek/.codex/sessions/2026/07/16/rollout-2026-07-16T19-27-20-019f6ae5-4dea-7a62-b818-7b3d28db18df.jsonl
-rollout_summary_file: 2026-07-16T12-27-20-o4b5-oho_1177_pagination_select_all_read_only_review.md
-
-description: Read-only review of OHO-1177 pagination/select-all changes found async selection races, stale page responses, duplicate-name validation race, and overlong comments; cross-page checkbox model and last-page recursion were verified correct
- task: review uncommitted OHO-1177 pagination and select-all work in oho-backoffice
- task_group: /Users/tualek/ohochat/oho-backoffice external-message Vue/Nuxt admin review
- task_outcome: success
- cwd: /Users/tualek/ohochat/oho-backoffice
- keywords: OHO-1177, Vue2, Nuxt2, element-ui, pagination, select-all, checkbox-group, stale-response, whitelist_request_seq, duplicate-name, $limit, BadRequest
-
-### Task 1: Pagination and select-all correctness review
-
-task: read-only line-cited review of external-message app catalog and whitelist pagination/select-all changes
-task_group: oho-backoffice external-message admin UI
- task_outcome: success
-
-Preference signals:
-- when the user said “read-only, do NOT edit any files” and requested a report only -> inspect strictly without editing, staging, committing, or creating files.
-- when the user required every correctness claim to cite actual lines and requested ranked findings -> report evidence-first, severity ordered, and omit speculative issues.
-- when the user supplied a specific checklist for cross-page state, select-all, races, recursion, contract adherence, and comments -> use that checklist explicitly in similar reviews.
-
-Reusable knowledge:
-- `components/ExternalMessage/WhitelistAppChecklist.vue:19-28,80-105` uses Element UI's full checkbox-group model, so visible-page toggles preserve IDs from other pages; this mechanism was checked and is not a bug.
-- `components/ExternalMessage/WhitelistAppChecklist.vue:86-95` derives all/indeterminate from `selected_app_ids.length` versus catalog `total`; under the supplied cascade-delete contract this is correct.
-- `pages/external-message-apps.vue:173-195` has bounded last-page step-back recursion; it refetches the corrected page and does not leave loading stuck.
-- `pages/external-message-whitelist.vue:174-186,224-259` select-all fetches the whole catalog asynchronously but does not bind the result to the initiating business/request sequence.
-- `pages/external-message-whitelist.vue:145-172` and `pages/external-message-apps.vue:173-199` page fetches lack request sequencing, so rapid paging can display stale rows and mishandle loading/error state.
-- `pages/external-message-apps.vue:147-149,201-216,235-256,267-289` starts full-catalog validation without awaiting it; because the backend does not enforce unique names, duplicate-name validation can be bypassed by a fast submit.
-- `api/externalMessageApps.js:12-13,26-33` clamps invalid limits instead of preserving the verified API behavior where `$limit > 50` returns BadRequest. Current callers use valid limits, so this is a contract mismatch rather than confirmed current-call failure.
-
-Failures and how to do differently:
-- Disable Save or otherwise serialize it while select-all is loading; otherwise a save can persist old IDs and then incorrectly mark the newly selected IDs as clean locally.
-- Associate select-all with the current business/request sequence and discard results after a business switch.
-- Add stale-response guards to both catalog page loaders so older page requests cannot overwrite newer page state or clear the latest loading flag.
-- Await or gate validation-catalog loading before allowing Save; do not rely on the server to catch duplicate names because the supplied contract says it does not.
-- Remove dead `.pagination-wrap .selected-text` SCSS at checklist lines 174-185 and reduce comments that merely narrate obvious code, especially API header comments and single-use `impact_text` explanation.
-
-References:
-- `pages/external-message-whitelist.vue:77-83,174-186,276-304` — Save/select-all race.
-- `pages/external-message-whitelist.vue:174-186,224-259` — select-all/business-switch race.
-- `pages/external-message-whitelist.vue:145-172` — whitelist page fetch without stale-response guard.
-- `pages/external-message-apps.vue:173-199` — catalog page fetch and step-back logic.
-- `pages/external-message-apps.vue:147-149,201-216,235-256,267-289` — duplicate-name validation race.
-- `api/externalMessageApps.js:12-13,26-33` — silent `$limit` clamping.
-- `components/ExternalMessage/WhitelistAppChecklist.vue:19-28,80-105` — cross-page checkbox model verified safe.
-- `components/ExternalMessage/WhitelistAppChecklist.vue:86-95` — total-based select-all state verified safe.
 
 ## Thread `019f7d53-c7cc-7ea2-9fb1-76d2f5ace193`
 updated_at: 2026-07-20T02:28:26+00:00
@@ -4399,66 +4306,87 @@ References:
 - Core files: `oho-api/src/models/channel.model.js`, `oho-api/src/services/contact/upsert/upsert.class.js`, `oho-api/src/services/contact/meta-business-ai/control-hooks.js`, `oho-api/src/utils/meta-business-ai-stream.js`, `oho-webhook/src/controllers/facebook/meta-business-ai.ts`, `oho-webhook/src/controllers/facebook/helper.ts`, `oho-webhook/src/controllers/facebook/handler.ts`
 
 ## Thread `019ff094-bfe0-7330-b67d-5c37089d39fe`
-updated_at: 2026-08-11T18:47:31+00:00
+updated_at: 2026-08-14T09:31:07+00:00
 cwd: /Users/tualek/ohochat
 rollout_path: /Users/tualek/.codex/sessions/2026/08/11/rollout-2026-08-11T18-28-28-019ff094-bfe0-7330-b67d-5c37089d39fe.jsonl
-rollout_summary_file: 2026-08-11T11-28-28-MoHA-trace_querychannels_call_sites_and_doc_updates.md
+rollout_summary_file: 2026-08-11T11-28-28-MoHA-stream_querychannels_best_practices_review.md
 
----
-description: Traced Stream Chat queryChannels usage in ohochat and identified the exact backend hot paths plus documentation corrections.
-task: querychannels-call-site-analysis
-task_group: ohochat-stream-chat
-task_outcome: success
-cwd: /Users/tualek/ohochat
-keywords: queryChannels, Stream Chat, contact/chat/search, chat-session/group/search, skip_stream_channel_sync, Flutter, docs/queryChannels.md
----
+description: Traced OHO Stream Chat queryChannels usage, corrected an incomplete frontend analysis, and created an official best-practices review Markdown report
+ task: trace-and-review-stream-querychannels
+ task_group: ohochat-stream-chat
+ task_outcome: success
+ cwd: /Users/tualek/ohochat
+ keywords: queryChannels, Stream Chat, chat-proxy-singapore, recoverStateOnReconnect, CID, GetStream best practices, oho-api, oho-web-app, Flutter
 
-### Task 1: Locate queryChannels usages
+### Task 1: Locate queryChannels call sites
 
-task: repository-wide Stream Chat queryChannels call-site inventory
-task_group: ohochat-stream-chat
-task_outcome: success
+task: identify active Stream Chat queryChannels callers
+ task_group: ohochat-stream-chat
+ task_outcome: success
 
 Preference signals:
-- The user asked where `queryChannel` is used; future answers should search the workspace, distinguish exact Stream calls from unrelated `queryChannel` variables, and provide paths/lines plus runtime flow.
+- The user asked where `queryChannel`/`queryChannels` is used and wanted docs updated based on the complete scope -> future searches should distinguish active production code, SDK-generated calls, scripts, tests, docs, and commented-out code.
 
 Reusable knowledge:
-- Active backend calls are `oho-api/src/services/contact/chat-search/chat-search.class.js:46` for `/contact/chat/search` and `oho-api/src/services/chat-session/group/search/search.class.js:28` for `/chat-session/group/search`.
-- Flutter directly calls it at `oho-flutter-mobile/lib/core/services/stream_chat_service.dart:331`, invoked from `oho-flutter-mobile/lib/modules/home/controllers/chat_list_controller.dart:915`; chunks are size 10.
-- Manual callers are `script-oho/unread-unresponded/migrate-unread.ts:716`, `script-oho/unread-unresponded/probe-stream-authority.ts:355`, `oho-cli/lib/fix/fix-chat-room-attachment.js:307`, and `oho-cli/lib/fix/fix-contact.js:74`.
-- `oho-api/src/services/conversations/facebook/facebook.hooks.js:372` is commented out; Flutter test verifications are mocks.
+- Active backend calls are `oho-api/src/services/contact/chat-search/chat-search.class.js:46` (`/contact/chat/search`) and `oho-api/src/services/chat-session/group/search/search.class.js:28` (`/chat-session/group/search`).
+- Flutter production call is `oho-flutter-mobile/lib/core/services/stream_chat_service.dart:331`, invoked by `oho-flutter-mobile/lib/modules/home/controllers/chat_list_controller.dart:915`.
+- Script/CLI calls: `script-oho/unread-unresponded/migrate-unread.ts:716`, `probe-stream-authority.ts:355`, `oho-cli/lib/fix/fix-chat-room-attachment.js:307`, `oho-cli/lib/fix/fix-contact.js:74`.
+- `oho-api/src/services/conversations/facebook/facebook.hooks.js:372` is within a comment block and is not active runtime code.
 
 Failures and how to do differently:
-- Broad `queryChannel` searches include docs, incidents, tests, comments, and unrelated export variables. Narrow with `rg '\.queryChannels\\('` and inspect surrounding comment delimiters.
+- Plain text search can include unrelated `queryChannel` variables, tests, docs, and dead code; inspect enclosing comments and call paths before counting a finding.
 
 References:
-- `oho-api/src/services/contact/chat-search/chat-search.class.js:46-68`
-- `oho-api/src/services/chat-session/group/search/search.class.js:28-47`
-- `oho-flutter-mobile/lib/core/services/stream_chat_service.dart:323-344`
+- `rtk rg -n --hidden --glob '!**/.git/**' --glob '!**/node_modules/**' "queryChannels\\(" .`
 
-### Task 2: Review docs/queryChannels.md coverage
+### Task 2: Trace web SDK network behavior
 
-task: compare queryChannels documentation with active code and identify required updates
-task_group: ohochat-stream-chat-documentation
-task_outcome: success
+task: determine whether browser-side Stream calls bypass application-level queryChannels
+ task_group: ohochat-web-stream-sdk
+ task_outcome: success
 
 Preference signals:
-- The user asked what additional points should be updated in `docs/queryChannels.md`; future documentation reviews should state scope explicitly and verify both positive call paths and no-call guards.
+- The user corrected: "แต่หน้าบ้านมีเรียก https://chat-proxy-singapore.stream-io-api.com/ ด้วยนะ" -> future agents must inspect SDK integration and browser network paths before claiming the frontend does not call a third-party API directly.
 
 Reusable knowledge:
-- For web hot-path changes, update only the two backend search classes; frontend Smartchat/Groupchat actions converge on those endpoints.
-- Qualify `docs/queryChannels.md:68-70` because Stream is not queried for `$limit === 0`, empty database results, Smartchat `feature_flag.skip_stream_channel_sync`, or unresolved Groupchat starred scope.
-- Add Flutter as a separate direct production caller only if documenting all system calls; scripts/CLI are manual/non-hot-path callers.
-- `Conversation.vue` uses `channel.watch()`, not the search endpoints.
+- `oho-web-app/components/Smartchat/Conversation.vue:1517-1525` creates `StreamChat`, sets base URL `https://chat-proxy-singapore.stream-io-api.com`, and calls `connectUser`.
+- `Conversation.vue:1595` calls `channel.watch()`; `:2460` calls `channel.query()`.
+- The installed SDK defaults `recoverStateOnReconnect: true` and recovery calls `queryChannels` over `POST {baseURL}/channels` with active CIDs, `last_message_at` sort, and limit 30.
+- Distinguish paths: `POST /channels` indicates `queryChannels`; `POST /channels/{type}/{id}/query` indicates `channel.watch()`/`channel.query()`.
 
 Failures and how to do differently:
-- `git status` from the workspace root failed because the relevant git repository is under a project subdirectory; use `/Users/tualek/ohochat/oho-api` (or the relevant component directory) for git operations.
-- Avoid editing every UI caller when the intended fix is backend Stream-query behavior.
+- Initial “webapp has no direct Stream call” conclusion was wrong because it relied on searching for application-level `queryChannels` only. Trace SDK source and network endpoint paths instead.
 
 References:
-- `docs/queryChannels.md:68-70`
-- `oho-api/src/services/contact/chat-search/chat-search.class.js:41-63,113-162`
-- `oho-api/src/services/chat-session/group/search/search.class.js:69-84,116-138`
+- `oho-web-app/components/Smartchat/Conversation.vue:1516-1597,2458-2465`
+- `oho-web-app/node_modules/stream-chat/src/client.ts:1242-1255,1402-1437`
+- `oho-web-app/node_modules/stream-chat/src/channel.ts:1008-1047,1223-1245`
+
+### Task 3: Produce GetStream best-practices review Markdown
+
+task: compare OHO queryChannels implementations with official GetStream guidance and save report
+ task_group: ohochat-stream-chat-review
+ task_outcome: success
+
+Preference signals:
+- The user asked “ทำเป็น .md ไฟล์ให้หน่อย” -> research findings should be saved as a reviewable Markdown artifact in the repo, not only summarized in chat.
+- The user requested comparison against the official GetStream best-practices URL -> cite primary documentation and separate verified facts from inference and unrun validation.
+
+Reusable knowledge:
+- Created `/Users/tualek/ohochat/queryChannels-best-practices-review.md`.
+- Report findings: backend allows/pass-through limits up to 50 while Stream max is 30; Smartchat uses CID but omits sort; Groupchat uses `type + id` rather than CID; Flutter batches 10 and avoids duplicate watch but uses `id` only, ignores `type`, omits sort, and requests `messageLimit: 100`; web reconnect uses CID/sort/limit 30 but may retain stopped channels in SDK `activeChannels`.
+- Official baseline captured from `https://getstream.io/chat/docs/react-native/query-channels.md`: selective filters, CID preferred, explicit sort, max 30 channels, avoid redundant watch calls, and use `state:false`/`watch:false` where state/realtime is unnecessary.
+- No application code was modified, tests were not run, and no commit was made. Dashboard performance, production `$limit=31..50` replay, Flutter payload measurement, and browser reconnect reproduction remain unverified.
+
+Failures and how to do differently:
+- Treat the Groupchat CID recommendation and web active-channel accumulation as source-backed inferences unless confirmed with Stream Dashboard or runtime reproduction.
+- Do not reduce Flutter `messageLimit: 100` blindly; measure first-render/state consumption first.
+
+References:
+- Artifact: `queryChannels-best-practices-review.md`
+- Official docs: `https://getstream.io/chat/docs/react-native/query-channels.md`
+- Backend: `oho-api/src/services/contact/chat-search/chat-search.class.js:46-50`; `oho-api/src/services/chat-session/group/search/search.class.js:28-32`; limits in `oho-api/src/services/contact/chat-search/shared-hooks.js` and `oho-api/src/services/chat-session/group/search/search.hooks.js`; `oho-api/config/default.json:6-9`
+- Flutter: `oho-flutter-mobile/lib/core/services/stream_chat_service.dart:317-350`
 
 ## Thread `019ff11b-e580-7052-b2d7-ee32d28d724d`
 updated_at: 2026-08-11T14:09:31+00:00
@@ -4720,105 +4648,87 @@ References:
 - Recommended conclusion wording: recipient-specific Meta rejection; advise contacting the customer through another channel rather than repeatedly retrying.
 
 ## Thread `019ff944-2c61-78d0-ab18-072ed186d997`
-updated_at: 2026-08-13T16:44:14+00:00
+updated_at: 2026-08-14T09:53:26+00:00
 cwd: /Users/tualek/ohochat
 rollout_path: /Users/tualek/.codex/sessions/2026/08/13/rollout-2026-08-13T10-57-02-019ff944-2c61-78d0-ab18-072ed186d997.jsonl
-rollout_summary_file: 2026-08-13T03-57-02-TJMH-line_webhook_migration_hardening_and_canary_risk_review.md
+rollout_summary_file: 2026-08-13T03-57-02-TJMH-line_webhook_migration_safety_review_and_canary_rollout.md
 
 ---
-description: Reviewed and planned hardening for LINE webhook domain migration; identified backup/rollback, whitelist, manifest, and zero-message-loss requirements.
-task: line-webhook-migration-review-and-safe-rollout
- task_group: script-oho operational migration / LINE webhook rollout
+description: LINE webhook migration review, fail-closed manifest plan, and verified webhook2 canary routing guidance
+ task: migrate-line-webhook-endpoint safety audit and rollout
+ task_group: /Users/tualek/ohochat/script-oho
  task_outcome: partial
-cwd: /Users/tualek/ohochat/script-oho
-keywords: LINE webhook, migrate-line-webhook, allowed-host, manifest, rollback, checkpoint, register_webhook_at, Cloud Tasks, zero message loss, URL map, canary
+ cwd: /Users/tualek/ohochat/script-oho
+ keywords: LINE webhook, allowed-host, manifest, rollback, register_webhook_at, webhook2.oho.chat, URL map, Cloud Tasks, source-messages, canary
 ---
 
-### Task 1: LINE migration audit
+### Task 1: Audit migration safety
 
-task: audit LINE webhook migration end-to-end
-task_group: script-oho/migrate-line-webhook-endpoint
+task: review LINE webhook migration end-to-end
+task_group: script-oho migration safety
 task_outcome: partial
 
 Preference signals:
-- The user required DB whitelist discovery, new-endpoint verification before LINE mutation, LINE PUT before DB update, and complete backup/rollback. Similar reviews should trace the full operational state machine and cite concrete files/lines.
-- The user prefers read-only review unless edits are explicitly requested.
+- The user required backup before all mutations, LINE endpoint test before PUT, DB update afterward, and rollback capability -> future audits should trace DB discovery, backup durability, LINE mutation, DB mutation, and recovery as one transaction-like workflow.
+- The user corrected that manual/test traffic must not be treated as historical production traffic -> always separate test traffic from historical evidence.
 
 Reusable knowledge:
-- Existing `oho-api` endpoint shape is `${webhook_endpoint}/line/webhook/${businessId}` (`oho-api/src/services/channel/line/line.hooks.js:91,237-286`).
-- Correct safe order is inventory DB + LINE → persist immutable before-state → test new endpoint → PUT LINE → GET verify → update DB → final verify.
-- Original implementation wrote backup only after `processChannel()` returned, creating a crash window after mutation. Backup must be durable before the first mutation.
-- `--old-host` is not a whitelist. Requirement needs explicit `--allowed-host` classification and reporting of DB/LINE drift.
-- Rollback must use per-channel journal state, not every dry-run entry; never rollback untouched channels.
-- DB rollback must preserve exact values and field presence for every touched field. `line.register_webhook_at` is intentionally excluded from both migration and rollback.
-- Partial failures must produce non-zero exit status.
+- Original flow matched `oho-api` URL construction, but backup was written after `processChannel()` mutation; rollback could include dry-run-only channels; DB snapshots were incomplete; whitelist semantics were reversed; confirmation was not candidate-set-bound; failures could exit zero.
+- `oho-api/src/services/channel/line/line.hooks.js:237-285` is the source of truth for first-connect endpoint construction and LINE GET/PUT behavior.
 
 Failures and how to do differently:
-- Do not claim production readiness from the happy path alone. Verify crash windows, partial failures, candidate drift, and exact rollback.
-- Do not use giant unbounded source dumps; inspect focused ranges to avoid truncation.
+- Persist an immutable before-state manifest for every actionable candidate before the first LINE PUT.
+- Roll back only channels proven to have reached a mutation phase.
+- Bind confirmation to manifest digest, environment, scope, and candidate IDs/count.
 
 References:
-- `/Users/tualek/ohochat/script-oho/migrate-line-webhook-endpoint/migrate-line-webhook.ts`
-- `oho-api/src/services/channel/line/line.hooks.js`
-- `oho-webhook/src/controllers/line/line.controller.ts`
+- `script-oho/migrate-line-webhook-endpoint/migrate-line-webhook.ts`
+- `oho-api/src/services/channel/line/line.hooks.js:237-285`
 
-### Task 2: Plan-only hardening
+### Task 2: Plan hardening
 
-task: write implementation-ready plan without editing migration code
-task_group: script-oho/migrate-line-webhook-endpoint
- task_outcome: success
+task: write implementation-ready safe migration plan
+task_group: script-oho migration design
+task_outcome: success
 
 Preference signals:
-- The user explicitly changed scope to “plan only” and said `register_webhook_at` may not need updating. Future agents should stop implementation immediately when scope is narrowed.
-- The user requested a specific sub-agent model; `gpt-5.6-luna` was unavailable, so no substitution was made after the user said not to proceed.
+- User said `register_webhook_at` may not need updating -> preserve it exactly and never include it in migration or rollback payloads.
+- User changed scope to “plan only” -> do not implement or delegate when only a plan is requested.
 
 Reusable knowledge:
-- `plan.md` specifies explicit `--allowed-host`, immutable manifest, manifest-bound apply/rollback, digest validation, atomic writes, durable journals, compensation, conflict detection, timeouts, non-zero exits, tests, and canary rollout.
-- Manifest must contain DB/LINE before-state, field-presence markers, candidate IDs/count, scope, whitelist, environment, digest, and no credentials.
-- Apply must revalidate exact live DB/LINE state before the first PUT; rollback must detect conflicts and only target channels that actually mutated.
-
-References:
-- `/Users/tualek/ohochat/script-oho/migrate-line-webhook-endpoint/plan.md`
-- Key contract strings: `--allowed-host`, `--manifest`, `line_put_requested`, `rollback_not_needed`, `line.register_webhook_at`, `exit non-zero`.
-
-### Task 3: Cloud load-balancer canary
-
-task: interpret GCP URL-map routing and update risk
-task_group: GCP global external Application Load Balancer / LINE webhook canary
-task_outcome: partial
-
-Preference signals:
-- The user wants direct, precise explanations of YAML priority, backend weights, propagation, and message-loss risk, without absolute safety claims unsupported by evidence.
-
-Reusable knowledge:
-- Priority 1 exact path match wins over Priority 2; Priority 2 is not a fallback if Priority 1’s backend returns 5xx/timeout.
-- `defaultService: old` handles unmatched requests only; it does not rescue requests already selected for the new backend.
-- Old 99/new 1 limits blast radius but does not provide zero message loss.
-- Keep old as default, preserve old backend/NEG, validate the URL map, canary one business, monitor both backends, and prepare rollback to old 100/new 0.
-
-References:
-- Canary path: `/line/webhook/604ee3c35c2d9e573e8e9873`.
-- Correct YAML nesting: `routeAction:` followed by indented `weightedBackendServices:`.
-
-### Task 4: Cloud Tasks message-loss failure
-
-task: verify whether Cloud Tasks failure can cause LINE webhook loss
-task_group: oho-webhook LINE controller / Cloud Tasks
- task_outcome: success
-
-Reusable knowledge:
-- `oho-webhook/src/helpers/cloud_tasks.api.ts:125-135` catches `createTask` errors, logs them, and does not rethrow.
-- `oho-webhook/src/controllers/line/line.controller.ts:145-174` then records `add_queue_success` and responds HTTP 200.
-- Failure path: task creation fails → error swallowed → 200 returned → LINE considers webhook received → message can be lost.
-- Required contract: task creation success before 200; on failure record `add_queue_failed` and return 5xx. Add `webhookEventId` idempotency, enable LINE webhook redelivery, and reconcile events lacking terminal processing state.
-- LINE redelivery reduces risk but is not an absolute guarantee; load-balancer settings alone cannot provide zero message loss.
+- Plan requires DB inventory → LINE inventory → atomic immutable manifest → revalidation → LINE test → PUT → bounded GET polling → conditional DB update → final verification.
+- Explicit `--allowed-host` is required; apply/rollback must load a reviewed manifest rather than recalculate candidates.
+- Exact DB field presence/value must be restored; concurrent changes must fail closed; unresolved failures must exit non-zero.
 
 Failures and how to do differently:
-- Do not describe `POST /webhook/test` or HTTP 200 as proof of end-to-end message safety. Verify queue creation, task completion, persistence, and real-message evidence.
+- An unavailable requested sub-agent model (`gpt-5.6-luna`) must not be silently replaced; report availability and wait for user direction.
 
 References:
+- `script-oho/migrate-line-webhook-endpoint/plan.md`
+- Invariant: no `line.register_webhook_at` in `$set` or `$unset`.
+
+### Task 3: Infrastructure routing and monitoring
+
+task: verify webhook2 routing and define canary checks
+task_group: GCP URL map and oho-webhook rollout
+ task_outcome: partial
+
+Reusable knowledge:
+- `webhook2.oho.chat` had an ACTIVE certificate and `/line` returned HTTP 200. The safe staged topology is default old backend (`oho-webhook-production`) plus exact business path rules to `webhook--production`.
+- Multiple exact path `matchRules` in one route rule are OR semantics, so 2–3 businesses can share one 100% route rule.
+- Do not promise zero message loss: `cloud_tasks.api.ts:125-135` swallows `createTask()` errors, while the controller may still respond HTTP 200.
+- Verify the full chain: LINE ingress with `LineBotWebhook/2.0` → Cloud Task creation/attempts → `source-messages` terminal `sync_message_success` → real OHO message.
+
+Failures and how to do differently:
+- Exclude the user’s own test traffic when evaluating historical usage.
+- Verify DNS/certificate/URL-map/backend/logs before asserting topology; resource names alone are insufficient.
+- Roll back route weights to old 100/new 0 on any `Task create failed`, non-OK task attempt, `sync_message_fail`, `dropped`, stuck `inprogress`, or canary 5xx/timeout.
+
+References:
+- `oho-webhook/src/controllers/line/line.controller.ts:145-212,324-362`
 - `oho-webhook/src/helpers/cloud_tasks.api.ts:125-135`
-- `oho-webhook/src/controllers/line/line.controller.ts:145-174`
+- `oho-webhook/src/models/source_message.model.ts:19-36`
+- Cloud Tasks metrics: `cloudtasks.googleapis.com/queue/depth`, `queue/task_attempt_count`, `queue/task_attempt_delays`
 
 ## Thread `019ff9cf-2564-7b40-af25-0306981e9625`
 updated_at: 2026-08-13T06:44:50+00:00

@@ -34,7 +34,7 @@ Do not use it to mutate production unless the user explicitly authorizes that op
 4. Inspect the manifest before apply. Apply only it:
    `npm run migrate:line-webhook -- --env=prod --manifest="$MANIFEST" --execute --confirm="$MIGRATE_TOKEN" --yes`
 5. Before rollback, run its rollback dry-run to obtain the separate token, inspect both journals, then use the same manifest with `--rollback --execute --confirm="$ROLLBACK_TOKEN" --yes`.
-6. After a canary, send a real LINE message and verify webhook receipt, queue progression, and terminal processing before any broad rollout.
+6. After a canary, send a real LINE message and verify `LineBotWebhook/2.0` ingress, Cloud Task creation/attempts, `source-messages` terminal `sync_message_success`, and the real OHO message before any broad rollout. Exclude the operator's test traffic when assessing historical production usage.
 
 ## Efficiency Plan
 
@@ -48,6 +48,7 @@ Do not use it to mutate production unless the user explicitly authorizes that op
 - Symptom: crash/partial run lacks rollback truth. Fix: persist the immutable before-state manifest before mutation and journal `db_update_requested` before Mongo commit.
 - Symptom: `rollback_not_needed` hides a migrated entry. Fix: read its detail plus both journals; `would restore ...` in dry-run is not proof it was untouched.
 - Symptom: zsh command breaks or reports `Flag --confirm given more than once`. Fix: one single-line command, each flag exactly once, actual quoted variable values—never literal angle-bracket tokens or a trailing-space continuation.
+- Symptom: certificate, URL-map routing, or `add_queue_success` is treated as delivery proof. Cause: each observes only part of the chain; a swallowed `createTask()` failure can still return HTTP 200. Fix: revert to old `100`/new `0` on queue-create failure, non-OK task attempt, `sync_message_fail`, `dropped`, stuck `inprogress`, or canary 5xx/timeout.
 
 ## Verification Checklist
 
@@ -56,3 +57,4 @@ Do not use it to mutate production unless the user explicitly authorizes that op
 - LINE-before-DB ordering and non-zero partial-failure behavior are verified from code/current tests.
 - Both journals agree on the selected channel state before any rollback claim.
 - Focused/full test results are reported separately from a real-message, queue, terminal-state, and rollback canary result.
+- Historical-use claims exclude manual/operator test events.

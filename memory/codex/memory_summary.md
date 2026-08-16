@@ -15,6 +15,7 @@ The user primarily uses Codex for OHO engineering: evidence-first code/plan revi
 - For detailed plans, cover assumptions, risks, edge cases, validation, rollback, testing, observability, dependencies, migration, security, and acceptance criteria; prioritize actionable changes.
 - “ทำ plan มาอย่างเดียวก่อน” means plan only. Production commands should be one exact copy-pasteable command: flags once, no trailing-space continuations or angle-bracket tokens in zsh.
 - For production incident questions, correlate the supplied IDs/time window, raw platform payload, source mapping, and successful traffic before claiming an outage or recommending a broad suppression.
+- For call-site questions, separate application calls, SDK-generated network traffic, scripts/tests/docs, and commented code; trace HTTP method/path before ruling out a browser-side third-party call.
 
 ## General Tips
 
@@ -27,6 +28,16 @@ The user primarily uses Codex for OHO engineering: evidence-first code/plan revi
 ## What's in Memory
 
 ### /Users/tualek/ohochat
+
+#### 2026-08-14
+
+- LINE webhook migration safety and webhook2 canary routing: `webhook2.oho.chat`, `--allowed-host`, `fullPathMatch`, `LineBotWebhook/2.0`, `source-messages`, `sync_message_success`
+  - desc: Fail-closed manifest migration, verified staged URL-map routing, and terminal delivery checks. cwd=/Users/tualek/ohochat/script-oho.
+  - learnings: Exclude manual test traffic from historical evidence; route/certificate/200 are only partial chain proof—revert on queue/task/terminal or canary failure.
+
+- Stream Chat queryChannels SDK/network and official review: `queryChannels`, `chat-proxy-singapore.stream-io-api.com`, `recoverStateOnReconnect`, `POST /channels`, `CID`, `queryChannels-best-practices-review.md`
+  - desc: Active backend/Flutter/script callers, browser SDK recovery traffic, and GetStream best-practice gaps. cwd=/Users/tualek/ohochat.
+  - learnings: Application source lacks direct `client.queryChannels()`, but SDK reconnect can issue it; current max-50/sort/CID/Flutter payload concerns need runtime or Dashboard evidence before changes.
 
 #### 2026-08-13
 
@@ -43,10 +54,6 @@ The user primarily uses Codex for OHO engineering: evidence-first code/plan revi
 - Meta Business AI MVP correction pass: `meta_business_ai_enabled`, `ai_generated`, `take_thread_control`, `${businessId}@meta-ai`
   - desc: Facebook-only API/webhook activation, author identity, standby persistence, control handoff, and Stream fallback contract.
   - learnings: Focused suites passed, but live Meta/Graph/Mongo/Redis/Stream replay, canary, rollback, and target configuration remain gates.
-
-- Stream Chat queryChannels call-site and documentation review: `queryChannels`, `/contact/chat/search`, `/chat-session/group/search`, `docs/queryChannels.md`
-  - desc: Exact active backend, Flutter, and manual caller map plus documentation guards.
-  - learnings: Search real `.queryChannels(` calls after broad discovery; qualify `$limit === 0`, empty results, and skip conditions.
 
 ### /Users/tualek/ohochat/oho-web-app
 
