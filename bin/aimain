@@ -586,6 +586,19 @@ cmd_doctor() {
     return 0
 }
 
+cmd_hermes() {
+    local action="${1:-sync}"
+    case "$action" in
+        sync)
+            shift || true
+            "${AI_MAIN}/scripts/hermes-sync.sh" "$@"
+            ;;
+        *)
+            die "usage: aimain hermes sync"
+            ;;
+    esac
+}
+
 cmd_deploy() {
     local path=""
     while [ $# -gt 0 ]; do
@@ -616,6 +629,7 @@ aimain — attach the ai-main central baseline to any folder.
   aimain list                               show every registered workspace and its status
   aimain deploy [<path> | --all] [--sync]   (re)deploy; --all is what install.sh calls
   aimain doctor                             check that generated files stay invisible to git
+  aimain hermes sync                         deploy shared voice and skills to Hermes
 
 Registry: config/workspaces.json ({{HOME}}-portable, safe to commit).
 Each folder gets one compiled AGENTS.md plus CLAUDE.md / GEMINI.md symlinks to it.
@@ -635,6 +649,7 @@ case "${1:-}" in
     list)    shift; cmd_list "$@" ;;
     deploy)  shift; cmd_deploy "$@" ;;
     doctor)  shift; cmd_doctor "$@" ;;
+    hermes)  shift; cmd_hermes "$@" ;;
     ""|-h|--help|help) usage ;;
     *)       die "unknown command: $1 (try: aimain --help)" ;;
 esac
