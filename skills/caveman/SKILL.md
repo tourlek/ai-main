@@ -25,8 +25,8 @@ it does not shrink the system prompt, AGENTS.md, source code, or tool output.
 
 ## When to Use
 
-- User says `/caveman <level>`, `caveman`, `ตอบสั้น ๆ`, `บีบคำตอบ`, or asks to save tokens.
-- The mode stays active for **every response** until the user says `/caveman off`, `normal mode`, or the session ends.
+- **Default mode**: active for every response until the user says `/caveman off` or `normal mode`, or the session ends.
+- User may switch levels with `/caveman lite`, `/caveman full`, `/caveman ultra`, or disable with `/caveman off`.
 
 ## Rules (full level)
 
