@@ -97,8 +97,8 @@ follow_imports() {
         case "$(basename "$entry")" in
             CLAUDE.md|AGENTS.md|GEMINI.md)
                 if grep -q "User Profile & Environment" "$entry" && grep -q "Working Rules" "$entry" \
-                   && grep -q "Shared Cross-Tool Memory" "$entry" && grep -q "Lessons" "$entry"; then
-                    ok "  Compiled successfully (profile, workflow, shared memory, lessons all inlined)"
+                   && grep -q "Shared Cross-Tool Memory" "$entry" && grep -q "Rules earned from mistakes" "$entry"; then
+                    ok "  Compiled successfully (profile, workflow, shared memory, rules all inlined)"
                 else
                     bad "  Compiled but missing expected section headers in $entry"
                 fi
@@ -180,26 +180,45 @@ for tool in claude codex gemini; do
     ok "$tool: ${bytes} bytes  ~${tokens} tokens (rough)"
 done
 
+# ----- 5a. Prompt profiles: the compiler is the deploy path, so a profile over its
+# ceiling has to fail somewhere. `aimain build` only warns (it runs from launchd every
+# 6h and must not brick); this is where it is enforced.
+echo -e "\n${BLUE}${BOLD}5a) Prompt profile budgets${NC}"
+if [ -x "${SCRIPT_DIR}/bin/aimain" ]; then
+    while read -r tier tokens budget; do
+        if [ "$tokens" = "-" ]; then
+            bad "profile ${tier} was never built — run ./bin/aimain build"
+        elif [ "$tokens" -le "$budget" ]; then
+            ok "profile ${tier}: ~${tokens} tokens (ceiling ${budget})"
+        else
+            bad "profile ${tier}: ~${tokens} tokens exceeds its ${budget} ceiling"
+        fi
+    done < <("${SCRIPT_DIR}/bin/aimain" budget)
+fi
+
 # ----- 5b. Claude Desktop workspace symlinks & config -----
 echo -e "\n${BLUE}${BOLD}5b) Claude Desktop integration & Workspaces${NC}"
-PRIMARY_WORKSPACES=(
-    "${ACTUAL_HOME}/ohochat"
-    "${ACTUAL_HOME}/ohochat/oho-web-app"
-    "${ACTUAL_HOME}/ohochat/oho-api"
-    "${ACTUAL_HOME}/ohochat/oho-developer-api"
-    "${ACTUAL_HOME}/ohochat/oho-backoffice"
-    "${ACTUAL_HOME}/ohochat/oho-webhook"
-    "${ACTUAL_HOME}/ohochat/oho-flutter-mobile"
-    "${ACTUAL_HOME}/ohochat/script-oho"
-    "${ACTUAL_HOME}/Documents/migrant-labor-crm"
-    "${ACTUAL_HOME}/thaivagroups/vetrisync-cms"
-    "${ACTUAL_HOME}/ohochat/jeraspec-api"
-)
-for workspace in "${PRIMARY_WORKSPACES[@]}"; do
+# Workspace list comes from the registry (config/workspaces.json), not a second hardcoded copy
+REGISTRY_FILE="${SCRIPT_DIR}/config/workspaces.json"
+PRIMARY_WORKSPACES=()
+WORKSPACE_KNOWLEDGE=()
+if [ -f "$REGISTRY_FILE" ]; then
+    while IFS=$'\t' read -r ws_path ws_knowledge; do
+        PRIMARY_WORKSPACES+=("${ws_path//\{\{HOME\}\}/$ACTUAL_HOME}")
+        WORKSPACE_KNOWLEDGE+=("$ws_knowledge")
+    done < <(jq -r '.workspaces[] | [.path, (.knowledge // "")] | @tsv' "$REGISTRY_FILE")
+else
+    bad "Workspace registry missing: $REGISTRY_FILE"
+fi
+for ((i = 0; i < ${#PRIMARY_WORKSPACES[@]}; i++)); do
+    workspace="${PRIMARY_WORKSPACES[$i]}"
+    # A registered path that does not exist on this machine is expected — the registry is
+    # shared across machines. A registered path whose knowledge file is missing is not.
     [ -d "$workspace" ] || continue
-    kname="$(basename "$workspace")"
+    kname="${WORKSPACE_KNOWLEDGE[$i]}"
+    [ -n "$kname" ] || kname="_generic"
     if [ ! -f "${SCRIPT_DIR}/knowledge/${kname}.md" ]; then
-        warn "No knowledge/${kname}.md for $workspace"
+        bad "Registered workspace $workspace points at a missing knowledge/${kname}.md"
         continue
     fi
     ws_file="${workspace}/AGENTS.md"
@@ -224,7 +243,8 @@ CLAUDE_CONFIG_FILE="${ACTUAL_HOME}/Library/Application Support/Claude/claude_des
 if [ -f "$CLAUDE_CONFIG_FILE" ]; then
     ok "Claude Desktop config file present: $CLAUDE_CONFIG_FILE"
     # Verify that localAgentModeTrustedFolders has our primary directories
-    for folder in "${SCRIPT_DIR}" "${ACTUAL_HOME}/ohochat" "${ACTUAL_HOME}/Documents/migrant-labor-crm" "${ACTUAL_HOME}/thaivagroups/vetrisync-cms"; do
+    for folder in "${SCRIPT_DIR}" "${PRIMARY_WORKSPACES[@]}"; do
+        [ -d "$folder" ] || continue
         if jq -e --arg folder "$folder" '.preferences.localAgentModeTrustedFolders | contains([$folder])' "$CLAUDE_CONFIG_FILE" >/dev/null; then
             ok "  Trusted folder present: $folder"
         else

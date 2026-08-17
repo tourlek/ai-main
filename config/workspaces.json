@@ -1,0 +1,49 @@
+{
+  "$comment": "Workspace registry — replaces the hardcoded PRIMARY_WORKSPACES array. Paths use {{HOME}} so this file stays portable across machines. Managed by bin/aimain (link/unlink/list); hand-editing is fine too. 'knowledge' = basename of knowledge/<name>.md; '_generic' falls back to knowledge/_generic.md.",
+  "workspaces": [
+    {
+      "path": "{{HOME}}/Documents/migrant-labor-crm",
+      "knowledge": "migrant-labor-crm"
+    },
+    {
+      "path": "{{HOME}}/ohochat",
+      "knowledge": "ohochat"
+    },
+    {
+      "path": "{{HOME}}/ohochat/jeraspec-api",
+      "knowledge": "jeraspec-api"
+    },
+    {
+      "path": "{{HOME}}/ohochat/oho-api",
+      "knowledge": "oho-api"
+    },
+    {
+      "path": "{{HOME}}/ohochat/oho-backoffice",
+      "knowledge": "oho-backoffice"
+    },
+    {
+      "path": "{{HOME}}/ohochat/oho-developer-api",
+      "knowledge": "oho-developer-api"
+    },
+    {
+      "path": "{{HOME}}/ohochat/oho-flutter-mobile",
+      "knowledge": "oho-flutter-mobile"
+    },
+    {
+      "path": "{{HOME}}/ohochat/oho-web-app",
+      "knowledge": "oho-web-app"
+    },
+    {
+      "path": "{{HOME}}/ohochat/oho-webhook",
+      "knowledge": "oho-webhook"
+    },
+    {
+      "path": "{{HOME}}/ohochat/script-oho",
+      "knowledge": "script-oho"
+    },
+    {
+      "path": "{{HOME}}/thaivagroups/vetrisync-cms",
+      "knowledge": "vetrisync-cms"
+    }
+  ]
+}

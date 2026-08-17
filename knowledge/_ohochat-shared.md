@@ -22,3 +22,11 @@ Applies to every repo under `/Users/tualek/ohochat/`. Repo-specific files import
 - Frontend ask that needs a backend change → surface the dependency and ask before editing the backend repo.
 - Never push to `master` directly.
 - Worktrees: `.claude-worktrees/` exists in `oho-api` for parallel AI sessions.
+
+## Hard-won constraints (from production incidents)
+
+- Hot-path queries on array fields use equality membership (`unread_by: id`), never `$ne`/`$nin` — negation on a multikey field cannot use an index and scans the whole collection. Confirm with `explain()` that `docsExamined` scales with the answer, not the collection.
+- Any query added to a polled endpoint carries `maxTimeMS` and fails soft: auxiliary data returns null, it never fails the main response. Size it against the biggest tenant, not the average.
+- DB-heavy features roll out per-tenant (`business_id`), canarying one small tenant while watching p95 and slow-query logs. A flag flipped globally at night is how the cluster melted on 8 Jul 2026.
+- One flag gates exactly one feature, and "off" must behave like the feature never shipped — that includes every write path, not just reads.
+- Renaming or inverting a field that gates user-visible state (badges, counters) needs a backfill for existing documents; verify the old field's real volume in production before deleting the migration tooling.

@@ -1,0 +1,9 @@
+{
+  "id": "opencode",
+  "display_name": "opencode",
+  "detect": "dir:{{HOME}}/.config/opencode",
+  "profile": "lean",
+  "entry": "{{HOME}}/.config/opencode/AGENTS.md",
+  "skills": "{{HOME}}/.config/opencode/skills",
+  "note": "opencode reads AGENTS.md from its config dir. lean profile: it is usually pointed at cheaper models."
+}

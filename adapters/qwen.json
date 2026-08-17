@@ -1,0 +1,9 @@
+{
+  "id": "qwen",
+  "display_name": "qwen-code",
+  "detect": "dir:{{HOME}}/.qwen",
+  "profile": "min",
+  "entry": "{{HOME}}/.qwen/QWEN.md",
+  "skills": "{{HOME}}/.qwen/skills",
+  "note": "Qwen-class local models get the min profile — a short rule set that is followed beats a long one that is not."
+}

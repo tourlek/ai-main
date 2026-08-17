@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# PATH shim: rewrite `glab --json` to `glab -F json`.
+#
+# On this machine --json is not a valid glab flag; every tool has been told so in its prompt
+# and every tool has still got it wrong. A shim costs zero prompt tokens and cannot be
+# forgotten by a model. Put ~/.ai-main-bin first on PATH (aimain shims install).
+
+set -euo pipefail
+
+REAL_GLAB=""
+for candidate in /opt/homebrew/bin/glab /usr/local/bin/glab /usr/bin/glab; do
+    [ -x "$candidate" ] && { REAL_GLAB="$candidate"; break; }
+done
+if [ -z "$REAL_GLAB" ]; then
+    echo "glab shim: real glab not found in /opt/homebrew/bin, /usr/local/bin, /usr/bin" >&2
+    exit 127
+fi
+
+args=()
+rewrote=0
+for arg in "$@"; do
+    case "$arg" in
+        --json)   args+=(-F json); rewrote=1 ;;
+        --json=*) args+=(-F "${arg#--json=}"); rewrote=1 ;;
+        *)        args+=("$arg") ;;
+    esac
+done
+
+[ "$rewrote" -eq 1 ] && echo "glab shim: rewrote --json to -F json" >&2
+exec "$REAL_GLAB" "${args[@]}"

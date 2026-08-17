@@ -7,7 +7,7 @@ A single source of truth for global AI configurations, per-repo knowledge, share
 ## 🌟 Key Features
 
 1. **Single source of truth for style, workflow, and profile** — `config/style.md`, `config/workflow.md`, `config/profile.md` are symlinked into every tool's `~/.<tool>/shared/` dir and compiled into each tool's entry file. Edit once, every AI agent sees the change on the next sync.
-1b. **Per-repo knowledge** — `knowledge/<repo>.md` deploys to each workspace root as `AGENTS.md` (+ `CLAUDE.md`/`GEMINI.md` symlinks), so every tool loads repo-specific facts only inside that repo. Deployed files are globally gitignored and never overwrite a file the workspace's own git tracks.
+1b. **Per-repo knowledge, any folder** — `knowledge/<repo>.md` deploys to each registered workspace root as `AGENTS.md` (+ `CLAUDE.md`/`GEMINI.md` symlinks), so every tool loads repo-specific facts only inside that repo. Attach any folder with `./bin/aimain link <path>` — repo or not, in the registry or ad-hoc. Knowledge is picked from `--knowledge`, else the git remote name (so a `.claude-worktrees/` worktree resolves to its real repo), else the folder name, else `knowledge/_generic.md`. Deployed files are gitignored globally *and* root-anchored in the target's `.git/info/exclude`, and never overwrite a file the workspace's own git tracks.
 1c. **Shared memory in git** — `memory/` holds Claude project memories, Codex memories, cross-tool facts (`memory/SHARED.md`), and lessons (`memory/lessons/LESSONS.md`); tool locations are symlinked into it. Clone on a new machine and every tool remembers everything.
 1d. **Self-learning** — the `self-learning` skill appends mistakes/corrections to `LESSONS.md`, which is compiled into every tool's entry file: one tool's mistake becomes every tool's rule.
 1e. **Auto-sync** — `scripts/sync.sh` pulls, redeploys, and auto-commits/pushes `memory/` + `logs/` (only those paths). Wired to a Claude Code SessionStart hook (pull-only) and a launchd job every 6 h.
@@ -22,6 +22,59 @@ A single source of truth for global AI configurations, per-repo knowledge, share
 9. **Verification Pass** — End-of-install check confirms all symlinks resolve.
 
 ---
+
+## 🎚️ Prompt profiles (any model, not just the frontier ones)
+
+The rule sources under `config/` and `memory/` carry tier markers. A line tagged `<!--min-->`
+ships in every profile, `<!--lean-->` in lean and full, and an untagged line only in full.
+`./bin/aimain build` compiles all three into `build/` (gitignored); tools read from there, so
+markers never reach a model.
+
+| Profile | Ceiling | For | Built from |
+| --- | --- | --- | --- |
+| `full` | 4,000 tok | Claude, Codex, Gemini Pro | everything — byte-identical to the pre-tiering files |
+| `lean` | 1,600 tok | mid-tier and cheap hosted models (opencode) | hard rules + working method, no narrative or examples |
+| `min` | 650 tok | 7B-class local models (qwen) | only the rules a small model can actually follow |
+
+`aimain build` warns when a profile is over its ceiling but never fails — it runs from launchd
+every 6 h and must not brick. `scripts/verify.sh` is where an overrun fails.
+
+## 🔌 Adapters — adding a tool without editing shell
+
+`adapters/*.json` describes any tool beyond the five original targets: where its entry file
+lives, which profile it gets, and where to link skills. Adding a tool means adding one JSON
+file. An entry file ai-main did not generate is backed up, never overwritten. See
+`adapters/README.md`.
+
+## 🛡️ Checks instead of prompt rules
+
+Rules a model can forget were moved out of the prompt and into places a model cannot skip:
+
+| Check | Where it runs | Replaces |
+| --- | --- | --- |
+| `core/checks/commit-msg-lint.sh` | git `commit-msg` | "no Co-Authored-By / AI attribution" |
+| `core/checks/pre-push-guard.sh` | git `pre-push` | "never push to master/main" |
+| `core/checks/pre-commit-guard.sh` | git `pre-commit` | "renaming a state-gating field needs a backfill" |
+| `core/checks/shims/glab` | PATH shim | "`glab` uses `-F json`, not `--json`" |
+| `core/checks/git-guard.sh` | CLI + Claude `PreToolUse` | amend-of-merged-commit, implicit branch targets, `reset --hard`, `clean -f`, force push, unauthorized commit |
+
+Every check has an escape hatch (`AIMAIN_BYPASS=1`, `AIMAIN_ALLOW_COMMIT=1`,
+`AIMAIN_ALLOW_DELETE_MIGRATION=1`). The Claude `PreToolUse` guard runs in **audit** mode by
+default — it reports and gets out of the way; `export AIMAIN_ENFORCE=block` makes it blocking.
+
+`memory/lessons/COVERAGE.md` maps every lesson to where it ended up, so the shrink stays
+auditable. `LESSONS.md` remains the full journal — it is just no longer loaded every session.
+
+## 🧪 Prompt regression suite
+
+```bash
+./eval/run.sh     # 30 assertions, no model calls, runs in a second
+```
+
+Asserts that each profile still carries the rules it is supposed to, that retired rules really
+are enforced by a check, that `git-guard` classifies the commands behind past incidents, and
+that no tier leaks its markers. Run it after touching `config/*.md`, `memory/lessons/*`, or
+`core/checks/*`.
 
 ## 🛠️ Quick Installation (New Device)
 
@@ -40,7 +93,16 @@ If you forgot `--recurse-submodules`, the installer will run `git submodule upda
 ```
 ai-main/
 ├── install.sh                    # idempotent installer + verifier
+├── bin/aimain                    # CLI: link/unlink/list/deploy/doctor/build/adapters/hooks/shims
+├── adapters/                     # one JSON per extra tool (opencode, qwen, ...)
+├── build/                        # GENERATED prompt profiles (full/lean/min) — gitignored
+├── core/
+│   ├── build.awk                 # tier compiler
+│   ├── checks/                   # git hooks + PATH shims that replaced prompt rules
+│   └── hooks/                    # Claude Code hook wrappers
+├── eval/run.sh                   # prompt regression suite
 ├── config/
+│   ├── workspaces.json           # workspace registry ({{HOME}}-portable)
 │   ├── CLAUDE.md.template        # → ~/.claude/CLAUDE.md   (entry — @-imports shared/*)
 │   ├── GEMINI.md.template        # → ~/.gemini/GEMINI.md   (entry — @-imports shared/*)
 │   ├── AGENTS.md.template        # → ~/.codex/AGENTS.md    (entry — @-imports shared/*)

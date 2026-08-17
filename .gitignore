@@ -5,3 +5,6 @@
 
 # Local-only overrides
 *.local
+
+# Generated prompt profiles (bin/aimain build)
+build/
