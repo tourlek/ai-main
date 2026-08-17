@@ -136,7 +136,25 @@ check_file_matches_canonical "${ACTUAL_HOME}/.gemini/RTK.md" "${SCRIPT_DIR}/conf
 
 # ----- 4. Skills present per tool -----
 echo -e "\n${BLUE}${BOLD}4) Skills installed per tool${NC}"
-expected_owned=(gitlab-mr-description gitlab-mr-comment-reply git-commit-helper branch-perf-compare self-learning worklog)
+expected_owned=(
+    gitlab-mr-description
+    gitlab-mr-comment-reply
+    git-commit-helper
+    branch-perf-compare
+    self-learning
+    worklog
+    caveman
+    cavecrew
+    caveman-commit
+    caveman-compress
+    caveman-help
+    caveman-review
+    caveman-stats
+    grill-me
+    grilling
+    grill-with-docs
+    ponytail
+)
 for tool in claude codex cursor gemini; do
     dir="${ACTUAL_HOME}/.${tool}/skills"
     echo -e "${CYAN}--- ~/.$tool/skills ---${NC}"
