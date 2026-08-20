@@ -16,6 +16,7 @@ The user primarily uses Codex for OHO engineering: evidence-first code/plan revi
 - “ทำ plan มาอย่างเดียวก่อน” means plan only. Production commands should be one exact copy-pasteable command: flags once, no trailing-space continuations or angle-bracket tokens in zsh.
 - For production incident questions, correlate the supplied IDs/time window, raw platform payload, source mapping, and successful traffic before claiming an outage or recommending a broad suppression.
 - For call-site questions, separate application calls, SDK-generated network traffic, scripts/tests/docs, and commented code; trace HTTP method/path before ruling out a browser-side third-party call.
+- For an OHO API 403, answer the exact required permission first, then trace the hook mapping and authenticated member; never replay pasted Authorization headers or cookies.
 
 ## General Tips
 
@@ -31,6 +32,10 @@ The user primarily uses Codex for OHO engineering: evidence-first code/plan revi
 
 #### 2026-08-14
 
+- Keyword broadcast permission 403: `POST /core/latest/keyword`, `group: "broadcast"`, `keyword.broadcast.create`, `role_permission.permissions`, `memberJWTStrategy`
+  - desc: Exact create/update permission mapping and JWT-identity mismatch diagnosis. cwd=/Users/tualek/ohochat/oho-api.
+  - learnings: `broadcast` create requires `keyword.broadcast.create`; `_id` switches to `keyword.broadcast.update`; a cookie JWT can identify a different member from the Authorization JWT.
+
 - LINE webhook migration safety and webhook2 canary routing: `webhook2.oho.chat`, `--allowed-host`, `fullPathMatch`, `LineBotWebhook/2.0`, `source-messages`, `sync_message_success`
   - desc: Fail-closed manifest migration, verified staged URL-map routing, and terminal delivery checks. cwd=/Users/tualek/ohochat/script-oho.
   - learnings: Exclude manual test traffic from historical evidence; route/certificate/200 are only partial chain proof—revert on queue/task/terminal or canary failure.
@@ -38,6 +43,10 @@ The user primarily uses Codex for OHO engineering: evidence-first code/plan revi
 - Stream Chat queryChannels SDK/network and official review: `queryChannels`, `chat-proxy-singapore.stream-io-api.com`, `recoverStateOnReconnect`, `POST /channels`, `CID`, `queryChannels-best-practices-review.md`
   - desc: Active backend/Flutter/script callers, browser SDK recovery traffic, and GetStream best-practice gaps. cwd=/Users/tualek/ohochat.
   - learnings: Application source lacks direct `client.queryChannels()`, but SDK reconnect can issue it; current max-50/sort/CID/Flutter payload concerns need runtime or Dashboard evidence before changes.
+
+- Meta Business AI MVP correction and rework-before-ship: `meta_business_ai_enabled`, `message.ai_generated === true`, `isMetaBusinessAiGeneratedEvent`, `take_thread_control`, `${businessId}@meta-ai`
+  - desc: Facebook-only API/webhook activation, author identity, standby persistence, control handoff, and Stream fallback contract.
+  - learnings: Keep `ai_generated` as incoming author evidence, not authority; focused suites passed, but disabled-channel writes, duplicated persistence, fixed 300-second lease, raw bulk broadcast, and live Meta/Graph/Mongo/Redis/Stream replay remain gates.
 
 #### 2026-08-13
 
@@ -48,12 +57,6 @@ The user primarily uses Codex for OHO engineering: evidence-first code/plan revi
 - Facebook recipient error and LINE postback diagnosis: `code=551`, `error_subcode=1893047`, `is_transient=false`, `กดปุ่ม`, `external_action=thaimetal_catalog`
   - desc: Fastship recipient-specific Meta rejection plus business/payload-scoped Thaimetal postback suppression guidance.
   - learnings: Compare raw errors with successful sends; never globally ignore postbacks because `art_id`/`arp_id` supports Auto Reply Triggers.
-
-#### 2026-08-11
-
-- Meta Business AI MVP correction pass: `meta_business_ai_enabled`, `ai_generated`, `take_thread_control`, `${businessId}@meta-ai`
-  - desc: Facebook-only API/webhook activation, author identity, standby persistence, control handoff, and Stream fallback contract.
-  - learnings: Focused suites passed, but live Meta/Graph/Mongo/Redis/Stream replay, canary, rollback, and target configuration remain gates.
 
 ### /Users/tualek/ohochat/oho-web-app
 

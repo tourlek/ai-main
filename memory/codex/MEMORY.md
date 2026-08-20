@@ -1,3 +1,32 @@
+# Task Group: /Users/tualek/ohochat/oho-api / keyword API authorization and 403 diagnosis
+
+scope: Identify the exact member permission for keyword create/update requests and diagnose an authenticated 403 without replaying credentials.
+applies_to: cwd=/Users/tualek/ohochat; reuse_rule=reuse the permission mapping for the current `oho-api` keyword hooks after confirming the request group/action and authenticated member; never reuse pasted tokens or cookies.
+
+## Task 1: Diagnose broadcast keyword creation permission; success
+
+### rollout_summary_files
+
+- rollout_summaries/2026-08-14T08-33-51-50Px-trace_keyword_broadcast_permission_403.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/08/14/rollout-2026-08-14T15-33-51-019fff67-f5d7-74e3-b7d8-06a0b1faf7f3.jsonl, updated_at=2026-08-14T08:35:41+00:00, thread_id=019fff67-f5d7-74e3-b7d8-06a0b1faf7f3, success; source-traced exact permission and identity mismatch)
+
+### keywords
+
+- POST /core/latest/keyword, group: broadcast, keyword.broadcast.create, keyword.broadcast.update, checkMemberPermission, role_permission.permissions, memberJWTStrategy, FeathersJS, JWT, 403
+
+## User preferences
+
+- when the user asks “มันต้องใช้ permission อะไร” -> lead with the exact permission string, then briefly show the source path. [Task 1]
+
+## Reusable knowledge
+
+- For `POST /core/latest/keyword` with `group: "broadcast"`, the default `_.kebabCase()` branch checks `keyword.broadcast.create`; if `_id` is present, it treats the request as update and checks `keyword.broadcast.update`. [Task 1]
+- Permissions come from `params.member.role_permission.permissions`, populated by `memberJWTStrategy`. General mapping: `tag → keyword.contact-tag.{action}`, `contact_label → keyword.chat-tag.{action}`, `arp_group_id → keyword.arp-group.{action}`, otherwise `keyword.{kebab-case-group}.{action}`. [Task 1]
+
+## Failures and how to do differently
+
+- Symptom: a captured 403 is attributed to the intended role. Cause: Authorization JWT and cookie JWT may represent different members. Fix: re-login and capture one fresh identity before treating role configuration as the cause. [Task 1]
+- Symptom: investigation replays a curl containing credentials. Cause: treating a pasted request as safe test input. Fix: inspect source instead; treat exposed Authorization headers/cookies as compromised and recommend revocation/rotation. [Task 1]
+
 # Task Group: /Users/tualek/ohochat / LINE integration monitoring, webhook migration risk, and terminal delivery evidence
 
 scope: Distinguish LINE access-token/webhook configuration checks, synthetic OHO ingestion, migration safety, and true terminal delivery; use for monitoring, migration, or message-loss questions across `oho-api`, `oho-cronjob`, and `oho-webhook`.
@@ -215,11 +244,11 @@ applies_to: cwd=/Users/tualek/ohochat; reuse_rule=reuse the backend/webhook cont
 
 ### rollout_summary_files
 
-- rollout_summaries/2026-08-11T04-34-21-HTzp-meta_business_ai_plan_review_and_mvp_correction.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/08/11/rollout-2026-08-11T11-34-21-019fef19-a05e-7773-9301-06b8ab7c9e37.jsonl, updated_at=2026-08-11T14:18:06+00:00, thread_id=019fef19-a05e-7773-9301-06b8ab7c9e37, partial; corrected scope, but final review requires rework before merge)
+- rollout_summaries/2026-08-11T04-34-21-HTzp-meta_business_ai_plan_review_correction_and_implementation_r.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/08/11/rollout-2026-08-11T11-34-21-019fef19-a05e-7773-9301-06b8ab7c9e37.jsonl, updated_at=2026-08-14T06:34:08+00:00, thread_id=019fef19-a05e-7773-9301-06b8ab7c9e37, partial; corrected Facebook-only scope, local implementation evidence, and rework-before-ship P1s)
 
 ### keywords
 
-- meta_business_ai_enabled, message.ai_generated === true, @meta-ai, @inbox, upsert.hooks.js, upsert.class.js, 300-second lease, checkDuplicate(), skipped_authority_count, Node 24, Utils.isRegExp, broadcast
+- meta_business_ai_enabled, message.ai_generated === true, isMetaBusinessAiGeneratedEvent, @meta-ai, @inbox, upsert.hooks.js, upsert.class.js, 300-second lease, checkDuplicate(), skipped_authority_count, Node 24, Utils.isRegExp, broadcast
 
 ## Task 5: Implement approved Facebook Meta Business AI MVP corrections; partial
 
@@ -242,6 +271,7 @@ applies_to: cwd=/Users/tualek/ohochat; reuse_rule=reuse the backend/webhook cont
 - for Meta work, the user wants detailed Thai answers with evidence/path and honest limits; keep the MVP to proven contracts rather than a large multi-concern migration. [Task 3]
 - when the user asks for a plan “พร้อมทำงาน” -> include scope/non-goals, phases, file boundaries, tests, rollout/rollback, and honest local-versus-UAT status. [Task 4]
 - for approved Facebook-only work in `oho-api`/`oho-webhook`, preserve the dirty worktree: do not commit, push, reset, revert, delete, or stage, and do not expand into `oho-web-app`. Treat HTTP 200, focused tests, and queue acknowledgement as insufficient; inspect terminal datastore/Stream state for live claims. [Task 4]
+- when the user invokes `ponytail full` -> “ลบก่อนเพิ่ม, reuse ก่อนสร้าง, diff เล็กสุดที่แก้ root cause”; avoid premature abstraction or broad refactors. [Task 4]
 - for approved Facebook Messenger-only corrections, keep the work in `oho-api`/`oho-webhook`, preserve dirty work, and report exact changed-file/test results plus runtime/UAT gaps rather than claiming production readiness. [Task 5]
 
 ## Reusable knowledge
@@ -255,6 +285,7 @@ applies_to: cwd=/Users/tualek/ohochat; reuse_rule=reuse the backend/webhook cont
 - In the earlier Task 3 checkout, no trustworthy Page/contact activation source was found: `standby`, `hop_context`, `app_id`, `metadata`, `thread_owner`, and `subscribed_apps` were insufficient alone, so `hasMetaBusinessAiActivation()` returned `false`. The newer Task 4 implementation instead uses explicit per-channel `meta_business_ai_enabled`; preserve legacy `meta_business_ai` schema compatibility and re-verify the current activation wiring before relying on either historical state. [Task 3][Task 4]
 - Narrow the MVP to sender identity/author labeling with an explicit activation gate, non-goals, phases, acceptance checklist, rollback, and Definition of Done. Keep `meta_ai_profile`, Redis/Cloud Tasks, state-machine migration, cold provisioning, broad TypeScript conversion, and UI work out unless separately justified. Focused validation was API 5 suites/31 tests, webhook 1 suite/17 tests, builds, and `git diff --check`; full type-check had unrelated failures. [Task 3]
 - The approved Facebook-only flow passes explicit `channel.meta_business_ai_enabled` through webhook context, contact upsert, automation guard, and controls. AI Stream identity is tenant-scoped `${businessId}@meta-ai`; provisioning may fall back to `${businessId}@inbox` while retaining `ai_generated: true`. Persist enabled Facebook standby customer messages before suppressing OHO chatbot/ARP/greeting/fallback/referral/scheduled automation. [Task 4]
+- Do not remove `isMetaBusinessAiGeneratedEvent`: Stream membership does not identify the webhook author. Canonical Facebook events flatten both `messaging[]` and `standby[]`, so strict AI detection must cover both. [Task 4]
 - The primary automation guard is tenant-scoped and fail-closed on a missing contact/query error; tenant-scoped Accept/Close Graph controls persist authority only after Graph success. Raw bulk Facebook broadcast is outside that per-contact guard. [Task 4]
 - Current approved MVP wiring persists `channel.meta_business_ai_enabled` (default `false`) through webhook channel context, contact upsert/snapshot, automation guards, and control services. `message.ai_generated === true` is strict per-message author evidence only; unknown nested `meta_business_ai.identity` is ignored. [Task 5]
 - External-app whitelist handling occurs after Facebook/page/contact validation: strict AI evidence is a narrow exception, unknown non-AI external apps stay fail-closed, and mixed batches must continue valid AI/customer events. Enabled Facebook standby customer messages persist before chatbot/ARP/greeting/fallback/referral/scheduled automation is blocked. [Task 5]

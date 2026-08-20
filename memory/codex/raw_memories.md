@@ -4120,74 +4120,70 @@ References:
 - Exact requested review dimensions: assumptions, risks, edge cases, validation, rollback, testing, observability, dependencies, migration, security, and acceptance criteria.
 
 ## Thread `019fef19-a05e-7773-9301-06b8ab7c9e37`
-updated_at: 2026-08-11T14:18:06+00:00
+updated_at: 2026-08-14T06:34:08+00:00
 cwd: /Users/tualek/ohochat
 rollout_path: /Users/tualek/.codex/sessions/2026/08/11/rollout-2026-08-11T11-34-21-019fef19-a05e-7773-9301-06b8ab7c9e37.jsonl
-rollout_summary_file: 2026-08-11T04-34-21-HTzp-meta_business_ai_plan_review_and_mvp_correction.md
+rollout_summary_file: 2026-08-11T04-34-21-HTzp-meta_business_ai_plan_review_correction_and_implementation_r.md
 
 ---
-description: Meta Business AI plan was narrowed from an oversized profile/state migration to a Facebook-only MVP, but implementation still requires rework before merge due to hidden writes, duplicated authority logic, lease expiry risk, and unguarded bulk broadcast.
-task: review-and-correct-meta-business-ai-plan-and-mvp
-task_group: /Users/tualek/ohochat/meta-business-ai
+description: Meta Business AI plan was narrowed from an oversized profile/state-machine migration to a Facebook-only MVP, but implementation still needs rework on disabled-channel writes, duplicated authority persistence, Redis lease expiry, and bulk-send scope.
+task: review-and-correct-meta-business-ai-mvp-plan
+task_group: /Users/tualek/ohochat / Meta Business AI backend and webhook workflow
 task_outcome: partial
 cwd: /Users/tualek/ohochat
-keywords: Meta Business AI, ai_generated, meta_business_ai_enabled, standby, facebook_delivery_authority, @meta-ai, @inbox, Stream, Redis lease, Lua CAS, Graph API, upsert.hooks.js, upsert.class.js, broadcast
+keywords: Meta Business AI, ai_generated, standby, meta_business_ai_enabled, facebook_delivery_authority, Stream, @meta-ai, inbox fallback, Redis lease, Graph API, oho-api, oho-webhook
 ---
 
-### Task 1: Narrow and rewrite implementation plan
+### Task 1: Narrow Meta Business AI plan and implementation scope
 
-task: review-plan-fix-meta-ai-profile
- task_group: Meta Business AI planning
- task_outcome: partial
+task: review-and-correct-meta-business-ai-mvp-plan
+task_group: Meta Business AI Facebook MVP
 
-Preference signals:
-- ผู้ใช้แก้ว่า `ai_generated คือ field ที่ webhook จาก meta ส่งมาถ้า meta ai เป็นคนตอบ` -> preserve strict incoming `message.ai_generated === true`; never claim OHO creates/infer it from app/channel/metadata.
-- ผู้ใช้ขอให้อัปเดต plan ให้ “พร้อมทำงาน” -> include explicit scope/non-goals, phases, files, tests, rollout/rollback, and honest local-vs-UAT status.
-
-Reusable knowledge:
-- Correct contract: `message.ai_generated === true` identifies the author of one Meta message only. It is not activation or thread-owner evidence.
-- AI Stream identity is tenant-scoped `${businessId}@meta-ai`; provisioning failure falls back to `${businessId}@inbox` while preserving `ai_generated: true`.
-- `standby` means another app may own delivery; it does not itself prove Meta Business AI.
-- The revised plan removed `meta_ai_profile`, cold provisioning/backfill, Redis/Cloud Tasks migration, send-first/HUMAN_AGENT fallback, TypeScript conversion, and UI work from the MVP.
-
-Failures and how to do differently:
-- Do not combine schema/state-machine migration, optimization, Stream provisioning, and webhook cleanup into one rollout. Separate correctness scope from later performance work.
-- Do not call focused tests or a plan update runtime verification; live payload replay and terminal Mongo/Stream state remain separate gates.
-
-References:
-- `/Users/tualek/ohochat/docs/meta-business-ai/plan-fix-meta-ai-profile.md`
-- `docs/meta-business-ai/meta-biz-ai-payload-samples.md:6-19,45-55`
-
-### Task 2: Implement and review MVP corrections
-
-task: implement-approved-facebook-meta-business-ai-mvp
- task_group: oho-api + oho-webhook
- task_outcome: partial
+task_outcome: partial
 
 Preference signals:
-- Approved scope was Facebook-only in `oho-api`/`oho-webhook`; preserve dirty worktree and do not commit, push, reset, revert, delete, or stage.
-- Treat HTTP 200, focused tests, and queue acknowledgement as insufficient; verify terminal datastore/Stream state for live claims.
+- when the assistant treated `ai_generated` as something OHO creates, the user corrected: “`ai_generated` คือ field ที่ webhook จาก meta ส่งมานะถ้า meta ai เป็นคนตอบ” -> preserve strict incoming `message.ai_generated === true`; never infer it from app ID, metadata, channel, or standby.
+- when the plan combined schema migration, state machine, Redis/Cloud Tasks, provisioning, and cleanup, the user asked to update it to be ready for work -> prefer smallest implementation contract with explicit non-goals and phase exit criteria.
+- user expects Thai, evidence-first, source-cited reviews and explicit separation of verified local tests versus unverified runtime/UAT.
 
 Reusable knowledge:
-- Implemented flow wires explicit `channel.meta_business_ai_enabled` through webhook context, contact upsert, automation guard, and control services.
-- Strict AI exception must occur only after Facebook/page/contact validation; unknown external apps without strict `ai_generated:true` remain fail-closed.
-- Enabled Facebook standby customer messages should persist first, then skip OHO chatbot/ARP/greeting/fallback/referral/scheduled automation.
-- Existing Accept/Close Graph control remains tenant-scoped and persists authority only after Graph success.
-- Primary send-time automation guard is tenant-scoped, bounded, and fail-closed on missing/error; however raw bulk Facebook broadcast is outside this guard.
+- `message.ai_generated === true` identifies the author of an individual Meta AI message, not thread ownership or delivery authority.
+- `standby` means another app may own delivery; it is not proof that the app is Meta Business AI.
+- AI Stream identity is `${businessId}@meta-ai`; lazy provisioning failure falls back to `${businessId}@inbox` while preserving `ai_generated: true`.
+- Existing authority guard should remain primary Mongo, tenant-scoped, and fail closed on read failure.
+- Canonical Facebook events flatten both `messaging[]` and `standby[]`; AI detection must work on both.
 
 Failures and how to do differently:
-- Final review found disabled channels still trigger contact activation snapshot writes in `upsert.hooks.js:184-240`; remove this traffic-driven write so feature-off has no new side effects.
-- Authority/evidence persistence is duplicated in `upsert.hooks.js:184-390` and `upsert.class.js:51-248`; extract one shared atomic updater or simplify the duplicate fallback.
-- Redis dedup uses a fixed 300-second lease with no renewal (`block.ts:289-321`, `redis.service.ts:224-303`); add renewal or an explicit maximum processing policy and real expiry/CAS integration tests.
-- Remove unused `checkDuplicate()` and deprecated dedup methods if no callers remain, or document why compatibility requires them.
-- Remove `skipped_authority_count` from bulk broadcast unless campaigns are explicitly brought into MVP and guarded per recipient/send time.
-- `upsert.class.spec.js` failed to load on Node 24 due `config` calling `Utils.isRegExp`; report as environment/dependency failure, not a passing code test.
+- Do not remove `isMetaBusinessAiGeneratedEvent`; Stream membership does not identify webhook author.
+- Do not introduce `meta_ai_profile`, Redis authority cache, Cloud Tasks writes, send-first/HUMAN_AGENT state machine, or broad TypeScript conversion into this MVP unless separately approved.
+- Standards review found remaining P1 issues after implementation: disabled channels can still cause activation snapshot writes; authority persistence is duplicated in `upsert.hooks.js` and `upsert.class.js`; Redis claim lease is fixed at 300 seconds with no renewal; raw bulk Facebook broadcast has no per-recipient authority guard and should be explicitly out of scope or fixed.
 
 References:
-- Focused webhook tests: 3 suites / 24 tests passed; warnings included missing `OHO_FB_APP_ID` and unavailable local Redis.
-- API guard/control: 2 suites / 13 tests passed; `upsert.class.spec.js` blocked by Node 24/config incompatibility.
-- `git diff --check` passed in both repositories.
-- Final verdict: rework before ship; live Meta replay, real Graph take/return, terminal Mongo/Redis/Stream verification, load test, canary, and rollback remain unverified.
+- `docs/meta-business-ai/plan-fix-meta-ai-profile.md`
+- `docs/meta-business-ai/07-mvp-implementation-checklist-2026-08-10.md`
+- `docs/meta-business-ai/meta-biz-ai-payload-samples.md:6-19`
+- `oho-webhook/src/controllers/facebook/meta-business-ai.ts`
+- `oho-api/src/services/member-send-message/inbox/inbox.hooks.js`
+- `oho-api/src/utils/meta-business-ai-stream.js`
+- `oho-api/src/services/contact/upsert/upsert.hooks.js`
+- `oho-api/src/services/contact/upsert/upsert.class.js`
+- `oho-api/src/utils/meta-business-ai-automation-guard.js`
+- `oho-webhook/src/controllers/facebook/block.ts`
+- Focused validation evidence: webhook tests passed in focused runs; API `upsert.class.spec.js` had a Node 24/config compatibility failure (`Utils.isRegExp is not a function`); `git diff --check` passed.
+
+### Task 2: Workflow constraint
+
+task: apply-ponytail-full
+
+task_group: coding workflow
+
+task_outcome: success
+
+Preference signals:
+- user invoked `ponytail full` -> future edits should “ลบก่อนเพิ่ม, reuse ก่อนสร้าง, diff เล็กสุดที่แก้ root cause” and avoid premature abstraction or broad refactors.
+
+Reusable knowledge:
+- Keep subsequent Meta Business AI changes minimal and preserve existing dirty worktrees/user changes unless explicitly authorized otherwise.
 
 ## Thread `019ff026-fc80-7881-8a12-5ba2c15991bb`
 updated_at: 2026-08-11T10:24:33+00:00
@@ -4904,4 +4900,44 @@ References:
 - `/Users/tualek/ohochat/oho-api/src/services/contact-send-message/contact-send-message.hooks.js:386-399`
 - GCP query pattern: `gcloud logging read 'timestamp>=... AND resource.type="cloud_run_revision" AND resource.labels.service_name="oho-webhook-production" AND jsonPayload.message:"/webhook/<businessId>" AND jsonPayload.message:"\"type\":\"postback\""' --project=oho-platform --format=json`
 - Representative event: `type=postback`, `postback.data="แคตตาล็อค"`, business `6a422c6fae5398680bf7d837`, timestamp `2026-08-13T08:35:42Z`.
+
+## Thread `019fff67-f5d7-74e3-b7d8-06a0b1faf7f3`
+updated_at: 2026-08-14T08:35:41+00:00
+cwd: /Users/tualek/ohochat
+rollout_path: /Users/tualek/.codex/sessions/2026/08/14/rollout-2026-08-14T15-33-51-019fff67-f5d7-74e3-b7d8-06a0b1faf7f3.jsonl
+rollout_summary_file: 2026-08-14T08-33-51-50Px-trace_keyword_broadcast_permission_403.md
+
+description: Traced 403 on keyword creation and identified the exact member permission plus an authentication identity mismatch
+ task: diagnose keyword API permission for broadcast group
+ task_group: ohochat/oho-api authorization debugging
+ task_outcome: success
+ cwd: /Users/tualek/ohochat
+ keywords: keyword, broadcast, permissions, role_permission, FeathersJS, JWT, 403, checkMemberPermission
+
+### Task 1: Diagnose keyword broadcast permission
+
+task: Determine which permission is required for POST `/core/latest/keyword` with `group: "broadcast"`.
+task_group: ohochat/oho-api authorization debugging
+task_outcome: success
+
+Preference signals:
+- The user asked directly in Thai, “มันต้องใช้ permission อะไร” (“which permission is required?”) -> future responses should lead with the exact permission string, then briefly show the source path.
+
+Reusable knowledge:
+- `oho-api/src/services/keyword/keyword.hooks.js` maps `group: "broadcast"` through the default `_.kebabCase()` branch and constructs `keyword.broadcast.create` for a create request.
+- If the request includes `_id`, `action` becomes `update`, so the required permission is `keyword.broadcast.update`.
+- The permission list is read from `params.member.role_permission.permissions`; `memberJWTStrategy` populates `role_permission` during JWT authentication.
+- Keyword docs define the general mapping: `tag → keyword.contact-tag.{action}`, `contact_label → keyword.chat-tag.{action}`, `arp_group_id → keyword.arp-group.{action}`, other groups → `keyword.{kebab-case-group}.{action}`.
+
+Failures and how to do differently:
+- Do not replay a curl containing live credentials. Treat pasted Authorization headers/cookies as compromised and recommend revoke/rotation; use source inspection instead.
+- The provided Authorization JWT and cookie JWT visibly contained different member identity claims, so re-login and capture a fresh request before diagnosing the wrong role as the definitive cause.
+
+References:
+- Exact permission: `keyword.broadcast.create`
+- Hook logic: `/Users/tualek/ohochat/oho-api/src/services/keyword/keyword.hooks.js:380-409`
+- Create hook order: `/Users/tualek/ohochat/oho-api/src/services/keyword/keyword.hooks.js:512-525`
+- JWT role population: `/Users/tualek/ohochat/oho-api/src/auths/memberJWTStrategy.js:21-24`
+- Permission documentation: `/Users/tualek/ohochat/oho-api/docs/modules/keyword.md:126-137`
+- Exposed credentials: [REDACTED_SECRET]
 
