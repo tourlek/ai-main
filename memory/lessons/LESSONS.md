@@ -145,3 +145,23 @@ consolidate: merge duplicates, drop obsolete ones, keep the rule one line each.
 ## 2026-08 — สรุปว่า webapp ไม่เรียก Stream จากการค้นชื่อ method อย่างเดียว
 - **Mistake**: ค้นหา `queryChannels` ใน source แล้วสรุปว่า webapp ไม่เรียก Stream ตรง โดยไม่ได้ trace network request ที่ Stream Chat SDK ยิงไป `chat-proxy-singapore.stream-io-api.com`; user corrected: `แต่หน้าบ้านมีเรียก https://chat-proxy-singapore.stream-io-api.com/ ด้วยนะ`.
 - **Rule**: ก่อนสรุปว่า frontend ไม่เรียก third-party API ตรง ให้ตรวจ SDK call path และ browser network endpoint/method ด้วย; การไม่พบชื่อ SDK method ใน source ไม่ได้พิสูจน์ว่าไม่มี network call.
+
+## 2026-08 — อ่าน Cloud Run env โดยไม่กรอง credential
+- **Mistake**: ใช้ `gcloud run services describe` แล้วพิมพ์ environment ทั้งชุด ทำให้ output มี API credential ปะปนระหว่างการวิเคราะห์ webhook.
+- **Rule**: ก่อนแสดงหรือเก็บ Cloud Run metadata ให้เลือกเฉพาะ field ที่จำเป็นและกรองชื่อ/ค่า secret, token, key, URI, password, credential ออกเสมอ.
+
+## 2026-08 — ยก Messenger baseline field เป็น Meta Business AI blocker
+- **Mistake**: ใช้ `message_deliveries` จาก onboarding runbook ซึ่งรวม Messenger baseline fields แล้วสรุปว่าการขาด field นี้เป็น Meta Business AI staging blocker ทั้งที่ runtime ไม่ได้ใช้ delivery receipt กับ AI identity, activation หรือ handoff.
+- **Rule**: ก่อนยก webhook subscription field เป็น release blocker ให้ trace consumer และผูกกับ acceptance criterion ของ feature; field ที่มีไว้เพียง delivery observability ต้องจัดเป็น optional เว้นแต่ระบบเก็บหรือใช้ delivery status จริง.
+
+## 2026-08 — ใช้ develop เป็น blockerทั้งที่ผู้ใช้เปลี่ยน baseline แล้ว
+- **Mistake**: หลังผู้ใช้ pull `master` เข้า `oho-webhook` แล้ว และย้ำว่า `ไม่ต้องไปสนใจ develop` ผมยังพยายามดึง `origin/develop` กลับมาเป็นงานที่ต้องทำ.
+- **Rule**: เมื่อผู้ใช้ตัด branch ออกจาก scope อย่างชัดเจน ให้หยุดตรวจ/merge branch นั้นทันที; ยึด current branch เป็น baseline และตรวจ blocker เฉพาะ scope ที่เหลือ.
+
+## 2026-08 — สลับลำดับ staging กับ UAT
+- **Mistake**: รายงานว่าไม่มี live Meta replay และ terminal Mongo/Stream UAT proof ทั้งที่ยังไม่ได้ deploy staging ทำให้เหมือนกำลังจะข้าม staging ไป UAT; user corrected: `staging ยังไม่ผ่านจะขึ้น uat ได้ยังไง`.
+- **Rule**: รายงาน gate ตามลำดับ `code validation/commit → deploy staging → staging subscription/replay/terminal proof → staging pass → UAT`; ก่อน deploy staging ให้ระบุว่า UAT ยังไม่ถึงขั้นตอน ไม่ใช่สรุปเป็น missing UAT evidence.
+
+## 2026-08 — เสนอเปิด Meta Test App เป็น Live
+- **Mistake**: เห็น staging app เป็น Development แล้วแนะนำให้ทำ App Review/เปิด Live โดยยังไม่ได้ตรวจว่าเป็น Test App child ของ production app.
+- **Rule**: ก่อนวางแผนเปิด Meta app เป็น Live ให้ตรวจ parent/child/test-app status ก่อน; Test App อยู่ Development เสมอและรับ customer traffic จริงไม่ได้ ต้องใช้ standalone app หรือ fan-out ที่ออกแบบชัดเจน.
