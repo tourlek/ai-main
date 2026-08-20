@@ -835,244 +835,6 @@ References:
 - `glab mr diff 32`
 - `git diff --check b3a96113c8c15408a487352d5e38a7ec5d50c3ef 18d4af10d7c74fd8a736a4e839df8052f9c02900`
 
-## Thread `019f83c2-4d93-7f91-b205-955f99879506`
-updated_at: 2026-07-21T08:28:49+00:00
-cwd: /Users/tualek/ohochat/oho-api
-rollout_path: /Users/tualek/.codex/sessions/2026/07/21/rollout-2026-07-21T15-19-37-019f83c2-4d93-7f91-b205-955f99879506.jsonl
-rollout_summary_file: 2026-07-21T08-19-36-jN8a-unread_migration_flag_ordering_adversarial_review.md
-
----
-description: Read-only adversarial review of unread/unresponded migration and flag-ordering claims; main durable takeaway is that clear-write paths are flag-ungated but still ordering-guarded, while Step 0 legacy read_by backfill can overwrite live unread_by and makes "flag-on-first" unsafe without additional write-prep gating.
-task: adversarial review of migrate-unread.ts claims and rollout ordering
- task_group: /Users/tualek/ohochat/script-oho + /Users/tualek/ohochat/oho-api
- task_outcome: success
-cwd: /Users/tualek/ohochat/oho-api
-keywords: migrate-unread.ts, unread_by, is_unresponded, feature flags, ordering guards, read_by cleanup, secondaryPreferred, checkpoint, status file, analyze-business-size, computeBadgeCounts, channel-eligible-members, firebase-remote-config, master branch, read-only review
----
-
-### Task 1: Verify/refute 13 migration and flag-order claims
-
-task: adversarial code review of claims 1-13 against source
- task_group: /Users/tualek/ohochat/script-oho + /Users/tualek/ohochat/oho-api
- task_outcome: success
-
-Preference signals:
-- when the user said "Adversarial code review, READ-ONLY" and "Do not trust the draft findings file's claims at face value" -> do independent re-derivation from source, not agreement with the draft.
-- when the user required "Every claim you make must cite file:line evidence you actually read" -> keep review citation-dense and grounded in direct source reads.
-- when the user requested per-claim verdicts `CONFIRMED / PARTIALLY CORRECT / REFUTED / CANNOT VERIFY` -> preserve a structured itemized format for similar future reviews.
-
-Reusable knowledge:
-- `buildCustomerMessageUnreadPayload()` gates SET writes on flags, but clear writes remain unconditional and are still protected by `last_contact_date` / timestamp ordering guards.
-- `migrate-unread.ts` Step 0 legacy `read_by` conversion can recompute or unset `unread_by` from stale legacy state and can therefore conflict with live writes if run in the wrong order.
-- `script-oho`'s migration/checkpoint model is stateful: checkpoint membership, status totals, and cleanup eligibility are separate artifacts and should not be conflated.
-- The current `oho-api` master schema and runtime code are the truth source, not the checked-out `script-oho` worktree or a prior draft findings file.
-
-Failures and how to do differently:
-- Do not collapse "ungated by feature flag" into "unguarded"; the runtime clear paths still use ordering guards.
-- Be conservative about claims that depend on live production state (e.g. whether an index exists in prod) unless an explicit artifact verifies it.
-- Flag-on-first is unsafe when legacy backfill can still overwrite live `unread_by` from `read_by`.
-
-References:
-- `script-oho/unread-unresponded/migrate-unread.ts:1-84, 108-183, 356-464, 588-966, 971-1168, 1190-1437, 1441-1671, 1679-1879, 1888-2328`
-- `oho-api@master:src/utils/build-customer-message-unread-payload.ts:24-38`
-- `oho-api@master:src/utils/build-clear-unread-unresponded-payload.ts:17-33`
-- `oho-api@master:src/webhook/stream.js:94-172`
-- `oho-api@master:src/services/member-send-message/member-send-message.hooks.js:634-686`
-- `oho-api@master:src/services/member-send-message/bulk/bulk.class.js:171-208`
-- `oho-api@master:src/services/bot-send-message/bot-send-message.hooks.js:540-576`
-- `oho-api@master:src/services/contact/helper-hook/prepare-close-case-contact-update-data.ts:51-69`
-- `oho-api@master:src/services/contact-send-message/contact-send-message.hooks.js:213-237`
-- `oho-api@master:src/utils/channel-eligible-members.ts:10-38, 40-116`
-- `oho-api@master:src/utils/compute-badge-counts.ts:32-95, 114-139`
-- `oho-api@master:src/services/contact/helper-hook/convert-unread-unresponded-query.ts:29-84`
-- `oho-api@master:src/models/contact.model.js:211-219, 638-664`
-- `oho-api@master:src/models/chat-session.model.js:78-86, 128-152`
-- `oho-api@master:src/firebase-remote-config.js:184-215`
-- `script-oho/unread-unresponded/analyze-business-size.ts:47-65, 246-345`
-- `script-oho/migrate-unread-by-status-prod-explicit-target.json:1-75`
-- `script-oho/reports/migrate-unread-report-prod-gate-small-2026-07-08T14-33-49.md:45-58`
-
-### Task 2: Decide migration/flag rollout ordering
-
-task: determine whether to migrate before or after enabling flags
- task_group: migration ordering / rollout safety
- task_outcome: success
-
-Preference signals:
-- when the user asked for "the central question: is it safe to run the migration BEFORE turning the flags on?" -> answer with a concrete safe protocol, not just a generic risk summary.
-- when the user asked to evaluate the "third option" `flag || field-exists` -> test that proposal against the actual guards and failure modes, rather than accepting it as a fix.
-- when the user asked about per-tenant migrate-then-flip timing and cited per-business durations -> use the actual runtime spread when deciding whether a manual paired rollout is operationally realistic.
-
-Reusable knowledge:
-- The current code supports a stronger ordering than either pure flag-first or pure migrate-first: treat migration as write-prep, then enable public reads after the tenant is proven correct.
-- The backfill can still rewrite live `unread_by` from stale `read_by`; that is the dominant reason flag-on-first is unsafe without more gating.
-- `flag || field-exists` is not an ordering fix once the fields already exist; it mainly duplicates current clear-write behavior.
-- A few long-running businesses mean "migrate then flip within minutes" is not an atomic safety boundary.
-
-Failures and how to do differently:
-- Do not reason only about state decay; also reason about live write races and about read/count-side exposure while the tenant is half-migrated.
-- Cross-check both write paths and read/count paths together before recommending rollout order.
-
-References:
-- `oho-api@master:src/webhook/stream.js:127-172`
-- `oho-api@master:src/services/member-send-message/member-send-message.hooks.js:667-685`
-- `oho-api@master:src/services/member-send-message/bulk/bulk.class.js:186-202`
-- `oho-api@master:src/services/bot-send-message/bot-send-message.hooks.js:564-575`
-- `oho-api@master:src/services/contact/helper-hook/convert-unread-unresponded-query.ts:29-84`
-- `oho-api@master:src/utils/compute-badge-counts.ts:62-95`
-- `oho-api@master:src/utils/build-customer-message-unread-payload.ts:28-38`
-- `script-oho/unread-unresponded/migrate-unread.ts:393-464, 615-674, 733-791, 857-946, 971-1155, 1215-1257, 1394-1420, 1546-1560, 2012-2177`
-- `script-oho/reports/migrate-unread-report-prod-gate-small-2026-07-08T14-33-49.md:45-58`
-- `script-oho/migrate-unread-by-status-prod-explicit-target.json:1-75`
-
-### Task 3: Surface missed bugs/races/operational hazards
-
-task: identify hazards not in the draft findings
- task_group: migration correctness / ops review
- task_outcome: success
-
-Preference signals:
-- when the user asked for "What the Claude agents missed" -> prioritize latent correctness and operational hazards over the obvious claim-by-claim verdicts.
-- when the user called this the "highest-value section" -> spend review effort on cross-cutting issues such as checkpoint semantics, stale reads, and drift between producer/consumer artifacts.
-
-Reusable knowledge:
-- `secondaryPreferred` reads can make migration/reconcile think a guarded write did not happen, while the code may still checkpoint the business.
-- Cleanup uses a fresh runtime view of complete channels and checkpoint membership, so a business/channel snapshot can drift between backfill and cleanup.
-- Status writes are atomic-renamed, but checkpoint writes are direct and parse errors degrade to empty-set restart behavior.
-- The monitor and migration report schemas are already out of sync; shared step definitions should be reused if the tool remains maintained.
-
-Failures and how to do differently:
-- Treat intent counters as intent, not proof of successful mutation.
-- Checkpoint files and status files have different durability properties; do not assume both are equally safe.
-- If a migration script reuses live runtime lookup logic, long-running per-business windows can introduce stale eligibility drift even without a direct write race.
-
-References:
-- `script-oho/unread-unresponded/migrate-unread.ts:1441-1459, 1465-1535, 1660-1671, 1704-1739, 1793-1868, 2012-2177, 2248-2309`
-- `script-oho/unread-unresponded/analyze-business-size.ts:151-165, 246-345, 417-442`
-- `script-oho/unread-unresponded/monitor-migrate-unread.ts:78-176`
-- `script-oho/unread-unresponded/helpers/biz-summary.ts:1-72`
-- `script-oho/unread-unresponded/helpers/classify-is-unresponded.ts:31-52`
-- `oho-api@master:src/utils/channel-eligible-members.ts:59-93`
-- `oho-api@master:src/firebase-remote-config.js:19-70`
-
-### Task 4: Rank script improvements
-
-task: propose CLI, dry-run, confirmation, split, dedup, observability changes
- task_group: migration tooling / rollout hardening
- task_outcome: success
-
-Preference signals:
-- when the user asked for a ranked improvement plan with CLI ergonomics, dry-run default, confirmation banner, file split, deduplication, and observability -> keep P0/P1/P2 separation and recommend what is required before prod.
-- when the user asked whether a file split is worth it for a one-shot migration script -> do not over-engineer into a large module split right before a prod run; prefer a minimal extraction if any.
-
-Reusable knowledge:
-- `package.json` exposes `migrate:unread`, `migrate:unread:cleanup-read-by`, `monitor:unread`, and `analyze:business-size`; `ecosystem.config.js` hard-codes `NODE_ENV: "prod"` and PM2 restart behavior.
-- The current runbook is local/ignored and uses `db.chat_sessions` even though the model collection name is `chat-sessions`.
-- Mongoose defaults to `autoIndex:true` unless configuration disables it, so model-init index creation can happen unless deployment config says otherwise.
-- Migration, analysis, and monitor output have step-label drift; one shared step-definition source would reduce that.
-
-Failures and how to do differently:
-- A full `config / db / passes/* / runner / state / reporting` split is likely too much before a one-shot production run; the high-risk surface is ordering/state, not file count.
-- Dry-run defaults must fail closed and require explicit scope and confirmation tied to the actual target DB/host, not just a generic env label.
-- Index readiness should be verified explicitly rather than assumed from boot behavior.
-
-References:
-- `script-oho/package.json:8-11`
-- `script-oho/ecosystem.config.js:1-77`
-- `script-oho/unread-unresponded/migrate-unread.ts:1888-2328`
-- `script-oho/unread-unresponded/analyze-business-size.ts:1-450`
-- `script-oho/unread-unresponded/monitor-migrate-unread.ts:1-230`
-- `script-oho/unread-unresponded/helpers/biz-summary.ts:1-72`
-- `script-oho/unread-unresponded-deploy-runbook.md:24-183`
-- `oho-api@master:src/mongoose_connector.js:12-21, 72-87, 117-120`
-- `node_modules/mongoose/lib/index.js:66-71, 196-198`
-- `node_modules/mongoose/lib/model.js:1304-1316`
-
-## Thread `019f8412-1e0f-7e93-b5dd-807abd10d7d0`
-updated_at: 2026-07-21T09:58:39+00:00
-cwd: /Users/tualek/ohochat/oho-api
-rollout_path: /Users/tualek/.codex/sessions/2026/07/21/rollout-2026-07-21T16-46-47-019f8412-1e0f-7e93-b5dd-807abd10d7d0.jsonl
-rollout_summary_file: 2026-07-21T09-46-47-Fnuo-script_oho_catchup_adversarial_review.md
-
----
-description: Adversarial read-only review of a proposed script-oho catchup mitigation against oho-api@master; key takeaway is that exact reconstruction is not possible from current live inputs, catchup needs stronger guards and likely a best-effort/baseline framing rather than a ship-ready exact repair.
-task: review proposed catchup mitigation for unread_by / is_unresponded
- task_group: /Users/tualek/ohochat/script-oho
- task_outcome: partial
-cwd: /Users/tualek/ohochat/script-oho
-keywords: script-oho, unread-unresponded, migrate-unread.ts, catchup, unread_by, is_unresponded, oho-api@master, Stream read state, last_contact_date, last_active_at, feature flags, queryChannels, maxTimeMS, checkpoint, guardMisses, overCap, streamMissing, adversarial review
----
-
-### Task 1: Review proposed catchup mitigation
-
-task: adversarial read-only design review of proposed `--mode=catchup --since=<watermark>` mitigation
-
-task_group: /Users/tualek/ohochat/script-oho
-
-task_outcome: partial
-
-Preference signals:
-- when the user says `Design review, READ-ONLY, adversarial. Do NOT edit files. Do NOT run the migration or anything that connects to a database. Do NOT commit or switch branches.` -> future similar reviews should stay strictly read-only and non-invasive
-- when the user asks for `file:line evidence` for every answer and says `If evidence is not in the repo, say 'cannot verify from repo' rather than guessing` -> future similar reviews should default to hard citations and explicit uncertainty
-- when the user asks for `Answer EACH question below` and wants a final verdict on whether the mitigation is `sound enough to ship` -> future similar reviews should stay structured, question-by-question, and end with an explicit ship/no-ship judgment
-
-Reusable knowledge:
-- `oho-api@master:src/utils/build-customer-message-unread-payload.ts:24-38` shows customer-message SET payloads are split by feature flags; `unread_by` is only written when unread is enabled and eligible members are known, and `is_unresponded` is only written when unresponded is enabled.
-- `oho-api@master:src/utils/channel-eligible-members.ts:12-18,59-93` shows the runtime cap is 2000 eligible members; above cap it returns `null` and skips unread tracking entirely.
-- `oho-api@master:src/webhook/stream.js:94-149` shows Stream `message.read` only `$pull`s unread_by and uses a `last_contact_date` ordering guard; it does not advance timestamps.
-- `oho-api@master:src/services/member-send-message/member-send-message.hooks.js:661-685`, `src/services/member-send-message/bulk/bulk.class.js:186-202`, `src/services/chat-session/group/member/send-message/send-message.hooks.js:419-428`, `src/services/chat-session/group/bot/send-message/internal/internal.class.js:24-35`, and `src/services/contact/helper-hook/prepare-close-case-contact-update-data.ts:51-68` show the main CLEAR paths are unconditional CLEARs with timestamp guards.
-- `script-oho/unread-unresponded/migrate-unread.ts:2244-2447` defines catchup as an unconditional recompute over docs touched since `--since`, using Stream read state plus `classifyIsUnresponded()` and write guards on only `last_contact_date`/`last_active_at`.
-- `script-oho/unread-unresponded/helpers/steps.ts:129-140` defines the proposed catchup watermark as `last_contact_date >= since OR last_active_at >= since`.
-- `script-oho/unread-unresponded/helpers/migration-cli.ts:476-480` rejects catchup without `--include-stream`, and `:502-507` gives catchup its own state-file suffix so it cannot be mistaken for backfill.
-- `script-oho/unread-unresponded/migrate-unread.ts:2391-2403` shows the actual catchup write guard only checks `_id`, `last_contact_date`, and `last_active_at`, which is insufficient for exact reconstruction under concurrent live writes.
-- `script-oho/unread-unresponded/migrate-unread.ts:2724-2743` shows completion in catchup depends on guard/skip counters, not a read-only residual scan like backfill.
-
-Failures and how to do differently:
-- The proposed catchup is not an exact repair because it recomputes from current eligibility and Stream state rather than from a historical event log; this can retroactively change unread state for members whose permissions changed during the window.
-- `classifyIsUnresponded()` is not a faithful live state-machine clone; customer messages can leave `chat_status` stale, and CLEARs occur independently of the feature flag, so the classifier can flip state incorrectly.
-- The catchup watermark is not sufficient to find every doc whose badge state can change, because several CLEAR paths do not advance either `last_contact_date` or `last_active_at`.
-- Group `is_unresponded` is omitted by the current catchup pass, so the proposal as written is incomplete even before correctness/race issues.
-- Over-cap / missing-Stream docs should be treated as explicit exclusions or separate repair classes, not silently counted as success.
-- Aggregate numeric completion checks (`guardMisses/overCap/streamMissing`) are too weak for a busy large tenant; future work should use identity-based retry/residual verification or explicitly frame the pass as best effort.
-
-References:
-- `script-oho/unread-unresponded/migrate-unread.ts:568-624` — unread_by derivation from Stream read state + current eligible members.
-- `script-oho/unread-unresponded/migrate-unread.ts:2354-2434` — catchup pass, skip logic, and guarded write shape.
-- `script-oho/unread-unresponded/migrate-unread.ts:2488-2499` — group sessions are unread_by-only in catchup; no `is_unresponded` repair.
-- `script-oho/unread-unresponded/migrate-unread.ts:2724-2743` — catchup completion criteria.
-- `oho-api@master:src/services/contact-send-message/contact-send-message.hooks.js:157-236` and `oho-api@master:src/services/chat-session/group/contact-user/send-message/send-message.class.js:19-36` — customer-message SET paths.
-- `oho-api@master:src/services/member-send-message/member-send-message.hooks.js:661-685`, `src/services/member-send-message/bulk/bulk.class.js:186-202`, `src/services/chat-session/group/member/send-message/send-message.hooks.js:419-428`, `src/services/chat-session/group/bot/send-message/internal/internal.class.js:24-35`, `src/services/bot-send-message/broadcast/broadcast.hooks.js:320-330`, `src/services/bot-send-message/notify/notify.hooks.js:527-537`, `src/services/bot-send-message/inform-message/inform-message.hooks.js:418-428`, `src/services/contact/helper-hook/prepare-close-case-contact-update-data.ts:51-68` — CLEAR paths.
-
-### Task 2: Assess scale/index/completion feasibility
-
-task: review 5-6M scale, query-plan risk, `maxTimeMS`, and completion criteria for the proposed catchup/backfill flow
-
-task_group: /Users/tualek/ohochat/script-oho
-
-task_outcome: partial
-
-Preference signals:
-- when the user asks `assess the query plan risk ... what index/paging change would make 5-6M feasible` -> future similar reviews should include concrete index/paging recommendations, not just risk commentary
-- when the user asks whether the tightened completion criteria are satisfiable on a busy large tenant -> future similar reviews should include an operational realism check, not just logical correctness
-
-Reusable knowledge:
-- `script-oho/unread-unresponded/migrate-unread.ts:185-198` centralizes paged reads through `_id` sort plus `maxTimeMS=QUERY_MAX_TIME_MS`.
-- `oho-api@master:src/models/contact.model.js:429-432,562-565,632-665` shows the relevant contact indexes, but none naturally matches `_id`-sorted pagination over the catchup OR predicate.
-- `oho-api@master:src/models/chat-session.model.js:109-152` shows similar limitations for group sessions.
-- `script-oho/unread-unresponded/migrate-unread.ts:2332-2434` shows Stream pacing (`STREAM_QUERY_BATCH=30`, `STREAM_DELAY_MS=300`) and write throttling.
-- `script-oho/unread-unresponded/migrate-unread.ts:2788-2849` writes a catchup report; `:2421-2433` emits per-batch heartbeat metrics.
-
-Failures and how to do differently:
-- `maxTimeMS` is a failure shield, not a scalability fix. If the plan is not indexable, a 60s timeout simply turns the issue into a hard stop.
-- Aggregate completion criteria are too weak for large busy tenants; identity-based residuals or explicit best-effort framing are needed when Stream state, eligibility, and timestamps can diverge.
-
-References:
-- `script-oho/unread-unresponded/migrate-unread.ts:185-198` — paged read helper.
-- `oho-api@master:src/models/contact.model.js:429-432,562-565,632-665` — contact indexes.
-- `oho-api@master:src/models/chat-session.model.js:109-152` — chat-session indexes.
-- `script-oho/unread-unresponded/migrate-unread.ts:2332-2434` — catchup pacing.
-- `script-oho/unread-unresponded/migrate-unread.ts:2724-2743` and `:3142-3160` — completion criteria and residual checks.
-
 ## Thread `019f8442-2665-7082-a710-f24709dca055`
 updated_at: 2026-07-21T10:51:30+00:00
 cwd: /Users/tualek/ohochat/oho-api
@@ -3693,109 +3455,89 @@ References:
 - No secrets, DB credentials, LINE tokens, or production endpoints were stored; no real DB/LINE/gateway calls were made.
 
 ## Thread `019fea86-e89e-79c3-b1e3-68a6504098fc`
-updated_at: 2026-08-11T03:38:57+00:00
+updated_at: 2026-08-17T04:40:27+00:00
 cwd: /Users/tualek/ohochat
 rollout_path: /Users/tualek/.codex/sessions/2026/08/10/rollout-2026-08-10T14-15-37-019fea86-e89e-79c3-b1e3-68a6504098fc.jsonl
-rollout_summary_file: 2026-08-10T07-15-37-7oWo-line_webhook_migration_audit_hardening_and_production_runboo.md
+rollout_summary_file: 2026-08-10T07-15-37-7oWo-line_webhook_migration_hardening_and_routing_diagnosis.md
 
----
-description: LINE webhook migration was hardened and reviewed; production-safe workflow requires whitelist inventory, immutable manifest, LINE verification before DB update, exact rollback, and canary-first execution.
-task: audit-and-operationalize-line-webhook-migration
-task_group: script-oho-line-webhook-migration
+description: Reviewed and hardened OHO LINE webhook migration; identified unsafe backup/rollback ordering, added manifest-first requirements, and diagnosed 69 stale-token channels plus orphaned deleted-business traffic.
+task: LINE webhook endpoint migration production-safety review and incident diagnosis
+task_group: /Users/tualek/ohochat/script-oho/migrate-line-webhook-endpoint
 task_outcome: partial
-cwd: /Users/tualek/ohochat/script-oho
-keywords: LINE webhook, migrate-line-webhook.ts, allowed-host, manifest, rollback, journal, register_webhook_at, production dry-run, canary, npm test
----
+cwd: /Users/tualek/ohochat
+keywords: LINE webhook, migrate-line-webhook, manifest, rollback, allowed-host, 401 Authentication failed, connection_status, is_access_token_valid, Cloud Run domain mapping, URL map, webhook.oho.chat, webhook2.oho.chat
 
-### Task 1: Audit and hardening review
+### Task 1: Audit original migration
 
-task: Review LINE webhook migration against whitelist, verification, backup, ordering, and rollback requirements.
-task_group: script-oho-line-webhook-migration
+task: Review migration flow against DB whitelist, LINE verification, mutation ordering, backup, and rollback requirements
+task_group: script-oho/migrate-line-webhook-endpoint
 task_outcome: partial
 
 Preference signals:
-- The user requires DB-driven whitelist detection, new endpoint verification before LINE mutation, LINE API update before DB update, complete backup, and rollback protection. Similar migrations should be audited end-to-end, including crash and partial-failure paths.
+- User required backup before any change and rollback protection against lost messages; treat this as a hard acceptance criterion.
 
 Reusable knowledge:
-- Existing endpoint construction is `${webhook_endpoint}/line/webhook/${businessId}` in `oho-api/src/services/channel/line/line.hooks.js`.
-- The webhook service route is `/line/webhook/:businessId`; `/line` returns `{ page: 'LINE Home' }`.
-- LINE webhook test proves endpoint communication but not full real-message processing; production rollout needs a real-message canary and queue/terminal-state evidence.
+- Original flow was test → LINE PUT → GET verify → MongoDB update, but backup was written after `processChannel()` completed.
+- Original `--old-host` filtered hosts to migrate; it did not implement “DB hostname outside explicit whitelist.”
+- Original rollback could include dry-run-only/already-new entries and did not restore all mutated DB fields.
 
 Failures and how to do differently:
-- Original backup was persisted after mutation, so crash after LINE/DB changes could leave no rollback source.
-- Original `--old-host` semantics did not implement “DB hostname outside whitelist.” Use explicit `--allowed-host` classification.
-- Rollback must exclude dry-run-only entries and restore exact modified DB field values/presence.
-- Confirmation must bind to the reviewed manifest/candidate set; partial failures must exit non-zero.
+- Persist immutable before-state for every actionable candidate before the first LINE mutation; bind apply to that manifest and journal actual mutation phases.
+- Force non-zero exit for unresolved `failed_test`, `failed_put`, or `failed_db` states.
 
 References:
-- `script-oho/migrate-line-webhook-endpoint/migrate-line-webhook.ts`
-- `oho-api/src/services/channel/line/line.hooks.js`
-- `oho-webhook/src/controllers/line/line.controller.ts`
+- `migrate-line-webhook.ts:916`, `:1373`, `:762`, `:1442`.
+- OHO connect construction: `oho-api/src/services/channel/line/line.hooks.js:237-286`.
 
-### Task 2: Plan-only specification
+### Task 2: Plan and hardening implementation
 
-task: Write an implementation-ready safety plan without editing the migration implementation.
-task_group: script-oho-line-webhook-migration
- task_outcome: success
+task: Define fail-closed implementation while leaving `line.register_webhook_at` untouched
+task_group: script-oho/migrate-line-webhook-endpoint
+task_outcome: partial
 
 Preference signals:
-- The user said `register_webhook_at` may not need updating and then explicitly requested “plan only.” Future agents should not edit code when the user requests plan-only.
+- User explicitly said not to update `line.register_webhook_at`; never include it in migrate or rollback payloads.
+- User changed scope to plan-only; when asked for a plan only, do not implement.
+- Requested model `5.6luna` was unavailable; do not silently substitute another model.
 
 Reusable knowledge:
-- `migrate-line-webhook-endpoint/plan.md` specifies explicit whitelist classification, immutable atomic manifest, manifest-bound apply, durable journal, exact rollback, conflict detection, timeout/retry rules, non-zero exit semantics, and canary rollout.
-- `line.register_webhook_at` must not be written or restored.
+- Plan requires `--allowed-host`, immutable atomic manifest, digest-bound apply, candidate revalidation, journal phases, exact DB field-presence restore, timeouts, compensation, and canary evidence.
+- Hardened files included `migrate-line-webhook.helpers.ts`, `.spec.ts`, expanded `migrate-line-webhook.ts`, README, and `plan.md`.
+
+Failures and how to do differently:
+- Sub-agent spawn failed: `Unknown model gpt-5.6-luna`. Stop and report unavailable model rather than using a near substitute.
 
 References:
-- `migrate-line-webhook-endpoint/plan.md`
+- `plan.md`; helpers/spec files.
+- Journal phases: `backed_up → tested → line_put_requested → line_verified → db_updated → migrated`.
 
-### Task 3: Implementation status review
+### Task 3: Production diagnosis
 
-task: Verify whether the revised implementation fixed the previously identified P0 issues.
-task_group: script-oho-line-webhook-migration
+task: Explain skipped channels, orphaned traffic, and correct ingress cutover strategy
+task_group: production LINE/GCP operations
  task_outcome: partial
 
-Reusable knowledge:
-- Revised source has state-aware manifest revalidation, an exclusive `<manifest>.lock`, and `db_update_requested` with planned `updated_at` before MongoDB commit.
-- Migration ordering is test → PUT LINE → poll GET verification → conditional DB update → final verification.
-- Exact DB snapshots preserve field presence for `line.webhook_endpoint`, `line.is_webhook_endpoint_valid`, `line.is_webhook_active`, and `updated_at`; `line.register_webhook_at` is intentionally excluded.
-- Verification evidence: focused suite passed 11/11; full suite passed 21/21; CLI help passed.
-- No live DB, LINE API, gateway, or production canary was run in the rollout.
-
-Failures and how to do differently:
-- Full orchestration coverage remains absent for fake Mongo/LINE crash recovery, compensation, concurrent apply, and complete rollback. Treat the result as UAT-canary-ready, not fully production-proven.
-
-References:
-- `migrate-line-webhook-endpoint/migrate-line-webhook.helpers.ts`
-- `migrate-line-webhook-endpoint/migrate-line-webhook.ts`
-- `migrate-line-webhook-endpoint/migrate-line-webhook.helpers.spec.ts`
-- `npm run test:line-webhook` → 11 passed
-- `npm test` → 21 passed
-
-### Task 4: Production command workflow
-
-task: Run a production canary/all-business migration with dry-run manifest and rollback available.
-task_group: script-oho-line-webhook-migration
- task_outcome: success
-
 Preference signals:
-- The user wants exact copy-pasteable commands. Avoid duplicate flags, trailing spaces after `\`, and literal `<placeholder>` tokens. Use one command per step and substitute actual manifest/token values.
-- Prefer one-channel/business canary, inspect manifest, apply the same manifest, send a real LINE message, verify webhook/queue/terminal processing, then expand.
+- User expects DNS, certificate, route, logs, and DB evidence before routing conclusions.
+- User wants old domain retired without losing messages.
 
 Reusable knowledge:
-- Dry-run: `npm run migrate:line-webhook -- --env=prod --channel=<id> --allowed-host=api2.oho.chat`.
-- All channels: `npm run migrate:line-webhook -- --env=prod --all-channels --allowed-host=api2.oho.chat`.
-- Apply only from generated manifest: `npm run migrate:line-webhook -- --env=prod --manifest="$MANIFEST" --execute --confirm="$MIGRATE_TOKEN" --yes`.
-- Rollback requires a separate rollback dry-run token, then `--rollback --execute --confirm="$ROLLBACK_TOKEN" --yes`.
-- A rollback summary phase `rollback_not_needed` may still have detail `would restore ...`; inspect the migration journal before interpreting it as untouched.
+- Latest manifest: 69 channels, 62 businesses, all `unmigratable_invalid_token`; LINE GET webhook returned HTTP 401, so migration correctly stopped before POST/PUT/DB update.
+- Inbound webhook can work while access-token API calls fail; `connection_status` and `is_access_token_valid` are not reliable live authorities.
+- Deleted business `652f64468e7d21abc6e62235` still sent traffic; Core API returned 400 `Channel doesn't exists!` after ingress/Cloud Tasks acknowledged 200.
+- `webhook.oho.chat` is a Cloud Run domain mapping and bypasses `oho-webhook-lb`; adding an LB host rule does not reroute it. `webhook2.oho.chat` is the LB-backed domain.
+- To stop deleted-business webhook traffic, disable `Use webhook` in LINE Developers Console; revoking token alone does not stop inbound webhooks. There is no DELETE webhook endpoint API.
 
 Failures and how to do differently:
-- Duplicate `--execute`/`--confirm` caused `Flag --confirm given more than once`; provide each exactly once.
-- A trailing space after `\` broke shell continuation.
-- Literal `<rollback-token>` caused zsh redirection; never include angle brackets in the executable command.
+- Never infer topology from LB names. Verify DNS → IP → target proxy/cert → URL map → backend → logs.
+- Do not remap/delete the old domain before all LINE channels are migrated or disabled at the source.
+- Do not treat ingress HTTP 200 as successful processing; verify downstream terminal state.
 
 References:
-- Manifest pattern: `migrate-line-webhook-manifest-<env>-<timestamp>-<scope-hash>.json`
-- Journal patterns: `<manifest>.migrate.journal.json` and `<manifest>.rollback.journal.json`
+- Error: `LINE GET webhook failed (401): {"message":"Authentication failed. Confirm that the access token in the authorization header is valid."}`.
+- `oho-api/src/services/channel/line/line.hooks.js` contains duplicate `is_access_token_valid: true`.
+- Validation cron uses `.limit(2000)` without pagination.
+- DNS: `webhook.oho.chat → CNAME ghs.googlehosted.com`; LB IP `34.149.183.186` serves `webhook2.oho.chat`.
 
 ## Thread `019fea91-cc0c-72a0-a973-d5bc782a9d01`
 updated_at: 2026-08-10T07:33:25+00:00
@@ -4644,87 +4386,93 @@ References:
 - Recommended conclusion wording: recipient-specific Meta rejection; advise contacting the customer through another channel rather than repeatedly retrying.
 
 ## Thread `019ff944-2c61-78d0-ab18-072ed186d997`
-updated_at: 2026-08-14T09:53:26+00:00
+updated_at: 2026-08-16T18:03:59+00:00
 cwd: /Users/tualek/ohochat
 rollout_path: /Users/tualek/.codex/sessions/2026/08/13/rollout-2026-08-13T10-57-02-019ff944-2c61-78d0-ab18-072ed186d997.jsonl
-rollout_summary_file: 2026-08-13T03-57-02-TJMH-line_webhook_migration_safety_review_and_canary_rollout.md
+rollout_summary_file: 2026-08-13T03-57-02-TJMH-line_webhook_migration_hardening_and_webhook2_routing_review.md
 
 ---
-description: LINE webhook migration review, fail-closed manifest plan, and verified webhook2 canary routing guidance
- task: migrate-line-webhook-endpoint safety audit and rollout
- task_group: /Users/tualek/ohochat/script-oho
+description: Reviewed and hardened a LINE webhook migration workflow; identified production safety gaps, wrote a manifest-first plan, and verified webhook2 routing/observability constraints.
+task: LINE webhook migration audit and safe webhook2 rollout planning
+task_group: /Users/tualek/ohochat/script-oho/migrate-line-webhook-endpoint
  task_outcome: partial
- cwd: /Users/tualek/ohochat/script-oho
- keywords: LINE webhook, allowed-host, manifest, rollback, register_webhook_at, webhook2.oho.chat, URL map, Cloud Tasks, source-messages, canary
+cwd: /Users/tualek/ohochat
+keywords: LINE webhook, migrate-line-webhook.ts, allowed-host, manifest, rollback, checkpoint, register_webhook_at, webhook2.oho.chat, Cloud Run, URL map, Cloud Tasks, source-messages
 ---
 
-### Task 1: Audit migration safety
+### Task 1: Audit initial LINE webhook migration
 
-task: review LINE webhook migration end-to-end
-task_group: script-oho migration safety
-task_outcome: partial
-
-Preference signals:
-- The user required backup before all mutations, LINE endpoint test before PUT, DB update afterward, and rollback capability -> future audits should trace DB discovery, backup durability, LINE mutation, DB mutation, and recovery as one transaction-like workflow.
-- The user corrected that manual/test traffic must not be treated as historical production traffic -> always separate test traffic from historical evidence.
-
-Reusable knowledge:
-- Original flow matched `oho-api` URL construction, but backup was written after `processChannel()` mutation; rollback could include dry-run-only channels; DB snapshots were incomplete; whitelist semantics were reversed; confirmation was not candidate-set-bound; failures could exit zero.
-- `oho-api/src/services/channel/line/line.hooks.js:237-285` is the source of truth for first-connect endpoint construction and LINE GET/PUT behavior.
-
-Failures and how to do differently:
-- Persist an immutable before-state manifest for every actionable candidate before the first LINE PUT.
-- Roll back only channels proven to have reached a mutation phase.
-- Bind confirmation to manifest digest, environment, scope, and candidate IDs/count.
-
-References:
-- `script-oho/migrate-line-webhook-endpoint/migrate-line-webhook.ts`
-- `oho-api/src/services/channel/line/line.hooks.js:237-285`
-
-### Task 2: Plan hardening
-
-task: write implementation-ready safe migration plan
-task_group: script-oho migration design
+task: Review whether the migration script satisfies DB discovery, whitelist detection, LINE verification, backup, DB update, and rollback requirements.
+task_group: script-oho LINE webhook migration
 task_outcome: success
 
 Preference signals:
-- User said `register_webhook_at` may not need updating -> preserve it exactly and never include it in migration or rollback payloads.
-- User changed scope to “plan only” -> do not implement or delegate when only a plan is requested.
+- When the user asked “ครอบคลุมแล้วรึยัง” and specified “backup ไว้ทั้งหมด” plus rollback, future reviews should trace the full mutation/recovery flow and cite exact files/lines before editing.
 
 Reusable knowledge:
-- Plan requires DB inventory → LINE inventory → atomic immutable manifest → revalidation → LINE test → PUT → bounded GET polling → conditional DB update → final verification.
-- Explicit `--allowed-host` is required; apply/rollback must load a reviewed manifest rather than recalculate candidates.
-- Exact DB field presence/value must be restored; concurrent changes must fail closed; unresolved failures must exit non-zero.
+- Canonical endpoint construction is `${webhook_endpoint}/line/webhook/${businessId}` from `oho-api/src/services/channel/line/line.hooks.js:91,237`.
+- Initial flow had test → PUT LINE → GET verify → DB update, but backup was persisted after `processChannel()` returned, leaving a crash window.
+- Initial `--old-host` filter was not equivalent to an explicit “DB host outside whitelist” classification.
 
 Failures and how to do differently:
-- An unavailable requested sub-agent model (`gpt-5.6-luna`) must not be silently replaced; report availability and wait for user direction.
+- Do not treat post-mutation backup as sufficient. Persist and validate the complete immutable before-state manifest before the first PUT.
+- Rollback must use a mutation journal, not merely manifest membership; dry-run-only entries must not be reverted.
+- Backup all changed DB fields with presence markers, not only the endpoint.
 
 References:
-- `script-oho/migrate-line-webhook-endpoint/plan.md`
-- Invariant: no `line.register_webhook_at` in `$set` or `$unset`.
+- `script-oho/migrate-line-webhook-endpoint/migrate-line-webhook.ts`
+- Validation: `npm run migrate:line-webhook:help` passed; no DB/LINE mutation was run.
 
-### Task 3: Infrastructure routing and monitoring
+### Task 2: Plan migration hardening
 
-task: verify webhook2 routing and define canary checks
-task_group: GCP URL map and oho-webhook rollout
- task_outcome: partial
+task: Produce an implementation-ready plan without modifying the migration implementation.
+task_group: script-oho migration planning
+task_outcome: success
+
+Preference signals:
+- User explicitly said “ไม่ต้องงั้นนายทำ plan มาอย่างเดียวก่อน” -> stop at the plan artifact and do not implement or delegate until explicitly asked.
+- User said `register_webhook_at` need not be updated -> migration and rollback must never write or restore `line.register_webhook_at`.
 
 Reusable knowledge:
-- `webhook2.oho.chat` had an ACTIVE certificate and `/line` returned HTTP 200. The safe staged topology is default old backend (`oho-webhook-production`) plus exact business path rules to `webhook--production`.
-- Multiple exact path `matchRules` in one route rule are OR semantics, so 2–3 businesses can share one 100% route rule.
-- Do not promise zero message loss: `cloud_tasks.api.ts:125-135` swallows `createTask()` errors, while the controller may still respond HTTP 200.
-- Verify the full chain: LINE ingress with `LineBotWebhook/2.0` → Cloud Task creation/attempts → `source-messages` terminal `sync_message_success` → real OHO message.
+- Plan artifact: `/Users/tualek/ohochat/script-oho/migrate-line-webhook-endpoint/plan.md`.
+- Required design: explicit `--allowed-host`; DB+LINE inventory; immutable atomic manifest; manifest-bound apply; conditional DB writes; durable journal; exact `$set`/`$unset` rollback; request timeout/retry; non-zero exit on unresolved failure.
+- Apply must not recompute candidates or accept a new scope outside the reviewed manifest.
 
 Failures and how to do differently:
-- Exclude the user’s own test traffic when evaluating historical usage.
-- Verify DNS/certificate/URL-map/backend/logs before asserting topology; resource names alone are insufficient.
-- Roll back route weights to old 100/new 0 on any `Task create failed`, non-OK task attempt, `sync_message_fail`, `dropped`, stuck `inprogress`, or canary 5xx/timeout.
+- Requested model `gpt-5.6-luna` was unavailable; available sub-agent models were `gpt-5.6-sol` and `gpt-5.6-terra`. Do not silently substitute a model when the user specifically requests delegation.
 
 References:
-- `oho-webhook/src/controllers/line/line.controller.ts:145-212,324-362`
-- `oho-webhook/src/helpers/cloud_tasks.api.ts:125-135`
-- `oho-webhook/src/models/source_message.model.ts:19-36`
-- Cloud Tasks metrics: `cloudtasks.googleapis.com/queue/depth`, `queue/task_attempt_count`, `queue/task_attempt_delays`
+- `--allowed-host=<hostname>`
+- `--manifest=<path> --execute --confirm=<token> --yes`
+- `--manifest=<path> --rollback --execute --confirm=<token> --yes`
+
+### Task 3: Inspect hardened implementation and webhook2 routing
+
+task: Re-review changed migration code and determine how webhook2 should route and how to detect failures.
+task_group: webhook2 rollout and production verification
+task_outcome: partial
+
+Preference signals:
+- User corrected that same-day traffic was self-generated: “ไม่นับวันนี้เพราะ ฉันเอามาใช้เอง” -> exclude known manual/test windows before inferring historical production usage.
+- User challenged absolute safety claims; future rollout advice should state residual loss modes instead of promising “ข้อความไม่หายแน่ๆ”.
+
+Reusable knowledge:
+- Implemented files include `migrate-line-webhook.helpers.ts`, `migrate-line-webhook.helpers.spec.ts`, and a manifest-first `migrate-line-webhook.ts` with digest, atomic write, whitelist classification, journal phases, timeout/polling, and exact DB snapshots. `register_webhook_at` is excluded from payloads.
+- `webhook2.oho.chat` certificate was observed `ACTIVE`; `/line` returned HTTP 200. URL-map host/path routing can send selected `fullPathMatch` paths to `webhook--production` while the matcher default remains `oho-webhook-production`.
+- Multiple `fullPathMatch` entries in one route rule have OR semantics; use them for 2–3 businesses sharing the same backend/weight. Use `prefixMatch: /line/webhook/` to route all LINE webhook paths on webhook2.
+- Core API cron validation uses DB `line.webhook_endpoint` when present and only falls back to `context.app.get('webhook_endpoint')`; no actual cron host-whitelist consumer was found.
+- Cloud Tasks failure is a message-loss risk: `oho-webhook/src/helpers/cloud_tasks.api.ts:125-135` logs task creation failure without rethrowing, while the LINE controller can still return 200 at `src/controllers/line/line.controller.ts:145-174`.
+
+Failures and how to do differently:
+- Never infer ingress topology from resource names alone. Verify DNS, frontend, certificate/target proxy, URL map/backend, and logs.
+- Never count manual tests as historical production traffic.
+- Verify the full chain: LINE ingress → `add_queue_success`/task creation → task processing → `sync_message_success` → user-visible message. HTTP 200 alone is insufficient.
+
+References:
+- URL map resource: `oho-webhook-lb`; matcher `line-webhook2-canary`.
+- Core API: `oho-api/src/services/cronjob/validate-business-integration-status/validate-business-integration-status.hooks.js:267-283`.
+- Webhook queue path: `oho-webhook/src/helpers/cloud_tasks.api.ts:125-135`; `oho-webhook/src/controllers/line/line.controller.ts:145-174`.
+- Relevant statuses: `receive_webhook`, `add_queue_fail`, `add_queue_success`, `sync_message_inprogress`, `sync_message_fail`, `sync_message_success`, `add_retry_queue_fail`, `add_dead_letter_queue_fail`, `dropped`.
 
 ## Thread `019ff9cf-2564-7b40-af25-0306981e9625`
 updated_at: 2026-08-13T06:44:50+00:00
@@ -4940,4 +4688,115 @@ References:
 - JWT role population: `/Users/tualek/ohochat/oho-api/src/auths/memberJWTStrategy.js:21-24`
 - Permission documentation: `/Users/tualek/ohochat/oho-api/docs/modules/keyword.md:126-137`
 - Exposed credentials: [REDACTED_SECRET]
+
+## Thread `01a00e8b-895f-7940-acb9-9691f197cf38`
+updated_at: 2026-08-17T07:23:15+00:00
+cwd: /Users/tualek/Documents/Codex/2026-08-17/referenced-chatgpt-conversation-this-is-an
+rollout_path: /Users/tualek/.codex/sessions/2026/08/17/rollout-2026-08-17T14-07-00-01a00e8b-895f-7940-acb9-9691f197cf38.jsonl
+rollout_summary_file: 2026-08-17T07-07-00-j3zG-oho_webhook_domain_mapping_cutover_audit.md
+
+description: Audited OHO LINE webhook cutover from oho-webhook-production to webhook-production; found partial readiness, live image/env drift, old hostname still domain-mapped to old service, signature mismatch bypass, and Cloud Tasks error-swallowing risk
+ task: audit-live-oho-webhook-domain-mapping-cutover
+ task_group: ohochat-infrastructure-line-webhook
+ task_outcome: partial
+ cwd: /Users/tualek/ohochat
+ keywords: oho-webhook-production, webhook--production, webhook.oho.chat, webhook2.oho.chat, Cloud Run, URL map, DomainMapping, LINE signature, Cloud Tasks, OHO_WEBHOOK_URL, source-messages
+---
+
+### Task 1: Audit deployment, routes, and config parity
+
+task: compare deployed OHO webhook revisions, routes, image digests, and redacted env configuration
+task_group: ohochat-infrastructure-line-webhook
+task_outcome: partial
+
+Preference signals:
+- The user asked for confirmation from source, deployment config, and runtime path, and wanted verified facts separated from production-only checks -> future infrastructure audits should explicitly separate repository evidence, live-cloud evidence, and unverified assumptions.
+- The user said the new service would use the same image/env -> verify serving image digests and redacted env metadata independently rather than accepting the assertion.
+
+Reusable knowledge:
+- Both deployed revisions expose LINE routes `/line`, `/line/webhook/:businessId`, and `/line/message/:businessId`; static diff between commits `85a4da17` and `eb898476` showed no changes to the LINE controller, handler, router, Cloud Tasks helper, or Core API helper.
+- Live images differ: old `oho-webhook-production-00149-vcc` serves `sha256:26cb7ee453df9d9d6c60f6c1efab80c3cccdc610a5410cfa8efe997fe17944bc`; new `webhook--production--eb898476--v1-85-0` serves `sha256:de0c69a1d7a76103c3424b2bfa2eb2ad4294b97e0b66191394e6547fa01e18ce`. Artifact tags map to `85a4da17` and `eb898476`.
+- Redacted env comparison found common `OHO_API_URL`, `QUEUE_ID`, `USE_QUEUE`, MongoDB, and Redis configuration, but differences in `OHO_WEBHOOK_URL`, `QUEUE_SLOW_COUNT` (30 vs 20), secret source for `OHO_API_KEY`/TikTok secret, missing old LINE Notify/Sentry/Signoz variables, and new Meta MMD variables.
+- `OHO_WEBHOOK_URL` should normally differ per service because `oho-webhook/src/helpers/cloud_tasks.api.ts:99` constructs callback URLs from it; new-service tasks should callback to `webhook--production`.
+
+Failures and how to do differently:
+- Do not claim image/env parity from source similarity or deployment intent. Re-check the serving revision digest and env source/value metadata immediately before cutover.
+- Same route declarations do not prove runtime parity when env, observability, scale, and secret references differ.
+
+References:
+- `oho-webhook/src/controllers/line/line.controller.ts:30-31`
+- `oho-webhook/src/index.ts`
+- `oho-webhook/src/helpers/cloud_tasks.api.ts:99-135`
+- `oho-webhook/deploy.sh`
+- Safe operational values observed: old `OHO_WEBHOOK_URL=https://oho-webhook-production-avgjmmzg7q-as.a.run.app`, new `OHO_WEBHOOK_URL=https://webhook--production-avgjmmzg7q-as.a.run.app`; both `QUEUE_ID=oho--webhook--production`; `QUEUE_SLOW_COUNT` old 30/new 20.
+
+### Task 2: Audit hostname routing and domain mapping
+
+task: determine whether webhook.oho.chat actually routes to webhook--production and assess backend-only cutover behavior
+task_group: ohochat-infrastructure-line-webhook
+task_outcome: partial
+
+Reusable knowledge:
+- URL map `oho-webhook-lb` lists both hosts, but its `/line/webhook/` rule is old weight 0/new weight 100 only on the LB path. Default backend remains old `oho-webhook-production`.
+- `webhook2.oho.chat` resolves through the LB and reached `webhook--production`; `webhook.oho.chat` resolves via CNAME `ghs.googlehosted.com.` to a Cloud Run DomainMapping whose `routeName` is still `oho-webhook-production`.
+- Live request logs over an approximately two-minute sample showed `webhook.oho.chat` → old service: 52 LINE ingress requests, while `webhook2.oho.chat` → new service: 926 LINE ingress requests. Host inclusion in a URL map is not sufficient evidence that DNS uses that LB.
+- DomainMapping status for `webhook.oho.chat`: `Ready=True`, `CertificateProvisioned=True`, `DomainRoutable=True`; current route target is old service.
+- Cloud Run DomainMapping is a one-shot 100% remap, unlike weighted LB routing. Google documentation describes DomainMapping as Preview and recommends an external Application Load Balancer for production custom-domain routing.
+
+Failures and how to do differently:
+- Always check DNS, forwarding rule/target proxy, URL map, domain-mapping `routeName`, and service request logs together. Do not infer actual routing from URL-map host rules alone.
+
+References:
+- URL-map rule: `/line/webhook/`, old weight 0/new weight 100; default old backend.
+- DomainMapping: `webhook.oho.chat` → `oho-webhook-production`.
+- Read-only checks returned HTTP 200 for `https://webhook.oho.chat/line`, `https://webhook--production-avgjmmzg7q-as.a.run.app/line`, and `https://webhook2.oho.chat/line`.
+
+### Task 3: Assess LINE signature verification and message-loss safety
+
+task: verify whether LINE signature checking and end-to-end processing work after routing to the new service
+task_group: ohochat-infrastructure-line-webhook
+task_outcome: partial
+
+Reusable knowledge:
+- `oho-webhook/src/controllers/line/handler.ts:93-108` forwards the request body and `x-line-signature` to Core API `/business/:businessId/line/verify-signature`.
+- Core API logs showed `/line/verify-signature` statuses `201: 9446` and `400: 554` in a recent 10,000-request sample; no observed 401 intersection. This supports connectivity/channel lookup, not cryptographic enforcement.
+- `oho-api/src/services/business/line/verify-signature/verify-signature.class.js:38-58` logs signature mismatch and returns `{ ok: true }`; invalid signatures are currently bypassed rather than rejected.
+- `oho-webhook/src/helpers/cloud_tasks.api.ts` catches `createTask` failures and logs `Task create failed` without rethrowing. `oho-webhook/src/controllers/line/line.controller.ts:145-174` can then record `add_queue_success` and return 200, suppressing LINE redelivery.
+- Recent new-service logs showed LINE handler errors, Core API POST failures, and task creation failures; one sample counted up to 205 handler errors and 16 task-create failures in 10 minutes. Do not claim zero message loss.
+
+Failures and how to do differently:
+- HTTP 200, Core API 201, or `add_queue_success` is not terminal delivery proof. Require ingress → task creation → callback → `sync_message_success` → persisted/Stream state.
+- Before a 100% cutover, fix or compensate for swallowed task-creation failures, ensure `webhookEventId` idempotency/redelivery, and perform a real LINE-message canary.
+- Do not call signature verification enforced until mismatch behavior rejects invalid signatures or an independently verified enforcement layer exists.
+
+References:
+- `oho-webhook/src/controllers/line/handler.ts:93-108, 1186-1207`
+- `oho-api/src/services/business/line/verify-signature/verify-signature.class.js:32-61`
+- `oho-webhook/src/controllers/line/line.controller.ts:145-214, 324-362`
+- `oho-webhook/src/helpers/cloud_tasks.api.ts:99-135`
+- Useful status states: `receive_webhook`, `add_queue_success`, `add_queue_fail`, `sync_message_success`, `sync_message_fail`.
+
+### Task 4: Locate health-check and hardcoded old-service references
+
+task: identify health-check URLs and replay/logging references that must be reviewed for cutover
+task_group: ohochat-infrastructure-line-webhook
+task_outcome: partial
+
+Reusable knowledge:
+- `oho-cronjob@origin/develop:functions/config/default.json:30` uses `https://webhook.oho.chat/line/webhook/`; `functions/utils/send-oho-webook.js:15-16` appends the business ID. Same-host domain cutover should redirect this automatically; no URL change is needed.
+- The synthetic health check waits 30 seconds and checks Stream Chat, but it does not call LINE APIs or prove real LINE Platform → OHO delivery. Live function deployment/schedule could not be verified because `cloudfunctions.functions.get` permission was denied in project `oho-cronjob`.
+- `oho-api/src/services/incoming-webhook-log/replay/replay.hooks.js:219` hardcodes `oho-webhook-production` for Cloud Logging queries; during rollback/stabilization it should search both old and new services or become configurable.
+- `oho-api/src/services/incoming-webhook-log/replay-failed-log/replay-failed-log.class.js` uses configured `webhook_endpoint` and therefore follows the hostname configuration.
+- `script-oho/migrate-line-webhook-endpoint/migrate-line-webhook.ts:43` references `webhook2.oho.chat` for a separate LINE endpoint migration flow; do not conflate it with backend-only domain cutover.
+
+Failures and how to do differently:
+- Do not claim health-check deployment or schedule verification when IAM blocks the live read.
+- Distinguish endpoint references that follow the hostname from service-name references that can omit new-service logs.
+
+References:
+- `oho-cronjob/functions/config/default.json:30`
+- `oho-cronjob/functions/utils/send-oho-webook.js:11-30`
+- `oho-cronjob/functions/service/check-oho-line-messaging-health/check-oho-line-messaging-health-service.js:17-153`
+- `oho-api/src/services/incoming-webhook-log/replay/replay.hooks.js:210-229`
+- Permission error: `Permission 'cloudfunctions.functions.get' denied`.
 

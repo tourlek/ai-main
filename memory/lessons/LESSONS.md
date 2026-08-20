@@ -147,8 +147,8 @@ consolidate: merge duplicates, drop obsolete ones, keep the rule one line each.
 - **Rule**: ก่อนสรุปว่า frontend ไม่เรียก third-party API ตรง ให้ตรวจ SDK call path และ browser network endpoint/method ด้วย; การไม่พบชื่อ SDK method ใน source ไม่ได้พิสูจน์ว่าไม่มี network call.
 
 ## 2026-08 — อ่าน Cloud Run env โดยไม่กรอง credential
-- **Mistake**: ใช้ `gcloud run services describe` แล้วพิมพ์ environment ทั้งชุด ทำให้ output มี API credential ปะปนระหว่างการวิเคราะห์ webhook.
-- **Rule**: ก่อนแสดงหรือเก็บ Cloud Run metadata ให้เลือกเฉพาะ field ที่จำเป็นและกรองชื่อ/ค่า secret, token, key, URI, password, credential ออกเสมอ.
+- **Mistake**: ใช้ `gcloud run services describe` แล้วพิมพ์ environment ทั้งชุด ทำให้ output มี API credential ปะปนระหว่างการวิเคราะห์ webhook; ทำซ้ำด้วยการ map direct env values ก่อนกรอง.
+- **Rule**: ก่อนแสดงหรือเก็บ Cloud Run metadata ให้ใช้ allowlist เฉพาะชื่อ/ค่าที่จำเป็น, แสดงได้แค่ secret reference name/version, และห้ามส่ง direct value ที่ชื่อหรือบริบทสื่อว่าเป็น key, token, URI, password, credential หรือ API secret.
 
 ## 2026-08 — ยก Messenger baseline field เป็น Meta Business AI blocker
 - **Mistake**: ใช้ `message_deliveries` จาก onboarding runbook ซึ่งรวม Messenger baseline fields แล้วสรุปว่าการขาด field นี้เป็น Meta Business AI staging blocker ทั้งที่ runtime ไม่ได้ใช้ delivery receipt กับ AI identity, activation หรือ handoff.
@@ -165,3 +165,19 @@ consolidate: merge duplicates, drop obsolete ones, keep the rule one line each.
 ## 2026-08 — เสนอเปิด Meta Test App เป็น Live
 - **Mistake**: เห็น staging app เป็น Development แล้วแนะนำให้ทำ App Review/เปิด Live โดยยังไม่ได้ตรวจว่าเป็น Test App child ของ production app.
 - **Rule**: ก่อนวางแผนเปิด Meta app เป็น Live ให้ตรวจ parent/child/test-app status ก่อน; Test App อยู่ Development เสมอและรับ customer traffic จริงไม่ได้ ต้องใช้ standalone app หรือ fan-out ที่ออกแบบชัดเจน.
+
+## 2026-08 — เทียบ Meta app ใน Dashboard ผิดตัวกับ runtime
+- **Mistake**: เห็น `Oho Staging - 4` ใน Dashboard แล้วใช้เป็นตัวแทน staging-4 ทั้งที่ runtime ใช้ App ID `906298295642485` คือ `Oho Chat [staging-4]`; จึงสรุปความต่างและเสนอ standalone app เร็วเกินไป.
+- **Rule**: ก่อนสรุป Meta app behavior ให้ map runtime `OHO_FB_APP_ID`/`FACEBOOK_APP_ID` → app name/status → webhook callback → real request logs และห้ามสร้างหรือเปลี่ยน external app จนกว่าจะยืนยัน mapping นี้.
+
+## 2026-08 — ห้ามถอด UAT เมื่อ scope อยู่ที่ staging-1
+- **Mistake**: ระหว่างไล่ปัญหา staging-1 ผมพิจารณาถอด Page subscription ของ UAT ทั้งที่ผู้ใช้ต้องการโฟกัส staging-1 และยังไม่ได้แจ้งก่อนทำ action ที่ลบ.
+- **Rule**: ยึด environment ที่ผู้ใช้ระบุเป็น scope; ห้ามลบหรือ unsubscribe environment อื่น และต้องแจ้ง action กับผลกระทบก่อนทุก destructive operation.
+
+## 2026-08 — สรุป callback จาก traffic production ที่ไม่ unique
+- **Mistake**: เห็น production มี Facebook webhook traffic ในช่วง Meta test แล้วสรุปว่า App staging-1 callback ชี้ production ทั้งที่ traffic เป็นของเพจอื่นและยังไม่มี payload/trace ที่ผูกกับ test นั้นโดยตรง; ผู้ใช้ยืนยันว่า callback ถูกต้อง.
+- **Rule**: ก่อนสรุป routing จาก traffic ที่มีอยู่ ให้ผูก event กับ unique payload, trace หรือ provider delivery evidence; แยก background traffic ออกจากผลทดสอบ และถอนข้อสรุปเมื่อหลักฐานไม่พอ.
+
+## 2026-08 — อย่าแตะไฟล์ deploy/CI นอก scope
+- **Mistake**: ปล่อยให้ไฟล์ deploy และ GitLab CI ที่มี dirty diff อยู่ก่อนถูกนับรวมกับงานแก้ bug โดยไม่ได้ยืนยัน ownership/scope ให้ชัด; ผู้ใช้ขอให้คืนไฟล์เดิม.
+- **Rule**: ก่อนแก้ใน worktree สกปรก ให้ pin pre-edit diff และ preserve ไฟล์ deploy/CI ที่ไม่เกี่ยวกับ task; เปลี่ยนได้เมื่อผู้ใช้สั่งโดยตรงเท่านั้น.

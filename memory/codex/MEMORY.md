@@ -1,3 +1,35 @@
+# Task Group: /Users/tualek/ohochat / live webhook domain-mapping cutover audit
+
+scope: Determine whether `webhook.oho.chat` can move from `oho-webhook-production` to `webhook--production`; use for live routing, deployment parity, signature, Cloud Tasks, health-check, and replay evidence.
+applies_to: cwd=/Users/tualek/Documents/Codex/2026-08-17/referenced-chatgpt-conversation-this-is-an with source/live scope `/Users/tualek/ohochat`; reuse_rule=recheck current GCP routing, serving image digests, redacted env metadata, and terminal delivery before any hostname cutover; this audit made no production changes.
+
+## Task 1: Audit live OHO webhook domain-mapping cutover; partial / rework before cutover
+
+### rollout_summary_files
+
+- rollout_summaries/2026-08-17T07-07-00-j3zG-oho_webhook_domain_mapping_cutover_audit.md (cwd=/Users/tualek/Documents/Codex/2026-08-17/referenced-chatgpt-conversation-this-is-an, rollout_path=/Users/tualek/.codex/sessions/2026/08/17/rollout-2026-08-17T14-07-00-01a00e8b-895f-7940-acb9-9691f197cf38.jsonl, updated_at=2026-08-17T07:23:15+00:00, thread_id=01a00e8b-895f-7940-acb9-9691f197cf38, partial; source/live audit found parity and loss blockers)
+
+### keywords
+
+- webhook.oho.chat, webhook2.oho.chat, oho-webhook-production, webhook--production, Cloud Run DomainMapping, oho-webhook-lb, ghs.googlehosted.com, OHO_WEBHOOK_URL, x-line-signature, verify-signature, createTask, sync_message_success
+
+## User preferences
+
+- when the user asks for confirmation from “source, deployment config and runtime path” -> separate repository evidence, live-cloud evidence, and unverified assumptions. [Task 1]
+- when the user says the new service uses the same image/env -> verify serving image digests and redacted env metadata independently rather than accepting the assertion. [Task 1]
+
+## Reusable knowledge
+
+- Static LINE route parity was supported between commits `85a4da17` and `eb898476`, but live image parity was false and envs differed. `OHO_WEBHOOK_URL` should differ per service because Cloud Tasks callback URLs are constructed from it; `QUEUE_SLOW_COUNT` was old `30`, new `20`. [Task 1]
+- `webhook2.oho.chat` reaches the load balancer/new backend, while `webhook.oho.chat` resolves through `ghs.googlehosted.com` to a Cloud Run DomainMapping whose `routeName` remains `oho-webhook-production`. URL-map host rules alone therefore do not cut over the old hostname. [Task 1]
+- Signature connectivity is not signature enforcement: `verify-signature.class.js` logs a mismatch and returns `{ ok: true }`. The controller can also return 200 after swallowed `createTask` failure, so require ingress → task creation → callback → `sync_message_success` → persisted/Stream state. [Task 1]
+- `oho-cronjob` synthetic health check follows the hostname and checks OHO terminal state after 30 seconds, but does not prove LINE Platform delivery or token validity. `incoming-webhook-log/replay` hardcodes `oho-webhook-production`; search both services during rollback/stabilization. [Task 1]
+
+## Failures and how to do differently
+
+- Symptom: host appears in URL map and is treated as routed through it. Cause: an existing Cloud Run DomainMapping can bypass the LB. Fix: check DNS, forwarding rule/target proxy, URL map, DomainMapping `routeName`, and service request logs together. [Task 1]
+- Symptom: “same image/env” or HTTP 200 is used as cutover approval. Cause: serving digests/envs and terminal processing can differ. Fix: recheck live parity, approve intentional env deltas, address task-creation failures/signature bypass, and run a real LINE-message canary before a 100% remap. [Task 1]
+
 # Task Group: /Users/tualek/ohochat/oho-api / keyword API authorization and 403 diagnosis
 
 scope: Identify the exact member permission for keyword create/update requests and diagnose an authenticated 403 without replaying credentials.
@@ -46,7 +78,7 @@ applies_to: cwd=/Users/tualek/ohochat; reuse_rule=retrace current source/config 
 
 ### rollout_summary_files
 
-- rollout_summaries/2026-08-13T03-57-02-TJMH-line_webhook_migration_safety_review_and_canary_rollout.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/08/13/rollout-2026-08-13T10-57-02-019ff944-2c61-78d0-ab18-072ed186d997.jsonl, updated_at=2026-08-14T09:53:26+00:00, thread_id=019ff944-2c61-78d0-ab18-072ed186d997, partial; verified webhook2 routing and end-to-end canary gates)
+- rollout_summaries/2026-08-13T03-57-02-TJMH-line_webhook_migration_hardening_and_webhook2_routing_review.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/08/13/rollout-2026-08-13T10-57-02-019ff944-2c61-78d0-ab18-072ed186d997.jsonl, updated_at=2026-08-16T18:03:59+00:00, thread_id=019ff944-2c61-78d0-ab18-072ed186d997, partial; hardened migration review and webhook2 routing constraints)
 
 ### keywords
 
@@ -438,9 +470,9 @@ applies_to: cwd=/Users/tualek/ohochat/script-oho; reuse_rule=reuse the workflow 
 
 ### rollout_summary_files
 
-- rollout_summaries/2026-08-13T03-57-02-TJMH-line_webhook_migration_safety_review_and_canary_rollout.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/08/13/rollout-2026-08-13T10-57-02-019ff944-2c61-78d0-ab18-072ed186d997.jsonl, updated_at=2026-08-14T09:53:26+00:00, thread_id=019ff944-2c61-78d0-ab18-072ed186d997, partial; fail-closed manifest plan, verified webhook2 routing, and terminal canary checks)
+- rollout_summaries/2026-08-13T03-57-02-TJMH-line_webhook_migration_hardening_and_webhook2_routing_review.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/08/13/rollout-2026-08-13T10-57-02-019ff944-2c61-78d0-ab18-072ed186d997.jsonl, updated_at=2026-08-16T18:03:59+00:00, thread_id=019ff944-2c61-78d0-ab18-072ed186d997, partial; hardened manifest/rollback workflow and webhook2 routing constraints)
 - rollout_summaries/2026-08-10T07-54-21-Wlnm-line_webhook_migration_review_config_audit.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/08/10/rollout-2026-08-10T14-54-21-019feaaa-5edf-7453-8fdb-0bf9b642ca0c.jsonl, updated_at=2026-08-10T10:38:39+00:00, thread_id=019feaaa-5edf-7453-8fdb-0bf9b642ca0c, partial; safety audit and runtime-config boundary)
-- rollout_summaries/2026-08-10T07-15-37-7oWo-line_webhook_migration_audit_hardening_and_production_runboo.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/08/10/rollout-2026-08-10T14-15-37-019fea86-e89e-79c3-b1e3-68a6504098fc.jsonl, updated_at=2026-08-11T03:38:57+00:00, thread_id=019fea86-e89e-79c3-b1e3-68a6504098fc, partial; consolidated audit, plan-only boundary, implementation review, and canary guidance)
+- rollout_summaries/2026-08-10T07-15-37-7oWo-line_webhook_migration_hardening_and_routing_diagnosis.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/08/10/rollout-2026-08-10T14-15-37-019fea86-e89e-79c3-b1e3-68a6504098fc.jsonl, updated_at=2026-08-17T04:40:27+00:00, thread_id=019fea86-e89e-79c3-b1e3-68a6504098fc, partial; manifest hardening plus stale-token/orphaned-traffic routing diagnosis)
 - rollout_summaries/2026-08-10T06-14-37-ygPX-harden_line_webhook_migration_recovery.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/08/10/rollout-2026-08-10T13-14-37-019fea4f-0f09-7031-a11f-8b18c23fcf85.jsonl, updated_at=2026-08-10T07:28:25+00:00, thread_id=019fea4f-0f09-7031-a11f-8b18c23fcf85, partial; recovery/crash-window hardening)
 - rollout_summaries/2026-08-10T04-32-13-Idz9-line_webhook_migration_hardening_scoped_dry_run.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/08/10/rollout-2026-08-10T11-32-13-019fe9f1-4dfe-7963-a2c9-f930bfbf93e7.jsonl, updated_at=2026-08-10T06:55:37+00:00, thread_id=019fe9f1-4dfe-7963-a2c9-f930bfbf93e7, partial; one-channel read-only dry-run)
 
@@ -465,6 +497,7 @@ applies_to: cwd=/Users/tualek/ohochat/script-oho; reuse_rule=reuse the workflow 
 - Static/unit validation: focused tests `11/11`, full tests `21/21`, and CLI help passed. The safe status is UAT/one-channel canary only until real-message, queue/terminal-processing, and rollback verification pass. [Task 1]
 - URL-map priority/fallback is not a delivery guarantee, and current Cloud Tasks error swallowing can return 200 after failed enqueue. Preserve old backend/NEG, canary one business, and require task-create success before 200 plus event idempotency/redelivery/reconciliation for any zero-loss claim. [Task 1]
 - `webhook2.oho.chat` had an ACTIVE certificate and `/line` returned HTTP 200. The staged topology is old `oho-webhook-production` by default with exact business `fullPathMatch` routes to `webhook--production`; DNS, certificate, URL map, backend, logs, Cloud Task attempts, `source-messages` terminal state, and a real OHO message must all be checked before claiming delivery. [Task 1]
+- Live remediation remains incomplete: 69 channels across 62 businesses were `unmigratable_invalid_token` after LINE GET webhook HTTP 401, and deleted business `652f64468e7d21abc6e62235` still received traffic. Do not force DB updates or retire `webhook.oho.chat` until each channel is reconnected/migrated or source webhooks are disabled. [Task 1]
 - Runtime config boundary: change `oho-api` environment `webhook_endpoint` in the `APP_CONFIG` Secret Manager flow (GitLab config project `294` → `core-api-config--json--<env>`), then deploy `core-api` with the new secret version. Do not change `oho-webhook` `OHO_WEBHOOK_URL`: it is the internal Cloud Tasks callback base. The stale `webhook.oho.chat` text in `oho-web-app/pages/business/_biz_id/setting/integration.vue:824-1140` is in a commented block, so it does not require web-app deployment. [Task 1]
 - Related skill: skills/oho-line-webhook-migration/SKILL.md. [Task 1]
 
@@ -476,6 +509,7 @@ applies_to: cwd=/Users/tualek/ohochat/script-oho; reuse_rule=reuse the workflow 
 - Symptom: exact shell command fails. Cause: duplicate `--execute`/`--confirm` flags or `\\ ` with trailing space. Fix: produce a single clean command, validate flags occur once, and avoid multiline continuations unless essential. Do not record production tokens/identifiers in memory. [Task 1]
 - Symptom: a cross-repo `rg` hit is called a deployment dependency. Cause: reachability/comments were not inspected. Fix: inspect enclosing comments, feature gates, route registration, and execution/render path; do not read an entire production secret merely to inspect one field. [Task 1]
 - Symptom: a route/certificate or `add_queue_success` is called a safe rollout. Cause: it proves only a partial chain, and `createTask()` can be swallowed while the controller returns 200. Fix: revert to old `100`/new `0` on task-create failure, non-OK attempt, `sync_message_fail`, `dropped`, stuck `inprogress`, or canary 5xx/timeout. [Task 1]
+- Symptom: deleting/revoking a stale LINE channel is expected to stop inbound traffic. Cause: inbound webhook configuration is independent of access-token API validity. Fix: disable “Use webhook” in LINE Developers Console; there is no DELETE webhook endpoint API. [Task 1]
 
 # Task Group: /Users/tualek/Documents/migrant-labor-crm / new-machine local development setup
 
@@ -1562,40 +1596,15 @@ applies_to: cwd=/Users/tualek/ohochat/script-oho; reuse_rule=reuse for similar s
 
 - Related skill: skills/script-oho-migrate-unread-review/SKILL.md
 
-## Task 2: Review proposed `--mode=catchup`, exact reconstruction not safe from current live inputs
-
-### rollout_summary_files
-
-- rollout_summaries/2026-07-21T09-46-47-Fnuo-script_oho_catchup_adversarial_review.md (cwd=/Users/tualek/ohochat/script-oho, rollout_path=/Users/tualek/.codex/sessions/2026/07/21/rollout-2026-07-21T16-46-47-019f8412-1e0f-7e93-b5dd-807abd10d7d0.jsonl, updated_at=2026-07-21T09:58:39+00:00, thread_id=019f8412-1e0f-7e93-b5dd-807abd10d7d0, adversarial review rejected ship-ready exact-repair framing for catchup)
-
-### keywords
-
-- catchup, --mode=catchup, since watermark, classifyIsUnresponded, last_contact_date, last_active_at, Stream read state, eligible members, guardMisses, overCap, streamMissing, best effort, exact repair
-
-- Related skill: skills/script-oho-migrate-unread-review/SKILL.md
-
 ## Task 3: Decide index and paging strategy, keep contact path minimal and fail closed on explain
 
 ### rollout_summary_files
 
 - rollout_summaries/2026-07-21T10-39-15-ce7r-migrate_unread_final_review_option_a_no_unresponded_backfill.md (cwd=/Users/tualek/ohochat/script-oho, rollout_path=/Users/tualek/.codex/sessions/2026/07/21/rollout-2026-07-21T17-39-15-019f8442-2665-7082-a710-f24709dca055.jsonl, updated_at=2026-07-21T10:51:30+00:00, thread_id=019f8442-2665-7082-a710-f24709dca055, chose existing contact index plus one minimal group index with explain-based preflight)
-- rollout_summaries/2026-07-21T09-46-47-Fnuo-script_oho_catchup_adversarial_review.md (cwd=/Users/tualek/ohochat/script-oho, rollout_path=/Users/tualek/.codex/sessions/2026/07/21/rollout-2026-07-21T16-46-47-019f8412-1e0f-7e93-b5dd-807abd10d7d0.jsonl, updated_at=2026-07-21T09:58:39+00:00, thread_id=019f8412-1e0f-7e93-b5dd-807abd10d7d0, earlier adversarial pass established that `_id` paging and `maxTimeMS` alone are not a scale guarantee)
 
 ### keywords
 
-- pagedFind, _id sort, idx_business_id_v1, chat-session index, explain, hint, COLLSCAN, blocking sort, maxTimeMS, 5-6M, migration preflight
-
-## Task 4: Adversarially verify flag ordering and migration hazards, flag-on-first refuted without write-prep gating
-
-### rollout_summary_files
-
-- rollout_summaries/2026-07-21T08-19-36-jN8a-unread_migration_flag_ordering_adversarial_review.md (cwd=/Users/tualek/ohochat/oho-api, rollout_path=/Users/tualek/.codex/sessions/2026/07/21/rollout-2026-07-21T15-19-37-019f83c2-4d93-7f91-b205-955f99879506.jsonl, updated_at=2026-07-21T08:28:49+00:00, thread_id=019f83c2-4d93-7f91-b205-955f99879506, adversarial source audit of 13 claims, safe ordering, missed hazards, and hardening priorities)
-
-### keywords
-
-- migrate-unread.ts, flag-on-first, flag || field-exists, read_by, unread_by, last_contact_date, secondaryPreferred, checkpoint, status file, analyze-business-size, monitor-migrate-unread, oho-api@master
-
-- Related skill: skills/script-oho-migrate-unread-review/SKILL.md
+- pagedFind, _id sort, idx_business_id_v1, chat-session index, explain, hint, COLLSCAN, blocking sort, migration preflight
 
 ## Task 6: Review checkpoint semantics versus cleanup-read-by assumptions, cleanup can trust incomplete proof
 
@@ -1629,24 +1638,17 @@ applies_to: cwd=/Users/tualek/ohochat/script-oho; reuse_rule=reuse for similar s
 
 ## User preferences
 
-- when the user says `Design review, READ-ONLY, adversarial. Do NOT edit files. Do NOT run the migration or anything that connects to a database. Do NOT commit or switch branches.` -> keep similar migration reviews strictly non-invasive and evidence-first. [Task 2]
-- when the user says `Adversarial code review, READ-ONLY` and `Do not trust the draft findings file's claims at face value` -> independently re-derive from source rather than agreeing with a draft. [Task 4]
-- when the user asks for `file:line evidence` for every answer and says `If evidence is not in the repo, say "cannot verify from repo" rather than guessing` -> default to line-cited proof, and keep uncertainty explicit instead of smoothing it over. [Task 1][Task 2]
+- when the user asks for `file:line evidence` for every answer and says `If evidence is not in the repo, say "cannot verify from repo" rather than guessing` -> default to line-cited proof, and keep uncertainty explicit instead of smoothing it over. [Task 1]
 - when the user says `do not soften now — but the deliverable this time is ONE DECIDED PLAN, not another catalogue of concerns` -> converge to one choice once the source audit is complete; do not hand back an open-ended concern list. [Task 1]
-- when the central question is whether it is safe to run the migration before enabling flags -> answer with a concrete protocol and test proposed mitigations such as `flag || field-exists` against actual write and read/count paths. [Task 4]
 - when the user says `If you must assume, name the assumption` -> separate evidence from assumptions explicitly in migration plans and rollout advice. [Task 1]
 - when the user says `Trace the actual filter/gating logic, not the comments` and asks for line citations -> treat comments as non-binding, ground every behavioral claim in source lines/snippets, and do not smooth over gaps with intent-based reasoning. [Task 6][Task 7]
-- when the user asks for `CONFIRMED / REFUTED / PARTIALLY-CONFIRMED` per item or `Answer EACH question below` -> keep the review tightly structured, question-by-question, and map each verdict to exact code lines. [Task 2][Task 6]
+- when the user asks for `CONFIRMED / REFUTED / PARTIALLY-CONFIRMED` per item -> keep the review tightly structured, question-by-question, and map each verdict to exact code lines. [Task 6]
 
 ## Reusable knowledge
 
-- The July 2026 source audits converged on Option A: `unread_by` is reconstructible from Stream read state plus current eligible-member lookup, but historical `is_unresponded` is not reconstructible honestly from Mongo state alone, so the safe plan is to leave `is_unresponded` absent rather than infer it. [Task 1][Task 2]
-- `oho-api@master:src/utils/build-customer-message-unread-payload.ts:24-38` is the SET-side source of truth: `unread_by` is only written when unread is enabled and eligible members are known, and `is_unresponded` is only written when unresponded is enabled. Several CLEAR paths remain unconditional when the field exists. [Task 1][Task 2]
-- Do not call clear writes unguarded: they are flag-ungated, but reviewed clear paths still use `last_contact_date` / event timestamp ordering and field-existence guards. The larger flag-order blocker is Step 0 legacy `read_by` conversion, which can rewrite `unread_by` from stale legacy state after live writes. [Task 4]
-- Safer rollout framing is write-preparation first, then public unread/unresponded reads only after the tenant backfill is proven correct. `flag || field-exists` does not solve the ordering race once fields exist, and a long-running tenant pass is not an atomic “migrate then flip within minutes” boundary. [Task 4]
+- The July 2026 source audit converged on Option A: `unread_by` is reconstructible from Stream read state plus current eligible-member lookup, but historical `is_unresponded` is not reconstructible honestly from Mongo state alone, so the safe plan is to leave `is_unresponded` absent rather than infer it. [Task 1]
+- `oho-api@master:src/utils/build-customer-message-unread-payload.ts:24-38` is the SET-side source of truth: `unread_by` is only written when unread is enabled and eligible members are known, and `is_unresponded` is only written when unresponded is enabled. [Task 1]
 - `chat_status` is not a reliable historical reply classifier, and the inbox send path advances `last_active_at` without clearing `is_unresponded`; any rollout that enables historical unresponded behavior must either accept that asymmetry or change API behavior first. [Task 1]
-- The proposed catchup recomputes from current eligibility and Stream state rather than a historical event ledger. That means it can only be framed as best-effort rebaseline, not exact repair, especially when permissions changed during the window or some CLEAR paths did not move `last_contact_date` / `last_active_at`. [Task 2]
-- Catchup’s current write guard checks only `_id`, `last_contact_date`, and `last_active_at`; group `is_unresponded` is not repaired there, and aggregate completion counters (`guardMisses`, `overCap`, `streamMissing`) are weaker than identity-based residual verification. [Task 2][Task 3]
 - For migration execution, `pagedFind()` currently does `_id` keyset pagination without `hint()` / `explain()`. Contacts can reuse `idx_business_id_v1` for tenant-scoped `_id` scans, but group sessions need one minimal `_id`-ordered migration index, and execution should fail closed if explain shows `COLLSCAN` or blocking sort. [Task 1][Task 3]
 - The CLI is already fail-closed: `.env.<env>` selection, matching `--confirm`, and explicit `--execute` are required. Production rollout should stay per-tenant, verify explain/index readiness first, then migrate and enable flags immediately after each tenant pass. [Task 1]
 - Cleanup is gated by current checkpoint membership only, and the checkpoint file stores only `{ completed: [...] }`, with no durable proof about reconcile coverage, skipped unresolved channels, or whether a business was verified under the current semantic config. [Task 6][Task 8]
@@ -1654,15 +1656,11 @@ applies_to: cwd=/Users/tualek/ohochat/script-oho; reuse_rule=reuse for similar s
 - Step 0a/0b and legacy reconcile both apply `last_active_at: { $gte: readByCutoffDate }` when a cutoff exists, but cleanup does not carry any date window. It filters only by business, current complete channel IDs, and `HAS_LEGACY_READ_BY`. [Task 7]
 - Cleanup mode reads checkpoint membership only and does not itself write checkpoint/status files, so it cannot overwrite backfill state by itself. `CHECKPOINT_SUFFIX` isolates `-explicit-target`, `-gate-${GATE_FILTER}`, and default runs, but not cutoff/stream/partial semantics. `saveStatus()` uses a temp-file rename, while `saveCheckpoint()` writes directly and `loadCheckpoint()` degrades parse errors into an empty set. [Task 8]
 - `buildTotals()` is the single totals builder now: both `saveStatus()` call sites use it, and no third hand-built totals literal remained. `processedCount++` happens before checkpoint eligibility is decided, so status can show business progress that has not been durably checkpointed. [Task 8]
-- `secondaryPreferred` reads can make a guarded write appear not to have happened while the business is still checkpointed. Cleanup re-resolves current complete channels, analyzer coverage differs from migration (`mock_seed_key` exclusion), and monitor/report step schemas drift; treat these artifacts as separate, fallible signals. [Task 4]
 
 ## Failures and how to do differently
 
-- Symptom: a migration plan keeps circling around heuristics for `is_unresponded`. Cause: the repo does not preserve a true historical reply ledger, and timestamp/classifier guesses overstate what can be reconstructed. Fix/pivot: leave `is_unresponded` absent and delete the migration paths rather than ship a heuristic classifier. [Task 1][Task 2]
-- Symptom: a catchup proposal sounds exact because it uses current Stream read state plus guards. Cause: eligibility, timestamp changes, and CLEAR paths are not historically invertible from current live inputs. Fix/pivot: frame catchup as best effort or residual-repair only, not as ship-ready exact repair. [Task 2]
-- Symptom: `maxTimeMS` or heartbeat logging is treated as proof the migration scales to 5-6M docs. Cause: timeouts and metrics are failure shields, not plan quality. Fix/pivot: inspect real index compatibility, require explain-based preflight, and fail closed on `COLLSCAN` / blocking sort. [Task 2][Task 3]
-- Symptom: migration completion looks good because residual counts net to zero. Cause: aggregate counters can cancel unrelated documents and hide over-cap / skipped identities. Fix/pivot: use exact-ID residuals and retry tracking instead of numeric-only done criteria. [Task 1][Task 2][Task 3]
-- Symptom: migration ordering is justified only by field decay or by “clear writes are ungated.” Cause: this ignores ordering guards, Step 0 stale legacy rewrites, live write races, and read/count exposure while a tenant is half-migrated. Fix/pivot: trace both write and read/count paths, separate write-prep from public rollout, and do not claim production facts such as index presence without an artifact. [Task 4]
+- Symptom: a migration plan keeps circling around heuristics for `is_unresponded`. Cause: the repo does not preserve a true historical reply ledger, and timestamp/classifier guesses overstate what can be reconstructed. Fix/pivot: leave `is_unresponded` absent and delete the migration paths rather than ship a heuristic classifier. [Task 1]
+- Symptom: migration completion looks good because residual counts net to zero. Cause: aggregate counters can cancel unrelated documents. Fix/pivot: use exact-ID residuals and retry tracking instead of numeric-only done criteria. [Task 1][Task 3]
 - Symptom: comments say a business is "verified" or cleanup is "safe to drop". Cause: the code does not persist any proof beyond membership in `completed`. Fix/pivot: inspect what the code actually stores and what cleanup consumes before accepting safety claims. [Task 6]
 - Symptom: cleanup appears to mirror backfill/reconcile scope. Cause: the file comments suggest full-population behavior, but the actual queries diverge and cleanup omits the `last_active_at` cutoff. Fix/pivot: compare query objects and cutoff propagation across every related pass. [Task 7]
 - Symptom: future resume logic assumes checkpoint files are durable and config-specific. Cause: checkpoint writes are non-atomic and the suffix key omits semantic dimensions such as cutoff/stream/partial choices. Fix/pivot: treat checkpoint correctness and resume safety as separate review items, not as implied by shared file names alone. [Task 8]
