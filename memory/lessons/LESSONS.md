@@ -181,3 +181,11 @@ consolidate: merge duplicates, drop obsolete ones, keep the rule one line each.
 ## 2026-08 — อย่าแตะไฟล์ deploy/CI นอก scope
 - **Mistake**: ปล่อยให้ไฟล์ deploy และ GitLab CI ที่มี dirty diff อยู่ก่อนถูกนับรวมกับงานแก้ bug โดยไม่ได้ยืนยัน ownership/scope ให้ชัด; ผู้ใช้ขอให้คืนไฟล์เดิม.
 - **Rule**: ก่อนแก้ใน worktree สกปรก ให้ pin pre-edit diff และ preserve ไฟล์ deploy/CI ที่ไม่เกี่ยวกับ task; เปลี่ยนได้เมื่อผู้ใช้สั่งโดยตรงเท่านั้น.
+
+## 2026-08 — ใช้ `.env` แทน MongoDB Compass ผิด environment
+- **Mistake**: ตรวจ `.env` ที่ชี้ UAT ทั้งที่ผู้ใช้มี MongoDB Compass เปิด staging-1 อยู่แล้ว; user corrected: `ทำไมถึงไม่เลือกดูใน mongo compos ในเครื่องฉันล`.
+- **Rule**: เมื่อผู้ใช้ขอเช็คฐานข้อมูลในเครื่อง ให้ตรวจ connection/database ที่เปิดอยู่ใน MongoDB Compass ก่อนใช้ local `.env` หรือขอสิทธิ์ GCP.
+
+## 2026-08 — ใช้ Computer Use ทั้งที่ผู้ใช้ต้องการ CLI
+- **Mistake**: เปิด Computer Use เพื่อตรวจฐานข้อมูลและจัดการ credential ทั้งที่ผู้ใช้ต้องการใช้ `mongosh`; user corrected: `หยุดใช้ computer use`.
+- **Rule**: เมื่อผู้ใช้สั่งใช้ CLI ให้หยุด Computer Use ทันที; ใช้ CLI/API เท่านั้น และรายงาน credential/permission blocker โดยไม่เปิดแอปหรือดึง secret เพิ่ม.
