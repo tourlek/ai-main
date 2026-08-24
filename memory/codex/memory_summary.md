@@ -12,6 +12,7 @@ The user primarily uses Codex for OHO engineering: evidence-first code/plan revi
 - Cite exact file:line and production evidence. Distinguish verified fact, inference, `no data`, and `Not run: <reason>`; never retain or print credentials.
 - Put severity-ranked blockers first with a direct ship/merge/rework verdict. Focused tests, HTTP 200, webhook tests, and static checks are not runtime/UAT proof.
 - For staging: code validation/commit → staging deploy → live staging proof → staging pass → UAT. Do not describe UAT as merely missing before staging has passed.
+- A Meta MCP config/OAuth result is not usable until an actual read-only tool call succeeds; keep `Sse(None)` Streamable HTTP handshakes partial.
 - “ทำ plan มาอย่างเดียวก่อน” means plan only. When asked for a handoff first, provide verified/unrun/required evidence before the next mutation.
 - For production incidents, correlate IDs/time window, raw platform payload, source mapping, and successful traffic before declaring an outage or recommending broad suppression.
 
@@ -22,6 +23,7 @@ The user primarily uses Codex for OHO engineering: evidence-first code/plan revi
 - For migration work: immutable before-state, explicit whitelist, pre-mutation refresh, LINE-before-DB ordering, exact rollback, journal/conflict evidence, and non-zero partial-failure exit.
 - For Cloud Logging, narrow by service, ID, exact error/event, and tight UTC window; use `jsonPayload.message:`/`SEARCH(...)`, selected fields, and redaction.
 - Global-removal claims require workspace-wide search and runtime/UI/config/docs/tests classification.
+- In OHO Meta work, a SWC build can miss Feathers service-registration startup crashes; audit preserved imports and whole-module `service.hooks(hooks)` exports, then run a startup smoke test.
 
 ## What's in Memory
 
@@ -40,8 +42,12 @@ The user primarily uses Codex for OHO engineering: evidence-first code/plan revi
 #### 2026-08-20
 
 - Meta Business AI existing-Page onboarding and staging gates: `requestFbPagePermission`, `subscribed_apps`, `standby`, `messaging_handovers`, `263902037430900`
-  - desc: Separate OAuth, Page webhook subscription, Conversation Routing, and Business AI activation; owner/subscription fixes and Node-20 test boundary.
-  - learnings: Reissue does not resubscribe Page fields; app-level and Page-level `standby` are separate gates.
+  - desc: Separate OAuth, Page webhook subscription, Conversation Routing, and Business AI activation; subscription contract, Cloud Run startup failures, cross-repo contact validation, and staging evidence.
+  - learnings: Reissue does not resubscribe Page fields; add `messaging_handovers` by GET→union→POST→GET verify, and do not call webhook/core 200 terminal Stream delivery proof.
+
+- Meta Business AI startup and contact-flow repair: `formingChatStreamPayload`, `service.hooks(hooks)`, `contact.hooks.js`, `facebook_delivery_authority`, `b803ae00`, `b687a89d`
+  - desc: Exact runtime and Joi contract failures across `oho-api`/`oho-webhook`; search before declaring an OHO-1802 branch deploy-ready.
+  - learnings: Preserve existing imports and register only `{ before, after, error }`; correlate a unique message through webhook, upsert, persistence, and Stream/member-message.
 
 - LINE migration eligibility and LINE-only rollback scope: `line_other`, `--allowed-host`, `migrate.journal.json`, `webhook2.oho.chat`, `split-brain`
   - desc: Thai PBS eligibility bug, manifest/journal inventory, and no-write rollback design for `script-oho/migrate-line-webhook-endpoint`.
@@ -84,6 +90,10 @@ The user primarily uses Codex for OHO engineering: evidence-first code/plan revi
   - desc: Runtime rule-loading, recoverable cleanup, memory architecture, and compression.
 - Sol planning and Luna implementation delegation: `gpt-5.6-sol`, `gpt-5.6-luna`, `Luna Working`
   - desc: Approved implementation handoff protocol. [ad-hoc note]
+
+- Meta Developer Tools MCP setup: `meta_developer_tools`, `mcp.facebook.com/devtools`, `Sse(None)`, `devtools_discovery`
+  - desc: OAuth-configured Codex MCP with an unverified Streamable HTTP handshake.
+  - learnings: Do not call it working until a real read-only tool succeeds.
 
 #### /Users/tualek/Documents and /Users/tualek/retourapac
 

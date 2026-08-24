@@ -189,3 +189,7 @@ consolidate: merge duplicates, drop obsolete ones, keep the rule one line each.
 ## 2026-08 — ใช้ Computer Use ทั้งที่ผู้ใช้ต้องการ CLI
 - **Mistake**: เปิด Computer Use เพื่อตรวจฐานข้อมูลและจัดการ credential ทั้งที่ผู้ใช้ต้องการใช้ `mongosh`; user corrected: `หยุดใช้ computer use`.
 - **Rule**: เมื่อผู้ใช้สั่งใช้ CLI ให้หยุด Computer Use ทันที; ใช้ CLI/API เท่านั้น และรายงาน credential/permission blocker โดยไม่เปิดแอปหรือดึง secret เพิ่ม.
+
+## 2026-08 — สรุปว่า Smartchat realtime แล้วจากการมี socket listener
+- **Mistake**: เห็น API emit และ web-app มี socket listener จึงสรุปว่า Meta AI state อัปเดตในห้องที่เปิดอยู่แล้ว โดยไม่ได้ทดสอบว่า payload ผ่าน field selection, stale-event guard และ current-room merge; user corrected ว่ายังต้องสลับแชทก่อน state จึงเปลี่ยน.
+- **Rule**: ก่อนสรุปว่า Smartchat state realtime ให้ replay event ผ่าน socket handler ถึง `current_contact` และ DOM ด้วย red-capable test; listener หรือ emit ที่มีอยู่ไม่ใช่หลักฐานว่า UI อัปเดต.

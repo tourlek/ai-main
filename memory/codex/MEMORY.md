@@ -43,6 +43,36 @@ applies_to: cwd=/Users/tualek/ohochat; reuse_rule=recheck current feature branch
 
 - staging-1-readiness-2026-08-21.md, facebook_delivery_authority, fallback schedule race, Firebase Remote Config, Cloud Tasks, Mongo primary, Stream, HANDOFF.md
 
+## Task 5: Review a Meta Business AI branch and repair repeated Cloud Run startup failures; partial
+
+### rollout_summary_files
+
+- rollout_summaries/2026-08-20T04-23-11-evpK-meta_business_ai_review_repeated_cloud_run_startup_failures.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/08/20/rollout-2026-08-20T11-23-11-01a01d68-a198-7300-b70e-054c80cb3a68.jsonl, updated_at=2026-08-20T11:51:59+00:00, thread_id=01a01d68-a198-7300-b70e-054c80cb3a68, runtime fixes pushed; deploy success not verified)
+
+### keywords
+
+- oho-1802, Cloud Run, Feathers hooks, service.hooks(hooks), formingChatStreamPayload, formingCreateDataPayload, prepareCloseCaseContactUpdateData, b803ae00, startup smoke test
+
+## Task 6: Fix Meta Business AI contact-create contract and check live staging flow; partial
+
+### rollout_summary_files
+
+- rollout_summaries/2026-08-20T06-58-25-WPC6-meta_mcp_and_meta_business_ai_staging_fix.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/08/20/rollout-2026-08-20T13-58-25-01a01df6-bec3-7252-86b4-5299037a5b66.jsonl, updated_at=2026-08-20T16:22:16+00:00, thread_id=01a01df6-bec3-7252-86b4-5299037a5b66, cross-repo fix committed; terminal delivery unproven)
+
+### keywords
+
+- contact/upsert, contact.create, contact.hooks.js, Joi, facebook_delivery_authority, meta_business_ai_enabled, b687a89d, a4196c8, core-api--staging-1, member-send-message/inbox
+
+## Task 7: Review Facebook Page `subscribed_fields` for Meta Business AI; success
+
+### rollout_summary_files
+
+- rollout_summaries/2026-08-20T16-52-01-fk14-meta_business_ai_subscribed_fields_review.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/08/20/rollout-2026-08-20T23-52-01-01a02016-3517-7881-bd17-46c9326b74aa.jsonl, updated_at=2026-08-20T16:54:41+00:00, thread_id=01a02016-3517-7881-bd17-46c9326b74aa, repo-backed subscription-field review)
+
+### keywords
+
+- subscribed_fields, messaging_handovers, message_deliveries, standby, feed, request-page-subscribed-app.js, GET union POST GET verify, 429 Too Many Requests
+
 ## User preferences
 
 - when the user asks about an already connected Page having “ปุ่มเพื่อขอสิทธิ์การเข้าถึงเพิ่มเติม” -> design a separate existing-Page flow; do not require creating a new connection, and separate OAuth permission, webhook subscription, routing, and Business AI activation in Thai evidence-first output. [Task 1]
@@ -50,6 +80,10 @@ applies_to: cwd=/Users/tualek/ohochat; reuse_rule=recheck current feature branch
 - when the user challenged “staging ยังไม่ผ่านจะขึ้น uat ได้ยังไง” -> state gates strictly: code validation/commit → staging deploy → live staging proof → staging pass → UAT; before deploy, UAT has not been reached. [Task 2]
 - when the user said “หยุดใช้ computer use” -> use CLI/API only for database checks; inject credentials transiently, never print them, and keep them out of memory. [Task 3]
 - when the user says “เบื้องต้น commit ไปที่ brach working” or asks for a handoff first -> commit only to the named working branches, keep push/deploy separate approvals, and deliver a handoff that distinguishes verified, unrun, and required evidence. [Task 4]
+- when asking whether a branch is staging-ready or “ข้อความเข้าละ ทุกอย่างทำได้ปกติเนอะ” -> give a Thai, evidence-backed verdict with files, commits, logs, severity, and explicit live-proof gaps; builds, focused tests, and HTTP 200 are not sufficient. [Task 5][Task 6]
+- when the user says “ไฟล์ deploy กับ gitlab ci นายแก้ไขทำไมเอาออไว้เหมือนเดิมได้ไหม” or asks for commits in both repos -> preserve pre-existing dirty deploy/CI files, state the root-cause change separately from logging, and commit only the relevant source/tests per repo. [Task 6]
+- when the user says “ไม่เอาไฟล์ selft ที่ไว้เทส deploy push ไป” -> list exact included/excluded paths before pushing and clarify whether an ambiguous `self` filename is a runtime fix or a test helper. [Task 5]
+- when the user asks whether `docs/meta business ai ขาด subscribed_fields ไหนไหม` -> answer directly in Thai from repo evidence and distinguish the MVP contract from optional and legacy fields. [Task 7]
 
 ## Reusable knowledge
 
@@ -61,6 +95,9 @@ applies_to: cwd=/Users/tualek/ohochat; reuse_rule=recheck current feature branch
 - For `take_thread_control` `OAuthException` code `100`/subcode `2018001`, verify recipient ID, Page ID, Page-token ownership, and target App mapping before changing payload fields. The listed staging-1 diagnosis did not complete that mapping. [Task 3]
 - Read-only `mongosh` works at `/opt/homebrew/bin/mongosh`; add `serverSelectionTimeoutMS` in the URI query string, strip a trailing slash before appending the database, and avoid fragile nested-shell JS quoting. [Task 3]
 - Local hardening included immediate `standby` suppression, fail-closed authority guards, primary-read scheduled fallback protection, Firebase Remote Config 1.5-second fail-soft single-flight caching, and delayed fallback-task race protection. Required staging proof remains replay → terminal Mongo/Redis/Stream state, real Graph take/return, latency/error comparison, canary, and rollback across both custom-domain and direct Cloud Run routes. [Task 4]
+- `standby` is evidence another app may own delivery, not proof of Meta Business AI; `message.ai_generated === true` is author identity, not activation or ownership. The approved flow uses explicit `channel.meta_business_ai_enabled`, persists standby customer messages before suppressing OHO automation, and uses tenant-scoped `${businessId}@meta-ai` Stream identity with fallback. [Task 5]
+- The contact-flow contract spans repos: webhook passes Meta authority fields to `/contact/upsert`, then `oho-api` `/contact.create` must accept `meta_business_ai_enabled`, `facebook_delivery_authority`, `facebook_delivery_authority_observed_at`, and `facebook_meta_business_ai_observed_at`. Logging changes are observability-only, not a substitute for this validation/persistence fix. [Task 6]
+- `request-page-subscribed-app.js` base fields are `messages`, `messaging_postbacks`, `messaging_referrals`, `message_echoes`, `message_reads`, `standby`, and `feed`; Facebook mode must add `messaging_handovers`. `message_deliveries` is optional delivery observability, while the 13-field test-page list is not a minimum contract. Update Page fields as GET current → union required → POST → GET verify; never replace the existing set. [Task 7]
 
 ## Failures and how to do differently
 
@@ -68,6 +105,10 @@ applies_to: cwd=/Users/tualek/ohochat; reuse_rule=recheck current feature branch
 - Symptom: focused tests, builds, or HTTP 200 are called staging/UAT proof. Cause: no staging deploy, live subscription inspection, raw Meta replay, or terminal Mongo/Stream verification occurred. Fix: keep those gates explicit and do not say UAT is merely “missing” before staging passes. [Task 2][Task 4]
 - Symptom: a handover error is diagnosed from payload alone. Cause: the staging-1 Page/App/token mapping was not completed. Fix: pin the exact channel/environment and verify the whole mapping first. [Task 3]
 - Symptom: local branch work is said to be committed or deploy-ready without evidence. Cause: the rollout authorized commits but recorded no commit command/output. Fix: verify `git status`, `git log`, and SHAs, then keep deployment/config/replay as separate approvals. [Task 4]
+- Symptom: a SWC build passes but Cloud Run crashes during startup. Cause: Meta changes replaced existing imports or exported helpers from a Feathers hooks module passed wholesale to `service.hooks(hooks)`. Fix: preserve existing imports/call sites, pass only `{ before, after, error }`, audit all modified hook modules and every `service.hooks(hooks)` registration, then run a compiled module/service-registration or container startup smoke test. Exact failures included `ReferenceError: prepareCloseCaseContactUpdateData is not defined`, `Error: 'formingChatStreamPayload' is not a valid hook type`, and `Error: 'formingCreateDataPayload' is not a valid hook type`. [Task 5]
+- Symptom: normal Jest scans `.claude/worktrees` and fails on duplicate mocks or Node 26 `Utils.isRegExp`/`Utils.isDate`. Cause: broad roots include worktrees and legacy dependencies are incompatible. Fix: use `--runTestsByPath` with `--roots src` plus the tested compatibility shim, or use the repository-supported Node version; disclose that focused test boundary. [Task 6]
+- Symptom: webhook/core HTTP success is called end-to-end success. Cause: no correlation proved persistence and Stream/member-message delivery; later core/webhook errors were not fully retrieved. Fix: send one unique test message and correlate webhook receipt → `/contact/upsert` → persistence → `/member-send-message/inbox` or Stream write → exact error payloads. [Task 6]
+- Symptom: a subscription review claims direct Meta docs were verified or `git status` at `/Users/tualek/ohochat` represents repo state. Cause: direct docs returned `429 Too Many Requests` and the rollout root is not itself a Git repository. Fix: cite repo/Postman evidence with the source limitation, and locate the actual sub-repo before Git commands. [Task 7]
 
 # Task Group: /Users/tualek/ohochat/script-oho / LINE webhook migration eligibility and LINE-only rollback scoping
 
@@ -532,18 +573,31 @@ applies_to: cwd=/Users/tualek/.codex; reuse_rule=reuse as the default delegated-
 
 - gpt-5.6-sol, gpt-5.6-luna, reasoning effort max, Luna Working, approved plan, no-commit rule, implementation task, Sol review
 
+## Task 2: Configure and authenticate Meta Developer Tools MCP; partial
+
+### rollout_summary_files
+
+- rollout_summaries/2026-08-20T06-58-25-WPC6-meta_mcp_and_meta_business_ai_staging_fix.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/08/20/rollout-2026-08-20T13-58-25-01a01df6-bec3-7252-86b4-5299037a5b66.jsonl, updated_at=2026-08-20T16:22:16+00:00, thread_id=01a01df6-bec3-7252-86b4-5299037a5b66, OAuth succeeded but MCP tool handshake failed)
+
+### keywords
+
+- meta_developer_tools, mcp.facebook.com/devtools, config.toml, codex mcp login, devtools_discovery, Streamable HTTP, Sse(None), expect accepted or json
+
 ## User preferences
 
 - for consultation, investigation, grilling, decision-making, planning, and final review, use `gpt-5.6-sol`; after the user confirms a plan and authorizes implementation, create a new `[Luna Working] - {name}` Codex task using `gpt-5.6-luna` with reasoning effort `max`. [Task 1] [ad-hoc note]
 - pass Luna the approved contract, current worktree state, completed partial work, tests, constraints, and no-commit rule; Sol monitors/reviews the result and reports evidence. If Luna max is unavailable, stop and tell the user rather than substituting a model. [Task 1] [ad-hoc note]
+- when the user asks “set mcp devtools meta ให้ใช้งานได้หน่อย” -> configure the host, authenticate it, and run a real read-only tool call; a config entry or OAuth success alone is not completion. [Task 2]
 
 ## Reusable knowledge
 
 - The required task title prefix is exactly `[Luna Working] - {name}`; rename immediately if the creation flow cannot set it. [Task 1] [ad-hoc note]
+- Meta Developer Tools MCP uses `[mcp_servers.meta_developer_tools]` in `/Users/tualek/.codex/config.toml` with `url = "https://mcp.facebook.com/devtools"`; authenticate with `codex mcp login meta_developer_tools`. It is OAuth-based, so no App Secret belongs in config. [Task 2]
 
 ## Failures and how to do differently
 
 - Do not silently substitute a nearby model or start a Luna implementation task before explicit plan approval and implementation authorization. [Task 1] [ad-hoc note]
+- Symptom: Meta MCP is reported working after OAuth. Cause: the actual initialization returned `unexpected server response: expect accepted or json, got Sse(None), when process initialized notification response`. Fix: leave status partial and do not claim usability until `devtools_discovery` or another read-only tool succeeds; observed version was `codex-cli 0.146.0`. [Task 2]
 
 # Task Group: /Users/tualek/ohochat / Facebook Messenger attachment ingestion root-cause investigation
 

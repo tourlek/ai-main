@@ -4723,6 +4723,84 @@ References:
 - Exact endpoint: `POST /{PAGE_ID}/subscribed_apps`
 - Exact status endpoint from PDF: `GET /{PAGE_ID}/business_ai`
 
+## Thread `01a01d68-a198-7300-b70e-054c80cb3a68`
+updated_at: 2026-08-20T11:51:59+00:00
+cwd: /Users/tualek/ohochat
+rollout_path: /Users/tualek/.codex/sessions/2026/08/20/rollout-2026-08-20T11-23-11-01a01d68-a198-7300-b70e-054c80cb3a68.jsonl
+rollout_summary_file: 2026-08-20T04-23-11-evpK-meta_business_ai_review_repeated_cloud_run_startup_failures.md
+
+---
+description: Meta Business AI branch review found repeated Cloud Run startup crashes caused by missing preserved imports and Feathers whole-module hook exports; runtime fixes were pushed but final deploy success was not verified.
+task: review-and-stabilize-meta-business-ai-feature-branch-for-staging
+task_group: /Users/tualek/ohochat/oho-api Meta Business AI deployment/debugging
+task_outcome: partial
+cwd: /Users/tualek/ohochat/oho-api
+keywords: Meta Business AI, oho-1802, Cloud Run, Feathers hooks, ReferenceError, formingChatStreamPayload, formingCreateDataPayload, startup smoke test, GitLab pipeline, Stream Chat
+---
+
+### Task 1: Review branch staging readiness
+
+task: review remote Meta Business AI branch across oho-api/oho-webhook
+task_group: Meta Business AI staging review
+task_outcome: partial
+
+Preference signals:
+- The user asked whether the branch was ready for staging and repeatedly challenged unsupported certainty; future reviews should report exact evidence and distinguish build/focused tests from deploy/canary readiness.
+- The user prefers detailed Thai explanations with file paths, commits, logs, severity, and honest limits.
+- Preserve unrelated dirty worktree artifacts and commit/push only explicitly scoped files.
+
+Reusable knowledge:
+- `standby` is evidence another app may own delivery, not proof of Meta Business AI; `message.ai_generated === true` is author identity, not activation or ownership.
+- Approved Facebook wiring uses explicit `channel.meta_business_ai_enabled`, persists standby customer messages before suppressing OHO automation, and uses tenant-scoped `${businessId}@meta-ai` Stream identity with fallback.
+- Focused tests, `git diff --check`, and HTTP 200 do not establish canary/deploy readiness; require captured payload replay and terminal Mongo/Redis/Stream verification.
+
+Failures and how to do differently:
+- No MR/spec was found (`glab mr list ... -F json` returned `[]`), so readiness should remain conservative.
+- Backend removal of Remote Config lookup does not mean the workspace-wide `rt_meta_business_ai_enabled` flag is gone; classify runtime/UI/config hits across repos.
+
+References:
+- Remote SHAs: `oho-api a0157308c5efbd4121badbad949bb86f9b55b0ce`, `oho-webhook 3ac7ca224c408a1fb1691576ea236eb6005b752c`
+- `docs/meta-business-ai/07-mvp-implementation-checklist-2026-08-10.md`
+
+### Task 2: Diagnose and fix Cloud Run startup failures
+
+task: repair runtime breakages introduced by Meta hook integration and push fixes
+task_group: oho-api deployment debugging
+task_outcome: partial
+
+Reusable knowledge:
+- Pipeline sequence: `31240`/`#95411` failed on missing `end-case` import; `31241`/`#95416` failed on the same missing imports in `no-case`; `31245`/`#95426` failed on Feathers `Error: 'formingChatStreamPayload' is not a valid hook type`; `31246`/`#95431` failed on `Error: 'formingCreateDataPayload' is not a valid hook type`.
+- Root cause: Meta commit `39c42fb27` replaced existing import blocks instead of adding Meta imports alongside them, and exported helper functions from hooks modules passed wholesale to `service.hooks(hooks)`.
+- Fixes: preserve `prepareCloseCaseContactUpdateData` and `emitChatSessionStatusUpdatedEvent`; register Facebook hooks as `service.hooks({ before, after, error })`; restore `STREAM_CHAT_SOURCE`/`loggerSendMessageToStreamChat`; restore `chatEngine` for self-assign.
+- CI `.gitlab-ci.yml` only builds with SWC and deploys; it does not lint, run tests, or perform startup/service-registration smoke checks. Build success therefore missed runtime crashes.
+
+Failures and how to do differently:
+- Do not fix only the first crash. Audit all modified hook modules, all `service.hooks(hooks)` registrations, removed imports, and `no-undef` call sites before redeploying.
+- Validate static guards themselves; the first hook-shape checker falsely passed because it mishandled `.hooks` path resolution.
+- Focused validation was incomplete: build passed (`1562 files`), Facebook/self-assign tests passed, bot-send had 6 quick-reply expectation failures, and broad lint contained unrelated/pre-existing errors.
+
+References:
+- Pushed commit: `b803ae00b fix: restore hook runtime dependencies`
+- Changed runtime files: `src/services/channel/facebook/facebook.service.js`, `src/services/bot-send-message/bot-send-message.hooks.js`, `src/services/contact/member-assign/self/self.hooks.js`
+- Exact errors: `ReferenceError: prepareCloseCaseContactUpdateData is not defined`; `Error: 'formingChatStreamPayload' is not a valid hook type`; `Error: 'formingCreateDataPayload' is not a valid hook type`
+
+### Task 3: Clarify excluded deploy/test artifacts
+
+task: distinguish runtime self-assign fix from deploy-test helper files
+ task_group: Git push scope clarification
+task_outcome: uncertain
+
+Preference signals:
+- User said: “ไม่เอาไฟล์ selft ที่ไว้เทส deploy push ไป” -> future pushes should list exact included/excluded files and clarify ambiguous filenames before pushing.
+
+Reusable knowledge:
+- `package.json`, `scripts/check-feathers-hooks-shape.js`, and `.codegraph/` were excluded from `b803ae00b`.
+- `self.hooks.js` was included because restoring `chatEngine` was a runtime fix; the user’s final intent about removing it was not confirmed.
+
+References:
+- Commit `b803ae00b`
+- Excluded: `package.json`, `scripts/check-feathers-hooks-shape.js`, `.codegraph/`
+
 ## Thread `01a01dd5-0450-7923-a90f-1997e16484f0`
 updated_at: 2026-08-20T07:25:12+00:00
 cwd: /Users/tualek/ohochat
@@ -4773,6 +4851,103 @@ References:
 - Focused webhook result: 3 suites / 24 tests passed (`facebook-canonical-events`, `facebook-meta-business-ai`, `facebook-dedup-events`).
 - Both `npm run build` commands and `git diff --check` passed.
 - Exact user correction: `staging ยังไม่ผ่านจะขึ้น uat ได้ยังไง`.
+
+## Thread `01a01df6-bec3-7252-86b4-5299037a5b66`
+updated_at: 2026-08-20T16:22:16+00:00
+cwd: /Users/tualek/ohochat
+rollout_path: /Users/tualek/.codex/sessions/2026/08/20/rollout-2026-08-20T13-58-25-01a01df6-bec3-7252-86b4-5299037a5b66.jsonl
+rollout_summary_file: 2026-08-20T06-58-25-WPC6-meta_mcp_and_meta_business_ai_staging_fix.md
+
+---
+description: Meta Developer Tools MCP was configured and OAuth-authenticated but Codex could not complete the Streamable HTTP handshake; separate Meta Business AI fixes were implemented, committed in both repos, and staging showed successful webhook/core requests but incomplete end-to-end proof.
+task: configure_meta_mcp_and_fix_meta_business_ai_flow
+task_group: /Users/tualek/ohochat Meta/Codex integration and Facebook webhook workflow
+task_outcome: partial
+cwd: /Users/tualek/ohochat
+keywords: Meta Developer Tools MCP, meta_developer_tools, mcp.facebook.com/devtools, OAuth, Sse(None), Streamable HTTP, Meta Business AI, contact.create, contact.hooks.js, Facebook webhook, Cloud Logging, staging-1, b687a89d, a4196c8
+---
+
+### Task 1: Configure Meta Developer Tools MCP
+
+task: add and authenticate Meta Developer Tools MCP for Codex, then verify a real MCP tool call.
+task_group: Codex MCP setup
+ task_outcome: partial
+
+Preference signals:
+- The user asked “set mcp devtools meta ให้ใช้งานได้หน่อย” -> setup must include authentication and real tool-call verification, not just writing a URL into config.
+
+Reusable knowledge:
+- Codex config is `/Users/tualek/.codex/config.toml`.
+- The working server entry is `[mcp_servers.meta_developer_tools]` with `url = "https://mcp.facebook.com/devtools"` and `enabled = true`.
+- OAuth completed successfully, but actual MCP initialization failed with `expect accepted or json, got Sse(None), when process initialized notification response`.
+
+Failures and how to do differently:
+- Do not call this fully working until `devtools_discovery` succeeds. OAuth/config status alone is insufficient.
+- The failure appears to be Codex/Meta Streamable HTTP interoperability, not missing credentials.
+
+References:
+- `codex mcp login meta_developer_tools`
+- `codex mcp get meta_developer_tools`
+- `Successfully logged in to MCP server 'meta_developer_tools'.`
+- `codex-cli 0.146.0`
+- `unexpected server response: expect accepted or json, got Sse(None)`
+
+### Task 2: Fix Meta Business AI contact flow and logging
+
+task: repair the downstream contact-create contract, expected read-event handling, and logging; preserve unrelated deploy/CI edits; commit both repos.
+task_group: Meta Business AI backend/webhook fix
+ task_outcome: success
+
+Preference signals:
+- The user said “ไฟล์ deploy กับ gitlab ci นายแก้ไขทำไมเอาออไว้เหมือนเดิมได้ไหม” -> preserve pre-existing dirty deploy/CI files and do not touch them without explicit scope.
+- The user asked “แล้วไม่ต้องแก้ oho api หรอ” -> explain the root cause and distinguish required core API changes from optional logging changes.
+- The user asked “commit ให้หน่อย ทั้งสอง repo” -> make separate commits in both repositories while excluding unrelated untracked files.
+
+Reusable knowledge:
+- `/contact/upsert` passed Meta Business AI fields into `/contact.create`, where Joi validation rejected them. The required downstream fix was in `oho-api/src/services/contact/contact.hooks.js`.
+- Added validation for `meta_business_ai_enabled`, `facebook_delivery_authority`, `facebook_delivery_authority_observed_at`, and `facebook_meta_business_ai_observed_at`.
+- Webhook read events with missing contacts can return 404 as an expected ignore case.
+- Cloud Logging was normalized to one line in both services; this is observability-only and does not replace the core API fix.
+- Verification: webhook build passed; Facebook tests passed 21/21; core contact/upsert tests passed 11/11 when restricted to `src` and run with a compatibility shim for removed Node utility APIs; Prettier and diff checks passed.
+- Deploy/CI files were restored to no-diff state.
+
+Failures and how to do differently:
+- Normal Jest scanned `.claude/worktrees`, causing duplicate manual mocks, and legacy dependencies failed on Node 26 (`Utils.isRegExp`, `Utils.isDate`). Use `--runTestsByPath` with `--roots src` and the tested compatibility shim, or use the repo’s supported Node version.
+- Never stage `.codegraph/`, `.claude-worktrees/`, `plan.md`, or other pre-existing untracked artifacts when committing targeted fixes.
+
+References:
+- `oho-api/src/services/contact/contact.hooks.js`
+- `oho-api/src/services/contact/contact.hooks.spec.js`
+- `oho-api/src/logger.js`
+- `oho-webhook/src/controllers/facebook/handler.ts`
+- `oho-webhook/src/helpers/logger.ts`
+- `b687a89d fix: complete Meta Business AI contact flow`
+- `a4196c8 fix: harden Facebook webhook handling`
+
+### Task 3: Verify live staging message flow
+
+task: determine whether an inbound Facebook message is processed normally on staging-1 after the commits.
+task_group: live staging verification
+ task_outcome: partial
+
+Preference signals:
+- The user asked whether “ข้อความเข้าละ ทุกอย่างทำได้ปกติเนอะ” -> provide evidence from live webhook/core/terminal state and distinguish confirmed steps from unverified downstream behavior.
+
+Reusable knowledge:
+- Core revision `core-api--staging-1--b687a89d--6203b324--v2-27-1` was live and handled repeated `/contact/upsert` requests with HTTP 201.
+- Messaging-related core requests returned HTTP 200/201; webhook returned HTTP 200 and showed recent Facebook activity.
+- No recent core error appeared in the first targeted window, but later queries found one core ERROR at `2026-08-20T16:19:01.388Z` and one webhook ERROR at `2026-08-20T16:14:57.069Z`.
+- No queried `member-send-message/inbox` records were found, so end-to-end Stream/member-message delivery was not proven.
+
+Failures and how to do differently:
+- The user interrupted before error payloads and final correlation were retrieved. Keep the verdict partial/uncertain rather than claiming all behavior is normal.
+- Future verification should correlate one unique test message through webhook receipt, `/contact/upsert`, message persistence, `/member-send-message/inbox` or Stream write, and exact error details.
+
+References:
+- `gcloud logging read 'resource.labels.service_name="webhook--staging-1" ...'`
+- `gcloud logging read 'resource.labels.service_name="core-api--staging-1" ...'`
+- Services: `webhook--staging-1`, `core-api--staging-1`
+- Remaining error timestamps: `2026-08-20T16:19:01.388Z`, `2026-08-20T16:14:57.069Z`
 
 ## Thread `01a01ff8-eccf-7753-bac3-73ea2e052baf`
 updated_at: 2026-08-21T03:50:43+00:00
@@ -4861,6 +5036,48 @@ Failures and how to do differently:
 References:
 - URI shape: `mongosh "${mongo_uri}/oho-app-staging-1?authSource=admin&serverSelectionTimeoutMS=5000" --quiet --norc --password "$mongo_password"`
 - Final verified platform ID: `1175851975615394`
+
+## Thread `01a02016-3517-7881-bd17-46c9326b74aa`
+updated_at: 2026-08-20T16:54:41+00:00
+cwd: /Users/tualek/ohochat
+rollout_path: /Users/tualek/.codex/sessions/2026/08/20/rollout-2026-08-20T23-52-01-01a02016-3517-7881-bd17-46c9326b74aa.jsonl
+rollout_summary_file: 2026-08-20T16-52-01-fk14-meta_business_ai_subscribed_fields_review.md
+
+description: ตรวจสอบ Facebook Meta Business AI subscribed_fields; พบว่ารายการ 8 fields ขาด messaging_handovers ส่วน message_deliveries เป็น optional observability และ 13 fields เป็น test-page baseline ไม่ใช่ minimum contract
+ task: review_meta_business_ai_subscribed_fields
+ task_group: /Users/tualek/ohochat/meta-business-ai
+ task_outcome: success
+ cwd: /Users/tualek/ohochat
+ keywords: Meta Business AI, Facebook, subscribed_fields, messaging_handovers, standby, message_deliveries, feed, Page subscription, union verify
+
+### Task 1: ตรวจสอบ Facebook Page subscription fields
+
+task: review_meta_business_ai_subscribed_fields
+task_group: Meta Business AI / Facebook onboarding
+task_outcome: success
+
+Preference signals:
+- ผู้ใช้ถามเป็นภาษาไทยว่า `docs/meta business ai ขาด subscribed_fields ไหนไหม` -> งาน review ลักษณะนี้ควรตอบภาษาไทยและอ้างอิง repo/หลักฐานโดยตรง
+
+Reusable knowledge:
+- Base fields ใน `oho-api/src/utils/facebook/request-page-subscribed-app.js` คือ `messages`, `messaging_postbacks`, `messaging_referrals`, `message_echoes`, `message_reads`, `standby`, `feed`.
+- Facebook mode เพิ่ม `messaging_handovers`; ดังนั้นรายการผู้ใช้ให้มาขาด `messaging_handovers`.
+- `message_deliveries` ถูกระบุใน `docs/meta-business-ai/07-mvp-implementation-checklist-2026-08-10.md` ว่า optional delivery observability ไม่ใช่ staging acceptance gate.
+- `feed` ไม่ใช่ Meta Business AI field โดยตรง แต่ควรคงไว้หาก legacy feature ใช้งานอยู่.
+- “13 fields” คือ baseline ของ test page; ไม่ใช่ minimum contract ที่ต้องเพิ่ม fields อื่นให้ครบเลข 13.
+- Subscription update ต้อง GET existing → union required fields → POST → GET verify; ห้าม replace fields เดิม.
+
+Failures and how to do differently:
+- Direct Meta docs เปิดไม่ได้เพราะ `429 Too Many Requests`; ใช้ repo evidence และผลค้นจาก Meta Postman API Network พร้อมระบุข้อจำกัด ไม่ควรอ้างว่า direct docs ถูก verify สำเร็จ.
+- `git status` จาก `/Users/tualek/ohochat` ได้ `fatal: not a git repository`; repo อยู่ใน subdirectories จึงต้องหา working repository ก่อนใช้ git commands.
+
+References:
+- `oho-api/src/utils/facebook/request-page-subscribed-app.js:10-18`
+- `oho-api/src/utils/facebook/request-page-subscribed-app.js:70-74`
+- `docs/meta-business-ai/HANDOFF.md:15,116`
+- `docs/meta-business-ai/07-mvp-implementation-checklist-2026-08-10.md:45,49-56`
+- Exact error: `fatal: not a git repository (or any of the parent directories): .git`
+- Exact web error: `Failed to fetch ... (429 Too Many Requests)`
 
 ## Thread `01a0227d-3bea-70b1-905c-ba05014690f2`
 updated_at: 2026-08-21T06:15:26+00:00
