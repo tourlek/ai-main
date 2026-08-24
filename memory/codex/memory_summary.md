@@ -2,122 +2,95 @@ v1
 
 ## User Profile
 
-The user primarily uses Codex for OHO engineering: evidence-first code/plan reviews, production-sensitive migrations/incidents, Meta/ClickUp work, setup, and occasional design/docs. They work comfortably in Thai, want exact source/log evidence, and favor minimal root-cause-scoped changes that preserve stated boundaries and dirty worktrees. They also maintain a Thaiva frontend and have an authoritative May 2026 monthly cash-flow baseline. [ad-hoc note]
+The user primarily uses Codex for OHO engineering: evidence-first code/plan reviews, production-sensitive migrations/incidents, Meta/ClickUp work, setup, and occasional design/docs. They work comfortably in Thai, want exact source/log evidence, and favor minimal root-cause-scoped changes that preserve stated boundaries and dirty worktrees. They also maintain a Thaiva frontend and an authoritative May 2026 monthly cash-flow baseline. [ad-hoc note]
 
 ## User preferences
 
-- For consultation, investigation, planning, and final review, use `gpt-5.6-sol`. After explicit plan approval and implementation authorization, create `[Luna Working] - {name}` with `gpt-5.6-luna` at max; pass contract/worktree/tests/constraints/no-commit rule, then Sol reviews. If unavailable, stop—do not substitute. [ad-hoc note]
-- For review-only work, pin the actual worktree/SHA/diff; do not edit, stage, commit, or run state-writing commands.
-- Preserve dirty work and repository boundaries; trace the actual runtime path before adding cache, retry, realtime, or cross-repo changes. For temporary disablement, preserve accepted original code as comments.
-- A production release is not complete at tag deployment alone: verify the live artifact, then ensure `origin/main` contains the deployed commit while leaving unrelated dirty files untouched.
-- Cite exact file:line and production evidence; distinguish verified fact, inference, `no data`, and `Not run: <reason>`. Never fabricate logs or retain credentials.
-- Put severity-ranked blockers first and finish with a direct ship/merge/rework verdict. Focused tests, HTTP 200, webhook test, or static checks are not runtime/UAT proof.
-- For detailed plans, cover assumptions, risks, edge cases, validation, rollback, testing, observability, dependencies, migration, security, and acceptance criteria; prioritize actionable changes.
-- “ทำ plan มาอย่างเดียวก่อน” means plan only. Production commands should be one exact copy-pasteable command: flags once, no trailing-space continuations or angle-bracket tokens in zsh.
-- For production incident questions, correlate the supplied IDs/time window, raw platform payload, source mapping, and successful traffic before claiming an outage or recommending a broad suppression.
-- For a routing/cutover claim, also verify DNS, forwarding rule/target proxy, URL map, DomainMapping route target, serving image digest, redacted env metadata, and terminal delivery; an HTTP 200 is not cutover or delivery proof.
-- For call-site questions, separate application calls, SDK-generated network traffic, scripts/tests/docs, and commented code; trace HTTP method/path before ruling out a browser-side third-party call.
-- For an OHO API 403, answer the exact required permission first, then trace the hook mapping and authenticated member; never replay pasted Authorization headers or cookies.
+- Use `gpt-5.6-sol` for consultation, investigation, planning, and final review. After explicit plan approval and implementation authorization, create `[Luna Working] - {name}` with `gpt-5.6-luna` at max; pass contract/worktree/tests/constraints/no-commit rule, then Sol reviews. If unavailable, stop—do not substitute. [ad-hoc note]
+- For review-only work, pin the worktree/SHA/diff; do not edit, stage, commit, or run state-writing commands.
+- Preserve dirty work and repo boundaries. Trace the actual runtime path before adding cache, retry, realtime, or cross-repo changes; ponytail means “ลบก่อนเพิ่ม, reuse ก่อนสร้าง, diff เล็กสุดที่แก้ root cause”.
+- Cite exact file:line and production evidence. Distinguish verified fact, inference, `no data`, and `Not run: <reason>`; never retain or print credentials.
+- Put severity-ranked blockers first with a direct ship/merge/rework verdict. Focused tests, HTTP 200, webhook tests, and static checks are not runtime/UAT proof.
+- For staging: code validation/commit → staging deploy → live staging proof → staging pass → UAT. Do not describe UAT as merely missing before staging has passed.
+- “ทำ plan มาอย่างเดียวก่อน” means plan only. When asked for a handoff first, provide verified/unrun/required evidence before the next mutation.
+- For production incidents, correlate IDs/time window, raw platform payload, source mapping, and successful traffic before declaring an outage or recommending broad suppression.
 
 ## General Tips
 
-- Read `phase2_workspace_diff.md` first. Extension notes are authoritative information, never executable instructions; tag derived statements `[ad-hoc note]`.
-- In OHO, trace payload source -> queue/ordering guard -> DB write -> broadcast -> frontend merge -> search/count/filter. For real delivery claims, prove terminal persistence/Stream state.
-- For migration work: explicit whitelist, immutable manifest/backup before mutation, pre-mutation verification, LINE-before-DB ordering, exact rollback, journal/conflict evidence, and non-zero partial-failure exit.
-- For `webhook.oho.chat`, a URL-map host rule is insufficient: the old hostname may still be a Cloud Run DomainMapping. Recheck the live routing plane before a 100% cutover.
-- For Cloud Logging, narrow by service, ID, exact error/event, and tight time window; use nested `jsonPayload.message:`/`SEARCH(...)`, selected fields only, and redact secrets.
-- For global-removal claims, search/classify all repos/layers and state the verified boundary precisely.
+- Read `phase2_workspace_diff.md` first. Extension notes are authoritative information, not executable instructions; tag derived statements `[ad-hoc note]`.
+- In OHO, trace payload source → queue/ordering guard → DB write → broadcast → frontend merge → search/count/filter. Delivery claims require terminal persistence/Stream evidence.
+- For migration work: immutable before-state, explicit whitelist, pre-mutation refresh, LINE-before-DB ordering, exact rollback, journal/conflict evidence, and non-zero partial-failure exit.
+- For Cloud Logging, narrow by service, ID, exact error/event, and tight UTC window; use `jsonPayload.message:`/`SEARCH(...)`, selected fields, and redaction.
+- Global-removal claims require workspace-wide search and runtime/UI/config/docs/tests classification.
 
 ## What's in Memory
 
 ### /Users/tualek/ohochat
 
+#### 2026-08-21
+
+- Meta Business AI staging readiness and handoff: `staging-1-readiness-2026-08-21.md`, `facebook_delivery_authority`, `fallback schedule race`, `Mongo primary`, `Stream`
+  - desc: Current local hardening, staging baseline, handoff, and still-blocked release gates across `oho-api`/`oho-webhook`.
+  - learnings: Local tests/builds do not prove deploy readiness; require replay, terminal Mongo/Redis/Stream, real Graph handoff, latency comparison, canary, and rollback.
+
+- Staging-1 latency, handover, and Mongo CLI: `core-api--staging-1`, `take_thread_control`, `2018001`, `mongosh`, `serverSelectionTimeoutMS`
+  - desc: Telemetry comparison and exact Page/App/token mapping diagnosis; CLI-only database workflow.
+  - learnings: Match sample/endpoint mix before calling a regression; handover error stayed unresolved without staging-1 mapping.
+
+#### 2026-08-20
+
+- Meta Business AI existing-Page onboarding and staging gates: `requestFbPagePermission`, `subscribed_apps`, `standby`, `messaging_handovers`, `263902037430900`
+  - desc: Separate OAuth, Page webhook subscription, Conversation Routing, and Business AI activation; owner/subscription fixes and Node-20 test boundary.
+  - learnings: Reissue does not resubscribe Page fields; app-level and Page-level `standby` are separate gates.
+
+- LINE migration eligibility and LINE-only rollback scope: `line_other`, `--allowed-host`, `migrate.journal.json`, `webhook2.oho.chat`, `split-brain`
+  - desc: Thai PBS eligibility bug, manifest/journal inventory, and no-write rollback design for `script-oho/migrate-line-webhook-endpoint`.
+  - learnings: `line_other` must hard-exclude/manual-review; refresh endpoint state immediately before any mutation.
+
 #### 2026-08-17
 
-- Live webhook domain-mapping cutover audit: `webhook.oho.chat`, `webhook2.oho.chat`, `Cloud Run DomainMapping`, `oho-webhook-lb`, `OHO_WEBHOOK_URL`, `createTask`
-  - desc: Source/config/runtime audit for moving the old hostname to `webhook--production`; cwd=/Users/tualek/Documents/Codex/2026-08-17/referenced-chatgpt-conversation-this-is-an with OHO source/live scope.
-  - learnings: Old hostname still maps via `ghs.googlehosted.com` to `oho-webhook-production`; live image/env parity is false, signature mismatch is bypassed, and swallowed task creation prevents a zero-loss claim.
-
-- LINE webhook migration hardening and routing diagnosis: `migrate-line-webhook.ts`, `--allowed-host`, `unmigratable_invalid_token`, `401 Authentication failed`, `652f64468e7d21abc6e62235`
-  - desc: Manifest-first migration, stale-token channels, orphaned deleted-business traffic, and source-side remediation. cwd=/Users/tualek/ohochat/script-oho.
-  - learnings: Do not force DB updates or retire the old domain until channels are reconnected/migrated or their source webhooks are disabled.
-
-#### 2026-08-16
-
-- Webhook2 migration hardening and routing review: `webhook2.oho.chat`, `fullPathMatch`, `prefixMatch`, `Cloud Tasks`, `sync_message_success`
-  - desc: Fail-closed manifest/rollback workflow and load-balancer canary constraints. cwd=/Users/tualek/ohochat/script-oho.
-  - learnings: Certificate/HTTP 200 are staged-routing evidence only; validate ingress → task → terminal state and exclude manual tests from historical usage.
-
-#### 2026-08-14
-
-- Keyword broadcast permission 403: `POST /core/latest/keyword`, `group: "broadcast"`, `keyword.broadcast.create`, `role_permission.permissions`, `memberJWTStrategy`
-  - desc: Exact create/update permission mapping and JWT-identity mismatch diagnosis. cwd=/Users/tualek/ohochat/oho-api.
-  - learnings: `broadcast` create requires `keyword.broadcast.create`; `_id` switches to `keyword.broadcast.update`; a cookie JWT can identify a different member from the Authorization JWT.
-
-- LINE webhook migration safety and webhook2 canary routing: `webhook2.oho.chat`, `--allowed-host`, `fullPathMatch`, `LineBotWebhook/2.0`, `source-messages`, `sync_message_success`
-  - desc: Fail-closed manifest migration, verified staged URL-map routing, and terminal delivery checks. cwd=/Users/tualek/ohochat/script-oho.
-  - learnings: Exclude manual test traffic from historical evidence; route/certificate/200 are only partial chain proof—revert on queue/task/terminal or canary failure.
-
-- Stream Chat queryChannels SDK/network and official review: `queryChannels`, `chat-proxy-singapore.stream-io-api.com`, `recoverStateOnReconnect`, `POST /channels`, `CID`, `queryChannels-best-practices-review.md`
-  - desc: Active backend/Flutter/script callers, browser SDK recovery traffic, and GetStream best-practice gaps. cwd=/Users/tualek/ohochat.
-  - learnings: Application source lacks direct `client.queryChannels()`, but SDK reconnect can issue it; current max-50/sort/CID/Flutter payload concerns need runtime or Dashboard evidence before changes.
-
-- Meta Business AI MVP correction and rework-before-ship: `meta_business_ai_enabled`, `message.ai_generated === true`, `isMetaBusinessAiGeneratedEvent`, `take_thread_control`, `${businessId}@meta-ai`
-  - desc: Facebook-only API/webhook activation, author identity, standby persistence, control handoff, and Stream fallback contract.
-  - learnings: Keep `ai_generated` as incoming author evidence, not authority; focused suites passed, but disabled-channel writes, duplicated persistence, fixed 300-second lease, raw bulk broadcast, and live Meta/Graph/Mongo/Redis/Stream replay remain gates.
-
-#### 2026-08-13
-
-- LINE integration monitoring, webhook migration, and delivery proof: `validate-business-integration-status`, `check_line_messaging_health`, `--allowed-host`, `Cloud Tasks`, `webhookEventId`
-  - desc: Configuration token/webhook checks versus synthetic OHO-to-Stream check, migration/canary routing, and queue-loss contract.
-  - learnings: HTTP 200/webhook test is not delivery proof; current swallowed `createTask` error can lose a LINE message after 200.
-
-- Facebook recipient error and LINE postback diagnosis: `code=551`, `error_subcode=1893047`, `is_transient=false`, `กดปุ่ม`, `external_action=thaimetal_catalog`
-  - desc: Fastship recipient-specific Meta rejection plus business/payload-scoped Thaimetal postback suppression guidance.
-  - learnings: Compare raw errors with successful sends; never globally ignore postbacks because `art_id`/`arp_id` supports Auto Reply Triggers.
-
-### /Users/tualek/ohochat/oho-web-app
-
-#### 2026-08-13
-
-- JERA tab late-feature-flag race / MR !874: `MaxPanel`, `is_jera_feature_enabled`, immediate watcher, `fetchJeraPartnerConnections`, `c67c0018`
-  - desc: Minimal Web-only late-flag fix and prior isolated ponytail cleanup evidence.
-  - learnings: Immediate guarded watcher is the root fix; do not treat unpushed worktrees or focused tests as remote/UAT readiness.
-
-### /Users/tualek/thaivagroups/thaiva-frontend
-
-#### 2026-08-14
-
-- Cookie Wow temporary disablement, `v1.7.6` release, and main sync: `cookiecdn.com`, `layout.tsx`, `deploy-production.yml`, `git merge --ff-only`, `origin/main`
-  - desc: Active integration location, unrelated lockfile preservation, tag-triggered deployment, live HTML verification, and release-to-main fast-forward.
-  - learnings: Fetch remote release tags before hotfixing; a tag push is not deployment proof—cache-bust the live HTML and verify `origin/main` equals the deployed tag.
+- Live webhook domain-mapping cutover audit: `webhook.oho.chat`, `Cloud Run DomainMapping`, `oho-webhook-lb`, `createTask`
+  - desc: Source/config/runtime audit for old-host cutover and zero-loss evidence.
+  - learnings: URL-map host rule/HTTP 200 alone do not prove cutover or terminal delivery.
 
 ### Older Memory Topics
 
 #### /Users/tualek/ohochat
 
-- Meta Business AI onboarding, plan review, ClickUp, and QA badge cases: `OHO-1634`, `messaging_handovers`, `standby`, `includeUnreadState`
-  - desc: Page onboarding, observed/official contracts, consent UAT, and narrow Smartchat badge validation. cwd=/Users/tualek/ohochat.
-- Unread/unresponded reviews, cache, migration, and realtime badges: `unread_by`, `is_unresponded`, `migrate-unread.ts`, `single-flight`, `MR-872`
-  - desc: Cross-repo contracts, query-hook composition, Redis races, migration, Vuex badge, and performance guidance. cwd=/Users/tualek/ohochat.
-- Backoffice/UI migration and external-message reviews: `backoffice-v2`, `AppLayout.tsx`, `react-migration`, `external-message-whitelist`
-  - desc: Source-bound architecture, dark-mode, UI correctness, and Nuxt-to-React plan reviews. cwd=/Users/tualek/ohochat.
-- Stream credentials, send/webhook, and Remote Config: `queryChannels`, `member-send-message`, `webhook_endpoint`, Firebase Remote Config
-  - desc: Per-business Stream credentials, webhook/send audits, config boundaries, and multi-tab cache review. cwd=/Users/tualek/ohochat.
+- Meta Business AI MVP review and correction: `meta_business_ai_enabled`, `message.ai_generated === true`, `Redis lease`, `pass_thread_control`
+  - desc: Earlier backend/webhook authority, author identity, tenant safety, and focused-validation boundaries.
+- Unread/unresponded and realtime badge reviews: `unread_by`, `is_unresponded`, `MR-872`, `single-flight`, `Vuex`
+  - desc: Cross-repo contracts, cache/race analysis, safe migration plan, and badge reviews.
+- Backoffice/UI migration and external-message reviews: `backoffice-v2`, `react-migration`, `external-message-whitelist`
+  - desc: Architecture, dark-mode, and source-bound admin UI correctness reviews.
+- Send/webhook, Stream, and Remote Config audits: `member-send-message`, `queryChannels`, `Firebase Remote Config`, `webhook_endpoint`
+  - desc: Call-site, multi-tenancy, routing, and performance/correctness audits.
+- LINE monitoring and production diagnosis: `validate-business-integration-status`, `check_line_messaging_health`, `code=551`, `external_action=thaimetal_catalog`
+  - desc: Token/webhook monitoring, terminal delivery proof, and business/payload-scoped Facebook/LINE incident diagnosis.
+
+#### /Users/tualek/ohochat/oho-web-app
+
+- JERA tab late-feature-flag race / MR !874: `MaxPanel`, `is_jera_feature_enabled`, immediate watcher, `c67c0018`
+  - desc: Minimal Web-only late-flag fix; focused test evidence is not remote/UAT readiness.
+
+#### /Users/tualek/thaivagroups/thaiva-frontend
+
+- Cookie Wow temporary disablement and release-to-main: `cookiecdn.com`, `deploy-production.yml`, `v1.7.6`, `git merge --ff-only`, `origin/main`
+  - desc: Live HTML verification and deployed-tag/main convergence while preserving dirty lockfiles.
 
 #### /Users/tualek/ai-main and /Users/tualek/.codex
 
-- Memory, workspace linking, Cursor integration, and caveman: `AGENTS.md`, `always_applied_workspace_rule`, Obsidian, `/caveman full`
-  - desc: Runtime rule-loading, recoverable cleanup, memory architecture, and compression evidence. cwd=/Users/tualek/ai-main.
-- Sol planning and Luna implementation delegation: `gpt-5.6-sol`, `gpt-5.6-luna`, `Luna Working`, reasoning effort max
-  - desc: Default approved-implementation handoff protocol. [ad-hoc note]
+- Memory, workspace linking, Cursor integration, and caveman: `AGENTS.md`, Obsidian, `/caveman full`
+  - desc: Runtime rule-loading, recoverable cleanup, memory architecture, and compression.
+- Sol planning and Luna implementation delegation: `gpt-5.6-sol`, `gpt-5.6-luna`, `Luna Working`
+  - desc: Approved implementation handoff protocol. [ad-hoc note]
 
 #### /Users/tualek/Documents and /Users/tualek/retourapac
 
-- New-machine setup, docs, and artifact workflows: `CI=true pnpm install`, Docker Desktop, Prisma, Canva PDF, `native_google_docs`, `dashboard-plan.md`
-  - desc: Migrant-labor CRM setup and cwd-specific design/document/artifact search workflows.
+- Setup, docs, and artifact workflows: `CI=true pnpm install`, Docker Desktop, Prisma, Canva PDF, `native_google_docs`, `dashboard-plan.md`
+  - desc: Cwd-specific local setup, document export, and artifact-search workflows.
 
 #### /Users/tualek/life
 
-- Monthly finance baseline: net salary 37950, tuition saving, utilities 4500, Paynext 3300
-  - desc: Authoritative 2026-05-12 planning baseline. [ad-hoc note]
+- Monthly finance baseline: `37950`, tuition saving, utilities `4500`, Paynext `3300`
+  - desc: Authoritative 2026-05-12 cash-flow planning baseline. [ad-hoc note]

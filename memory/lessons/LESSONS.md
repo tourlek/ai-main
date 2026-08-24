@@ -91,7 +91,7 @@ consolidate: merge duplicates, drop obsolete ones, keep the rule one line each.
 
 ## 2026-08 — ปล่อย diff ใหญ่เกิน scope bug 4 cases
 - **Mistake**: หลัง user จำกัดงานให้แก้เฉพาะ Smartchat 4 cases ผมเพิ่ม test จำนวนมากและรัน file-wide formatting จน commit ใหญ่ โดยไม่ได้แยกให้ชัดว่าอะไรมีอยู่ก่อนและอะไรที่เพิ่มในรอบนี้; user ทักว่า `นายแก้สะเยอะเลยมั่นใจได้ไงว่าจะถุกต้องหรอ`.
-- **Rule**: งาน bug scope แคบต้อง pin pre-edit diff, แก้ source ขั้นต่ำ, ห้าม file-wide formatting ที่ไม่จำเป็น, รายงานเฉพาะ delta ที่ทำใน session และใช้คำว่า ready เฉพาะเมื่อ exact acceptance cases มี sequence/manual evidence ครบ.
+- **Rule**: งาน bug หรือ code review scope แคบต้อง pin pre-edit diff, ตรวจและแก้เฉพาะ delta ที่เกี่ยวกับ feature, ห้ามยก baseline/ของเก่าที่ไม่เกี่ยวมาเป็น finding, ห้าม file-wide formatting ที่ไม่จำเป็น, และใช้คำว่า ready เฉพาะเมื่อ exact acceptance cases มี sequence/manual evidence ครบ.
 
 ## 2026-08 — Fabricated mock ID/data and presented as real facts
 - **Mistake**: generated mock App ID in example JSON, then later mistakenly treated it as real official documentation; user: `ต่อจากนี้ห้ามจำลองหรือคิดเอาเองจำไว้นะ`.

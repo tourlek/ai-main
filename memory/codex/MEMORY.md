@@ -1,3 +1,120 @@
+# Task Group: /Users/tualek/ohochat / Meta Business AI staging readiness, Facebook Page onboarding, and runtime verification
+
+scope: Evidence-first staging/UAT preparation across `oho-api`, `oho-webhook`, Facebook Page onboarding, Cloud Run, and Mongo; use for Meta Business AI changes where local validation must stay distinct from live proof.
+applies_to: cwd=/Users/tualek/ohochat; reuse_rule=recheck current feature branches, deployed revision, Page/App/token mapping, and staging data before acting; no task below proves staging, UAT, or production readiness.
+
+## Task 1: Analyze additional permission and routing flow for an existing Facebook Page; success
+
+### rollout_summary_files
+
+- rollout_summaries/2026-08-20T04-14-44-BWOU-meta_business_ai_page_permission_routing_analysis.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/08/20/rollout-2026-08-20T11-14-44-01a01d60-e36c-7140-9da6-1c95bb416e54.jsonl, updated_at=2026-08-20T04:21:01+00:00, thread_id=01a01d60-e36c-7140-9da6-1c95bb416e54, source/PDF-backed onboarding analysis)
+
+### keywords
+
+- Meta Business AI, Facebook Page, requestFbPagePermission, subscribed_apps, subscribed_fields, standby, Conversation Routing, Default routing app, GET /{PAGE_ID}/business_ai
+
+## Task 2: Fix owner targeting, subscription merge, and staging gates; partial
+
+### rollout_summary_files
+
+- rollout_summaries/2026-08-20T06-21-34-UCOc-meta_business_ai_staging_gates_owner_fix_develop_sync.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/08/20/rollout-2026-08-20T13-21-34-01a01dd5-0450-7923-a90f-1997e16484f0.jsonl, updated_at=2026-08-20T07:25:12+00:00, thread_id=01a01dd5-0450-7923-a90f-1997e16484f0, local commits/tests/builds only; not pushed or deployed)
+
+### keywords
+
+- pass_thread_control, 928891643393937, 263902037430900, messaging_handovers, request-page-subscribed-app.js, canonical dedup, replay retry, Node 20, staging UAT
+
+## Task 3: Audit staging-1 latency, handover error, and Mongo state with CLI; partial
+
+### rollout_summary_files
+
+- rollout_summaries/2026-08-20T16-20-02-fC5p-staging_1_meta_ai_latency_handover_cli_mongodb_verification.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/08/20/rollout-2026-08-20T23-20-02-01a01ff8-eccf-7753-bac3-73ea2e052baf.jsonl, updated_at=2026-08-21T03:50:43+00:00, thread_id=01a01ff8-eccf-7753-bac3-73ea2e052baf, latency/Mongo findings; exact handover mapping unresolved)
+
+### keywords
+
+- core-api--staging-1, Cloud Run, gcloud logging, ai_generated, take_thread_control, OAuthException, 2018001, mongosh, MongoDB Compass, serverSelectionTimeoutMS
+
+## Task 4: Audit local hardening and prepare staging-1 handoff; partial
+
+### rollout_summary_files
+
+- rollout_summaries/2026-08-21T04-03-47-rNB0-meta_business_ai_staging_readiness_handoff.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/08/21/rollout-2026-08-21T11-03-47-01a0227d-3bea-70b1-905c-ba05014690f2.jsonl, updated_at=2026-08-21T06:15:26+00:00, thread_id=01a0227d-3bea-70b1-905c-ba05014690f2, local hardening/handoff; deploy approval blocked)
+
+### keywords
+
+- staging-1-readiness-2026-08-21.md, facebook_delivery_authority, fallback schedule race, Firebase Remote Config, Cloud Tasks, Mongo primary, Stream, HANDOFF.md
+
+## User preferences
+
+- when the user asks about an already connected Page having “ปุ่มเพื่อขอสิทธิ์การเข้าถึงเพิ่มเติม” -> design a separate existing-Page flow; do not require creating a new connection, and separate OAuth permission, webhook subscription, routing, and Business AI activation in Thai evidence-first output. [Task 1]
+- when the user invokes ponytail: “ลบก่อนเพิ่ม, reuse ก่อนสร้าง, diff เล็กสุดที่แก้ root cause” -> prefer the smallest root-cause diff and avoid one-item abstractions. [Task 2]
+- when the user challenged “staging ยังไม่ผ่านจะขึ้น uat ได้ยังไง” -> state gates strictly: code validation/commit → staging deploy → live staging proof → staging pass → UAT; before deploy, UAT has not been reached. [Task 2]
+- when the user said “หยุดใช้ computer use” -> use CLI/API only for database checks; inject credentials transiently, never print them, and keep them out of memory. [Task 3]
+- when the user says “เบื้องต้น commit ไปที่ brach working” or asks for a handoff first -> commit only to the named working branches, keep push/deploy separate approvals, and deliver a handoff that distinguishes verified, unrun, and required evidence. [Task 4]
+
+## Reusable knowledge
+
+- OAuth reissue already exists in `oho-web-app/pages/business/_biz_id/setting/integration.vue`, but its reconnect UI is gated by `connection_status === 'incomplete'`. Reissue updates permissions/token but does not re-run `POST /{PAGE_ID}/subscribed_apps`; an existing Page can therefore miss later-added `standby`. `subscribed_apps` manages webhook fields, not Conversation Routing/Default routing app. [Task 1]
+- `standby` requires both app-level `POST /{APP_ID}/subscriptions` and Page-level `POST /{PAGE_ID}/subscribed_apps`. Separate UI into `ขอสิทธิ์ Facebook เพิ่ม` and `ตั้งค่า Business AI`, then provide “ตรวจสอบอีกครั้ง” after a Page admin completes Meta UI routing/activation. Verify activation separately with `GET /{PAGE_ID}/business_ai` and real-message behavior. [Task 1]
+- Owner targeting must compare only `currentOwnerAppId` with configured `targetAppId`: `263902037430900` is Page Inbox/Business Suite and must not be treated as an AI owner. `request-page-subscribed-app.js` should GET → union existing fields → POST → GET-verify by OHO App ID, preserve marketing fields, add `messaging_handovers` only for Facebook, and exclude `message_deliveries` from acceptance gates. [Task 2]
+- The local staging-gate commits were not pushed. Focused API `3 suites/12`, webhook `3 suites/24`, both builds, and `git diff --check` passed; two suites were blocked by old dependencies under non-Node-20 runtime. Re-run in the repository’s Node `^20.0.0` environment. [Task 2]
+- Matched telemetry is required before a latency-regression claim: post-deploy samples had different request/endpoint mix, so p50/p95 changes were not proof. Filter Cloud Logging by `log_id("run.googleapis.com/requests")`, service, revision, endpoint, and tight UTC windows; sort samples before percentile calculation. The observed `createTimeSeries` timeout was an instrumentation/background path, not evidence Meta AI message handling was slow. [Task 3]
+- For `take_thread_control` `OAuthException` code `100`/subcode `2018001`, verify recipient ID, Page ID, Page-token ownership, and target App mapping before changing payload fields. The listed staging-1 diagnosis did not complete that mapping. [Task 3]
+- Read-only `mongosh` works at `/opt/homebrew/bin/mongosh`; add `serverSelectionTimeoutMS` in the URI query string, strip a trailing slash before appending the database, and avoid fragile nested-shell JS quoting. [Task 3]
+- Local hardening included immediate `standby` suppression, fail-closed authority guards, primary-read scheduled fallback protection, Firebase Remote Config 1.5-second fail-soft single-flight caching, and delayed fallback-task race protection. Required staging proof remains replay → terminal Mongo/Redis/Stream state, real Graph take/return, latency/error comparison, canary, and rollback across both custom-domain and direct Cloud Run routes. [Task 4]
+
+## Failures and how to do differently
+
+- Symptom: OAuth reauthorization or `subscribed_apps` is called Business AI activation/routing proof. Cause: permissions, webhook fields, routing, and activation are distinct. Fix: verify each layer separately; public/live Meta settings were not fully accessible in this evidence. [Task 1]
+- Symptom: focused tests, builds, or HTTP 200 are called staging/UAT proof. Cause: no staging deploy, live subscription inspection, raw Meta replay, or terminal Mongo/Stream verification occurred. Fix: keep those gates explicit and do not say UAT is merely “missing” before staging passes. [Task 2][Task 4]
+- Symptom: a handover error is diagnosed from payload alone. Cause: the staging-1 Page/App/token mapping was not completed. Fix: pin the exact channel/environment and verify the whole mapping first. [Task 3]
+- Symptom: local branch work is said to be committed or deploy-ready without evidence. Cause: the rollout authorized commits but recorded no commit command/output. Fix: verify `git status`, `git log`, and SHAs, then keep deployment/config/replay as separate approvals. [Task 4]
+
+# Task Group: /Users/tualek/ohochat/script-oho / LINE webhook migration eligibility and LINE-only rollback scoping
+
+scope: Read-only audit and rollback preparation for production LINE endpoint migrations; use when manifests, journals, endpoint drift, or LINE-only versus Mongo rollback safety are in question.
+applies_to: cwd=/Users/tualek/ohochat with primary source `/Users/tualek/ohochat/script-oho/migrate-line-webhook-endpoint`; reuse_rule=refresh immutable manifests, current LINE/Mongo state, and explicit authorization before any mutation; observed counts/state are historical.
+
+## Task 1: Audit Thai PBS eligibility and inventory non-OHO original endpoints; success
+
+### rollout_summary_files
+
+- rollout_summaries/2026-08-20T03-47-12-FxFO-line_webhook_migration_rollback_scope_senior_summary.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/08/20/rollout-2026-08-20T10-47-12-01a01d47-b087-73f2-a4b1-1d6c0eae945c.jsonl, updated_at=2026-08-20T08:21:51+00:00, thread_id=01a01d47-b087-73f2-a4b1-1d6c0eae945c, read-only audit; later external state change requires refresh)
+
+### keywords
+
+- Thai PBS, migrate-line-webhook.ts, --allowed-host, line_other, eligible, immutable manifest, migrate.journal.json, line-migration-non-oho-old-domains.md
+
+- Related skill: skills/oho-line-webhook-migration/SKILL.md
+
+## Task 2: Define LINE-only rollback scope and senior report; partial
+
+### rollout_summary_files
+
+- rollout_summaries/2026-08-20T03-47-12-FxFO-line_webhook_migration_rollback_scope_senior_summary.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/08/20/rollout-2026-08-20T10-47-12-01a01d47-b087-73f2-a4b1-1d6c0eae945c.jsonl, updated_at=2026-08-20T08:21:51+00:00, thread_id=01a01d47-b087-73f2-a4b1-1d6c0eae945c, no write authorized; scope changed externally)
+
+### keywords
+
+- LINE-only rollback, connection_status, incomplete, webhook2.oho.chat, split-brain, line-128-current-state.json, exact_old, target, JIT recheck, fail-closed
+
+## User preferences
+
+- when the user asks why Thai PBS qualified -> trace the exact `classification → eligible → apply` path, and distinguish immutable captured LINE state from stale DB state. [Task 1]
+- when the user asks for IDs directly -> stop runtime-log exploration and return exact business/channel identifiers and artifact paths; do not infer real use from a DB endpoint, `connection_status`, HTTP 200, or eligibility. [Task 1]
+- when the user says “อย่าพึ่ง rollbackนะ” and requests Markdown -> remain read-only until a fresh explicit execution command; produce the report/artifacts first. For LINE-only rollback, change LINE only and leave MongoDB untouched. [Task 2]
+
+## Reusable knowledge
+
+- `migrate-line-webhook.ts` sets `eligible=true` from a DB host outside `--allowed-host`; later LINE inspection can classify `line_other` without clearing eligibility, and apply filters on `eligible`. This migrated Thai PBS’s external custom endpoint. Add a hard exclusion/manual-review state for `line_other`. [Task 1]
+- Inventory immutable manifests with migration journals and count only actual mutation phases, excluding dry-run-only/`db_synced`. The observed inventory artifact recorded 615 channels, 179 businesses, and 109 old LINE domains; five channels later hard-deleted by LINE cannot be tool-rolled-back. [Task 1]
+- A safe LINE-only operation needs a separate flow: durable before-state, immediate LINE/Mongo status refresh, serial LINE PUT, GET verification, JIT conflict check, and fail-closed stop/compensation. The existing rollback CLI also restores Mongo after LINE PUT, so it is unsafe for LINE-only use. [Task 2]
+- Historical refresh found 111 of 128 channels externally returned to their exact old LINE endpoints and 17 still on `webhook2.oho.chat`; DB still described the target state, producing split-brain. The agent made no writes and the external actor is unknown. [Task 2]
+
+## Failures and how to do differently
+
+- Symptom: LINE’s external endpoint is changed because DB eligibility says it qualifies. Cause: `line_other` does not clear `eligible`. Fix: hard-exclude or manual-review non-OHO LINE state before apply. [Task 1]
+- Symptom: rollback scope or dry-run is treated as executable after time passes. Cause: endpoint state can change externally. Fix: refresh state immediately before any write and treat historical counts as routing evidence only. [Task 2]
+- Symptom: a complex `jq` pipeline fails while generating inventory. Cause: shell quoting. Fix: generate structured JSON first, then render Markdown with Node. [Task 1]
+
 # Task Group: /Users/tualek/ohochat / live webhook domain-mapping cutover audit
 
 scope: Determine whether `webhook.oho.chat` can move from `oho-webhook-production` to `webhook--production`; use for live routing, deployment parity, signature, Cloud Tasks, health-check, and replay evidence.
@@ -1220,40 +1337,21 @@ applies_to: cwd=/Users/tualek/ohochat/oho-api + /Users/tualek/ohochat/oho-webhoo
 
 - member-send-message, Facebook webhook, LINE webhook, Cloud Tasks, Redis dedup, retry-backoff, axios timeout, Stream Chat, bulk send, partner/send-message, contact-send-message, bot-send-message, inform-message, silent drop, duplicate message
 
-## Task 2: Verify `member-send-message` locking/retries/timeouts/reference_id and early-ack redesign risks
-
-### rollout_summary_files
-
-- rollout_summaries/2026-07-22T15-15-41-t20F-oho_api_member_send_message_locking_retry_review.md (cwd=/Users/tualek/ohochat/oho-webhook, rollout_path=/Users/tualek/.codex/sessions/2026/07/22/rollout-2026-07-22T22-15-41-019f8a65-96f5-7a71-a99e-19040bdcad19.jsonl, updated_at=2026-07-22T15:22:38+00:00, thread_id=019f8a65-96f5-7a71-a99e-19040bdcad19, exact line-cited verification against pinned oho-api snapshot)
-
-### keywords
-
-- member-send-message, redlock, contact:$1:chat_session, LOCK_MS, LOCK_EXTEND_GAP_MS, retry-backoff, status 429, createAxiosApi, callWithStreamChatRetry, reference_id, early-ack, socket-reconcile
-
 ## User preferences
 
 - when the user says `Independent BLIND audit` and `Do NOT read any *.md report/plan files` -> trace source only; do not let existing reports or plans contaminate the audit. [Task 1]
 - when the user asks to `Exhaustively inventory` and `Before finalizing, grep for every awaited call` -> finish with an async-primitive completeness sweep, not a narrative-only review. [Task 1]
-- when the user says `precision matters — every verdict must cite exact file:line evidence from the real code, not inference` and `Do not modify any code` -> keep the audit read-only and every verdict source-cited. [Task 2]
-- when the user asks for an early-ack/socket-reconcile redesign review -> provide claim verdicts and a separate risk/mitigation section; trace correlation IDs end-to-end rather than assuming `reference_id` reaches Stream. [Task 2]
 - when comparing sibling send paths, the user asked for `DIVERGENCE` and `concrete risk or benign` -> organize by route/file and emphasize sequencing/await placement over shared helper names. [Task 1]
 
 ## Reusable knowledge
 
-- `member-send-message` takes `contact:$1:chat_session` before platform calls and releases it only in after/error hooks. Long platform or Stream work therefore occupies the same lock used by member/bot assignment, member response, and close-chat actions. [Task 1][Task 2]
-- The lock is not extended every 200ms: the timer is 200ms but extension happens only near expiry (`LOCK_MS=3000`, `LOCK_EXTEND_GAP_MS=1000`). [Task 2]
-- `createAxiosApi()` supplies a 60s default even when the LINE call site has no explicit timeout. `callWithStreamChatRetry()` makes six attempts with 5s/10s/20s/40s/80s delays (155s backoff); account for serial messages, not only per-message latency. [Task 1][Task 2]
-- Facebook/Instagram/LINE 429 retry predicates contain dead later `else if (status === 429)` branches because the initial condition already returns false. [Task 1][Task 2]
-- `reference_id` is validated and returned for API correlation but is not forwarded into the Stream payload in the reviewed snapshot. [Task 2]
 - Facebook dedup is non-atomic Redis `get` then `setEx`; concurrent workers can both pass, while a retry that reuses its dedup key can be silently dropped. Facebook worker errors can become HTTP 200 to complete Cloud Tasks. [Task 1]
 - `send-oho-webhook-events` is intentionally detached, 3s-timeout, observability-only work; separate it from awaited customer-visible path dependencies. [Task 1]
 - Do not merge similarly named routes: `bulk` returns `{ok:true}` before all sends settle and lacks the main lock; `partner/send-message` does not re-check contact/business match; legacy `partner-send-message` only writes Stream; `contact-send-message` updates contact state before Stream and swallows Stream failures. [Task 1]
 
 ## Failures and how to do differently
 
-- Symptom: retry behavior is inferred from helper names or a claimed 429 branch. Cause: predicate control flow makes the later 429 code unreachable. Fix/pivot: read the full predicate and calculate effective attempts, timeout, backoff, and serial accumulation. [Task 1][Task 2]
 - Symptom: an early ACK or 200 response is assumed safe. Cause: queue completion, detached work, and swallowed errors have different durability/customer-visible semantics. Fix/pivot: trace ACK timing, awaits, error conversion, retry/dedup namespace, and commit order end to end. [Task 1]
-- Symptom: a refactor reduces lock time by moving work to background. Cause: it may detach hard state/Stream dependencies or lose correlation/reconciliation correctness. Fix/pivot: classify each hook as hard dependency, safely backgroundable, or observability-only before changing hook order. [Task 2]
 - Symptom: sibling send routes are treated as equivalent. Cause: route names and shared helpers hide different lock, validation, retry, and failure semantics. Fix/pivot: inventory each route/service and compare deltas against `member-send-message`. [Task 1]
 
 # Task Group: /Users/tualek/ohochat/oho-backoffice / external-message admin UI review
@@ -1490,16 +1588,6 @@ applies_to: cwd=/Users/tualek/ohochat/oho-api; reuse_rule=reuse for similar code
 scope: Read-only review memory for frontend unread/unresponded badge diffs in `oho-web-app`, especially contract checks against `oho-websocket`, Vue 2 reactivity boundaries, and merge-safety of optimistic/realtime counter updates.
 applies_to: cwd=/Users/tualek/ohochat/oho-web-app; reuse_rule=reuse for similar review-only work in this checkout when a frontend badge/count diff depends on sibling backend event payloads, but re-read the current frontend diff and backend commit before reusing any conclusion.
 
-## Task 1: Review frontend increment/decrement badge logic for realtime unread/unresponded updates, not merge-safe
-
-### rollout_summary_files
-
-- rollout_summaries/2026-07-14T08-22-37-rN8j-oho_web_app_unread_unresponded_realtime_badge_review.md (cwd=/Users/tualek/ohochat/oho-web-app, rollout_path=/Users/tualek/.codex/sessions/2026/07/14/rollout-2026-07-14T15-22-37-019f5fb8-8b4a-73e3-b83a-8ce3e0fba9df.jsonl, updated_at=2026-07-14T08:33:02+00:00, thread_id=019f5fb8-8b4a-73e3-b83a-8ce3e0fba9df, review-only diff check against `oho-websocket@9141805` found sender-role and unread-state blockers)
-
-### keywords
-
-- code-review, smartchat, groupchat, unread_count, unresponded_count, is_read_by_me, is_unresponded, Vuex, realtime, websocket, oho-websocket@9141805, stale-event-guard, optimistic decrement, Vue 2 reactivity
-
 - Related skill: skills/oho-smartchat-debugging/SKILL.md
 
 ## Task 2: Iterative adversarial review of OHO-1272 Vue 2/Vuex realtime badge fix, final re-review found four defects
@@ -1606,43 +1694,11 @@ applies_to: cwd=/Users/tualek/ohochat/script-oho; reuse_rule=reuse for similar s
 
 - pagedFind, _id sort, idx_business_id_v1, chat-session index, explain, hint, COLLSCAN, blocking sort, migration preflight
 
-## Task 6: Review checkpoint semantics versus cleanup-read-by assumptions, cleanup can trust incomplete proof
-
-### rollout_summary_files
-
-- rollout_summaries/2026-07-14T03-59-16-pwqA-migrate_unread_checkpoint_cleanup_correctness_review.md (cwd=/Users/tualek/ohochat/script-oho, rollout_path=/Users/tualek/.codex/sessions/2026/07/14/rollout-2026-07-14T10-59-16-019f5ec7-6f0f-7e72-a7b6-720887ff0ac8.jsonl, updated_at=2026-07-14T04:02:56+00:00, thread_id=019f5ec7-6f0f-7e72-a7b6-720887ff0ac8, confirmed checkpoint membership is coarser than "Stream-verified" comments imply)
-
-### keywords
-
-- migrate-unread.ts, cleanup-read-by, CHECKPOINT_FILE, INCLUDE_PARTIAL, runLegacyReadByReconcilePass, skippedNoChannel, partial, completed, loadCheckpoint, backfillCompleted, verified, checkpoint safety
-
-## Task 7: Review cleanup cutoff parity, cleanup lacks the 90-day bound used elsewhere
-
-### rollout_summary_files
-
-- rollout_summaries/2026-07-14T03-59-16-pwqA-migrate_unread_checkpoint_cleanup_correctness_review.md (cwd=/Users/tualek/ohochat/script-oho, rollout_path=/Users/tualek/.codex/sessions/2026/07/14/rollout-2026-07-14T10-59-16-019f5ec7-6f0f-7e72-a7b6-720887ff0ac8.jsonl, updated_at=2026-07-14T04:02:56+00:00, thread_id=019f5ec7-6f0f-7e72-a7b6-720887ff0ac8, confirmed cleanup query omits `last_active_at` cutoff even though backfill/reconcile apply it)
-
-### keywords
-
-- readByCutoffDate, DAYS, last_active_at, cleanup-read-by, runReadByToUnreadByPass, runLegacyReadByReconcilePass, resolveBusinessIds, MAX_DOCS_PER_BIZ, filter parity, HAS_LEGACY_READ_BY
-
-## Task 8: Review crash/resume safety and totals refactor, buildTotals wiring confirmed with checkpoint caveats
-
-### rollout_summary_files
-
-- rollout_summaries/2026-07-14T03-59-16-pwqA-migrate_unread_checkpoint_cleanup_correctness_review.md (cwd=/Users/tualek/ohochat/script-oho, rollout_path=/Users/tualek/.codex/sessions/2026/07/14/rollout-2026-07-14T10-59-16-019f5ec7-6f0f-7e72-a7b6-720887ff0ac8.jsonl, updated_at=2026-07-14T04:02:56+00:00, thread_id=019f5ec7-6f0f-7e72-a7b6-720887ff0ac8, confirmed `buildTotals()` coverage and exposed non-atomic checkpoint writes)
-
-### keywords
-
-- CHECKPOINT_SUFFIX, STATUS_FILE, saveCheckpoint, saveStatus, buildTotals, temp-file rename, crash-safety, loadCheckpoint, processedCount, cleanup mode, resume
-
 ## User preferences
 
 - when the user asks for `file:line evidence` for every answer and says `If evidence is not in the repo, say "cannot verify from repo" rather than guessing` -> default to line-cited proof, and keep uncertainty explicit instead of smoothing it over. [Task 1]
 - when the user says `do not soften now — but the deliverable this time is ONE DECIDED PLAN, not another catalogue of concerns` -> converge to one choice once the source audit is complete; do not hand back an open-ended concern list. [Task 1]
 - when the user says `If you must assume, name the assumption` -> separate evidence from assumptions explicitly in migration plans and rollout advice. [Task 1]
-- when the user says `Trace the actual filter/gating logic, not the comments` and asks for line citations -> treat comments as non-binding, ground every behavioral claim in source lines/snippets, and do not smooth over gaps with intent-based reasoning. [Task 6][Task 7]
-- when the user asks for `CONFIRMED / REFUTED / PARTIALLY-CONFIRMED` per item -> keep the review tightly structured, question-by-question, and map each verdict to exact code lines. [Task 6]
 
 ## Reusable knowledge
 
@@ -1651,19 +1707,11 @@ applies_to: cwd=/Users/tualek/ohochat/script-oho; reuse_rule=reuse for similar s
 - `chat_status` is not a reliable historical reply classifier, and the inbox send path advances `last_active_at` without clearing `is_unresponded`; any rollout that enables historical unresponded behavior must either accept that asymmetry or change API behavior first. [Task 1]
 - For migration execution, `pagedFind()` currently does `_id` keyset pagination without `hint()` / `explain()`. Contacts can reuse `idx_business_id_v1` for tenant-scoped `_id` scans, but group sessions need one minimal `_id`-ordered migration index, and execution should fail closed if explain shows `COLLSCAN` or blocking sort. [Task 1][Task 3]
 - The CLI is already fail-closed: `.env.<env>` selection, matching `--confirm`, and explicit `--execute` are required. Production rollout should stay per-tenant, verify explain/index readiness first, then migrate and enable flags immediately after each tenant pass. [Task 1]
-- Cleanup is gated by current checkpoint membership only, and the checkpoint file stores only `{ completed: [...] }`, with no durable proof about reconcile coverage, skipped unresolved channels, or whether a business was verified under the current semantic config. [Task 6][Task 8]
-- `INCLUDE_PARTIAL` is opt-in only (`INCLUDE_STREAM && process.env.INCLUDE_PARTIAL === "true"`), and `runLegacyReadByReconcilePass()` only runs inside that branch. A business can still become checkpoint-complete without legacy Stream verification because `partial` means budget exhaustion only and checkpointing checks only `!isDryRun && !result.partial`. [Task 6][Task 8]
-- Step 0a/0b and legacy reconcile both apply `last_active_at: { $gte: readByCutoffDate }` when a cutoff exists, but cleanup does not carry any date window. It filters only by business, current complete channel IDs, and `HAS_LEGACY_READ_BY`. [Task 7]
-- Cleanup mode reads checkpoint membership only and does not itself write checkpoint/status files, so it cannot overwrite backfill state by itself. `CHECKPOINT_SUFFIX` isolates `-explicit-target`, `-gate-${GATE_FILTER}`, and default runs, but not cutoff/stream/partial semantics. `saveStatus()` uses a temp-file rename, while `saveCheckpoint()` writes directly and `loadCheckpoint()` degrades parse errors into an empty set. [Task 8]
-- `buildTotals()` is the single totals builder now: both `saveStatus()` call sites use it, and no third hand-built totals literal remained. `processedCount++` happens before checkpoint eligibility is decided, so status can show business progress that has not been durably checkpointed. [Task 8]
 
 ## Failures and how to do differently
 
 - Symptom: a migration plan keeps circling around heuristics for `is_unresponded`. Cause: the repo does not preserve a true historical reply ledger, and timestamp/classifier guesses overstate what can be reconstructed. Fix/pivot: leave `is_unresponded` absent and delete the migration paths rather than ship a heuristic classifier. [Task 1]
 - Symptom: migration completion looks good because residual counts net to zero. Cause: aggregate counters can cancel unrelated documents. Fix/pivot: use exact-ID residuals and retry tracking instead of numeric-only done criteria. [Task 1][Task 3]
-- Symptom: comments say a business is "verified" or cleanup is "safe to drop". Cause: the code does not persist any proof beyond membership in `completed`. Fix/pivot: inspect what the code actually stores and what cleanup consumes before accepting safety claims. [Task 6]
-- Symptom: cleanup appears to mirror backfill/reconcile scope. Cause: the file comments suggest full-population behavior, but the actual queries diverge and cleanup omits the `last_active_at` cutoff. Fix/pivot: compare query objects and cutoff propagation across every related pass. [Task 7]
-- Symptom: future resume logic assumes checkpoint files are durable and config-specific. Cause: checkpoint writes are non-atomic and the suffix key omits semantic dimensions such as cutoff/stream/partial choices. Fix/pivot: treat checkpoint correctness and resume safety as separate review items, not as implied by shared file names alone. [Task 8]
 
 # Task Group: /Users/tualek/life / monthly finance baseline from ad-hoc notes
 scope: Current personal-finance baseline figures and planning rules preserved only by authoritative ad-hoc notes after rollout-backed memory was pruned.

@@ -22,7 +22,7 @@ Do not use it to mutate production unless the user explicitly authorizes that op
 
 1. Confirm scope: review/plan-only versus an authorized production step; identify one channel/business or all channels.
 2. Read the current CLI/help, migration source/helpers/specs, `plan.md`, and the current `oho-api` URL construction.
-3. For operations, locate the reviewed manifest and both `<manifest>.migrate.journal.json` and `<manifest>.rollback.journal.json`; never reconstruct candidates during apply.
+3. For operations, locate the reviewed manifest and both `<manifest>.migrate.journal.json` and `<manifest>.rollback.journal.json`; never reconstruct candidates during apply. If the request is LINE-only rollback, stop: the existing rollback also writes Mongo and is not authorized for that scope.
 4. Confirm the current allowed hostname and that `line.register_webhook_at` is outside all migration/rollback payloads.
 
 ## Procedure
@@ -34,6 +34,7 @@ Do not use it to mutate production unless the user explicitly authorizes that op
 4. Inspect the manifest before apply. Apply only it:
    `npm run migrate:line-webhook -- --env=prod --manifest="$MANIFEST" --execute --confirm="$MIGRATE_TOKEN" --yes`
 5. Before rollback, run its rollback dry-run to obtain the separate token, inspect both journals, then use the same manifest with `--rollback --execute --confirm="$ROLLBACK_TOKEN" --yes`.
+   - This command is only for the normal LINE-plus-Mongo rollback contract. Do not adapt it for LINE-only rollback.
 6. After a canary, send a real LINE message and verify `LineBotWebhook/2.0` ingress, Cloud Task creation/attempts, `source-messages` terminal `sync_message_success`, and the real OHO message before any broad rollout. Exclude the operator's test traffic when assessing historical production usage.
 
 ## Efficiency Plan
@@ -47,6 +48,7 @@ Do not use it to mutate production unless the user explicitly authorizes that op
 - Symptom: `--old-host` selects the wrong candidate set. Fix: use explicit `--allowed-host` whitelist classification.
 - Symptom: crash/partial run lacks rollback truth. Fix: persist the immutable before-state manifest before mutation and journal `db_update_requested` before Mongo commit.
 - Symptom: `rollback_not_needed` hides a migrated entry. Fix: read its detail plus both journals; `would restore ...` in dry-run is not proof it was untouched.
+- Symptom: user requests a LINE-only rollback. Cause: the existing rollback writes Mongo after LINE PUT, so it cannot preserve the requested DB state. Fix: do not run it; require a separate, tested fail-closed workflow with durable before-state, JIT LINE/Mongo refresh, serial LINE PUT, GET verification, conflict stop, and compensation/reconciliation.
 - Symptom: zsh command breaks or reports `Flag --confirm given more than once`. Fix: one single-line command, each flag exactly once, actual quoted variable values—never literal angle-bracket tokens or a trailing-space continuation.
 - Symptom: certificate, URL-map routing, or `add_queue_success` is treated as delivery proof. Cause: each observes only part of the chain; a swallowed `createTask()` failure can still return HTTP 200. Fix: revert to old `100`/new `0` on queue-create failure, non-OK task attempt, `sync_message_fail`, `dropped`, stuck `inprogress`, or canary 5xx/timeout.
 
