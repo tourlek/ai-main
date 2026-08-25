@@ -1,3 +1,50 @@
+# Task Group: /Users/tualek/ohochat/remote-mcp / safe local MCP core and Remote Desktop Commander discovery
+
+scope: Build or resume the bounded local MCP core, or determine whether the separate Remote Desktop Commander integration is actually installed; use when read/create/update access must exclude destructive capabilities.
+applies_to: cwd=/Users/tualek/ohochat/remote-mcp; reuse_rule=recheck the current implementation, tests, catalog/install state, token/origin configuration, and explicit workspace boundary before acting; this is a local core, not proof of Remote Desktop Commander or a complete remote-control system.
+
+## Task 1: Investigate Remote Desktop Commander and implement a verified no-delete local MCP core; success
+
+### rollout_summary_files
+
+- rollout_summaries/2026-08-24T11-04-49-4cQH-safe_local_mcp_core_no_delete.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/08/24/rollout-2026-08-24T18-04-49-01a03371-c57c-7932-b347-aa128b3766b3.jsonl, updated_at=2026-08-24T12:44:25+00:00, thread_id=01a03371-c57c-7932-b347-aa128b3766b3, stdlib-only core verified with 7 tests)
+
+### keywords
+
+- remote-mcp, Remote Desktop Commander, app-6a057d268ebc8191a27d7c7096cab4f6, Python 3.9, MCPServer, create_http_server, Streamable HTTP, /mcp, /health, REMOTE_MCP_TOKEN, Origin, no-delete, path traversal, symlink escape, git read-only
+
+## Task 2: Start a tightly scoped remote-mcp implementation and stop before verification; partial
+
+### rollout_summary_files
+
+- rollout_summaries/2026-08-24T12-24-59-o5w1-partial_remote_mcp_core_implementation_stopped_before_verifi.md (cwd=/Users/tualek/ohochat/remote-mcp, rollout_path=/Users/tualek/.codex/sessions/2026/08/24/rollout-2026-08-24T19-24-59-01a033bb-2b53-7d32-a3ae-05d7361135e5.jsonl, updated_at=2026-08-24T12:33:42+00:00, thread_id=01a033bb-2b53-7d32-a3ae-05d7361135e5, historical stopped-before-verification attempt)
+
+### keywords
+
+- remote-mcp, Python 3.9, unittest, MCPServer, create_http_server, JSON-RPC, Streamable HTTP, workspace boundary, path escape, symlink, stop request, ModuleNotFoundError: No module named 'remote_mcp', no commit, no stage
+
+## User preferences
+
+- when the user asks for broad “Full access” but says deletion requires asking first -> enforce that as a capability boundary: omit delete, move, rename, unlink, arbitrary shell, and project-command tools rather than relying only on prompt text. [Task 1]
+- when the user requires “Create only `/Users/tualek/ohochat/remote-mcp`” -> enforce that directory boundary before every operation; do not touch paths outside it. [Task 2]
+- when the user says “STOP immediately. Do not run any more commands and do not create or edit any files.” -> stop immediately; do not perform verification, cleanup, or scope checks until explicitly resumed. [Task 2]
+- when exact test results and no commit/stage are requested -> distinguish code creation from verified completion and report the exact verification status. [Task 2]
+
+## Reusable knowledge
+
+- Remote Desktop Commander appeared in the catalog as app `app-6a057d268ebc8191a27d7c7096cab4f6` but was `not_installed`; its official setup needs user-side ChatGPT Web authorization/connect. A catalog/config reference is not usable integration evidence; verify installed status and perform a real read-only tool call after installation. [Task 1]
+- `/Users/tualek/ohochat/remote-mcp/remote_mcp.py` is stdlib-only and Python `3.9.6` compatible. Its deliberate allowlist is `workspace_list`, `read_file`, `search_text`, `write_file`, `apply_patch`, `copy_file`, `git_status`, `git_diff`, and `git_log`. [Task 1][Task 2]
+- Keep filesystem access root-relative: reject absolute paths, `..` traversal, and symlink escapes. Use bounded reads/writes/results; write through temporary-file replacement; require exactly one `old_text` match for `apply_patch`; preserve the copy source. [Task 1]
+- HTTP is minimal Streamable HTTP over `/mcp` and `/health`, loopback only, with `REMOTE_MCP_TOKEN` bearer-token and Origin checks. Support `2025-06-18` and `2025-03-26` over stdio and HTTP. Git is read-only, scoped to a selected nested repo, and disables interactive prompts/external diff/fsmonitor. [Task 1][Task 2]
+- Verified command from the project directory: `python3 -m unittest -v` -> `Ran 7 tests ... OK`; compile check used `compile(Path("remote_mcp.py").read_text(encoding="utf-8"), "remote_mcp.py", "exec")`. [Task 1]
+
+## Failures and how to do differently
+
+- Symptom: an MCP catalog entry, config, or handshake is called usable. Cause: availability/install/authentication is distinct from tool execution. Fix: inspect plugin state first and require a real read-only tool call after installation/configuration. [Task 1]
+- Symptom: test discovery reports `ModuleNotFoundError: No module named 'remote_mcp'`. Cause: the suite was run before the implementation existed or from the wrong module path. Fix: after implementation, run from `/Users/tualek/ohochat/remote-mcp` as `python3 -m unittest -v`, then inspect only remaining failures. [Task 1][Task 2]
+- Symptom: loopback HTTP tests raise `PermissionError: [Errno 1] Operation not permitted`. Cause: sandbox socket restrictions. Fix: record the limitation and rerun the focused loopback integration suite only in an environment with the needed bind permission; do not weaken loopback/token/origin checks. [Task 1]
+- Symptom: delegation stalls or creates partial duplicate server/test files. Cause: the critical path was delegated without a verified result. Fix: keep one canonical `remote_mcp.py` and `test_remote_mcp.py`; verify the actual files and take over the bounded implementation if delegation is incomplete. [Task 1]
+
 # Task Group: /Users/tualek/ohochat / Meta Business AI staging readiness, Facebook Page onboarding, and runtime verification
 
 scope: Evidence-first staging/UAT preparation across `oho-api`, `oho-webhook`, Facebook Page onboarding, Cloud Run, and Mongo; use for Meta Business AI changes where local validation must stay distinct from live proof.
@@ -1344,38 +1391,6 @@ applies_to: cwd=/Users/tualek/ohochat/oho-web-app with /Users/tualek/ohochat/oho
 
 - Symptom: `countDocuments` is called “unbounded,” every socket event is said to fetch, or Remote Config is said to block page open. Cause: result-cardinality, event qualification, and fire-and-forget behavior were conflated. Fix/pivot: distinguish time bounds from result caps, qualifying fallback events from in-list/stale events, and possible network activity from page-open blocking. [Task 1]
 - Symptom: a proposal is approved as a quick optimization. Cause: it silently changes ordering, legacy field-absence semantics, or authoritative reconciliation. Fix/pivot: do not use raw fire-and-forget emits, a simple merged update removing `$exists`, off-list skip-fetch, or timestamp-only O12 optimization; treat O10/O14 as one Remote Config authority/refresh design. [Task 1]
-
-# Task Group: /Users/tualek/Documents/Codex/2026-07-25/new-chat / Thai event planning and Google Docs export
-scope: Create one ready-to-use Thai ceremony flow/script and export it as a native Google Docs document; use when the user wants a consolidated ceremonial program, short speaking script, and verified document import.
-applies_to: cwd=/Users/tualek/Documents/Codex/2026-07-25/new-chat; reuse_rule=reuse the document-building and import verification workflow for similar Thai event documents, but treat the event sequence, royal names, file path, and document ID as task-specific.
-
-## Task 1: จัดทำ flow และสคริปต์พิธีการ แล้วส่งออกเป็น Google Docs สำเร็จ
-
-### rollout_summary_files
-
-- rollout_summaries/2026-07-25T10-22-14-ZNOx-thai_event_flow_google_docs_export.md (cwd=/Users/tualek/Documents/Codex/2026-07-25/new-chat, rollout_path=/Users/tualek/.codex/sessions/2026/07/25/rollout-2026-07-25T17-22-14-019f98cc-014a-72d2-94c9-0a10127e2259.jsonl, updated_at=2026-07-25T10:38:58+00:00, thread_id=019f98cc-014a-72d2-94c9-0a10127e2259, native Google Docs import succeeded; text and 16×3 table structure were checked)
-
-### keywords
-
-- Thai, event-flow, ceremony-script, Google Docs, Google Drive, python-docx, google_docs_title_sanitize.py, native_google_docs, table-import, 16×3, สคริปต์พิธีการ, รวมทั้งหมดรวบเดียว
-
-## User preferences
-
-- เมื่อผู้ใช้ขอ “แทรกชื่อองค์ภาและพระพันปีชื่อเต็มพร้อมบทเข้าไว้อาลัย” -> งานพิธีการควรใช้พระนามเต็มและเขียนบทนำเข้าสู่ช่วงถวายความอาลัยโดยตรง. [Task 1]
-- เมื่อผู้ใช้ขอ “บทพูดให้คุณแดนด้วยสั้นๆ” -> สคริปต์ของผู้กล่าวขอบคุณควรกระชับ ใช้เวลาประมาณ 1 นาที. [Task 1]
-- เมื่อผู้ใช้ขอ “รวมทั้งหมดรวบเดียว” -> ส่งมอบเอกสาร/คำตอบฉบับรวมเดียวในตารางที่พร้อมใช้งาน ไม่แยกส่วนให้ผู้ใช้ประกอบเอง. [Task 1]
-- เมื่อผู้ใช้ขอ “export เป็น googl docs ให้หน่อย” -> สร้าง Google Docs native ส่งลิงก์ และตรวจว่าข้อความกับตารางนำเข้าครบ. [Task 1]
-
-## Reusable knowledge
-
-- Workflow ที่ใช้ได้: สร้าง DOCX ด้วย `python-docx` → รัน `google_docs_title_sanitize.py` → import ผ่าน Google Drive ด้วย `upload_mode: "native_google_docs"` → ตรวจ `_get_document_text` และ `_get_document_tables`. [Task 1]
-- ช่วงไว้อาลัยใน flow นี้ใช้ไฟนิ่งโทนสุภาพ ปิดเพลง งดเสียงปรบมือ; เพลงสนุกและไฟสีสันเริ่มหลังคำว่า “ณ บัดนี้”. [Task 1]
-- Import ที่ยืนยันสำเร็จมี `converted:true`, `mimeType:application/vnd.google-apps.document`; ตรวจข้อความ พระนามเต็ม สคริปต์ ตารางเวลา และตาราง 16 แถว × 3 คอลัมน์แล้ว. [Task 1]
-
-## Failures and how to do differently
-
-- Symptom: local DOCX render ดูเหมือนตรวจแล้วแต่แสดงอักษรไทยไม่สมบูรณ์. Cause: ข้อจำกัดการ render ฟอนต์ไทยยังคงอยู่แม้เปลี่ยนฟอนต์และกำหนด `SAL_FONTPATH`. Fix/pivot: รายงาน visual QA ว่าจำกัด และอย่าอ้าง pixel-level verification หากยังไม่ได้ตรวจ glyph โดยอิสระ. [Task 1]
-- Symptom: import สำเร็จแต่ถูกอ้างว่าเห็นหน้าตาใน Google Docs แล้ว. Cause: หลักฐานยืนยันได้เพียงข้อความและโครงสร้างผ่าน connector. Fix/pivot: แยก content/table verification ออกจาก visual QA โดยตรง. [Task 1]
 
 # Task Group: /Users/tualek/ohochat / send-message and webhook source audits
 scope: Read-only, source-first audit memory for outbound `oho-api` send paths and inbound `oho-webhook` receipt/worker chains; use for latency, locking, retry, duplicate, silent-drop, early-ack, or sibling-route divergence reviews.

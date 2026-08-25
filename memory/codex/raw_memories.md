@@ -1088,63 +1088,6 @@ References:
 - `components/Smartchat/RoomList.vue:149-177,191-205`
 - Final verdict from the review: `VERDICT: 4 issues`.
 
-## Thread `019f98cc-014a-72d2-94c9-0a10127e2259`
-updated_at: 2026-07-25T10:38:58+00:00
-cwd: /Users/tualek/Documents/Codex/2026-07-25/new-chat
-rollout_path: /Users/tualek/.codex/sessions/2026/07/25/rollout-2026-07-25T17-22-14-019f98cc-014a-72d2-94c9-0a10127e2259.jsonl
-rollout_summary_file: 2026-07-25T10-22-14-ZNOx-thai_event_flow_google_docs_export.md
-
----
-description: สร้าง flow งานพิธีภาษาไทยแบบตารางพร้อมพระนามเต็มและสคริปต์ แล้วส่งออกเป็น Google Docs สำเร็จ โดยตรวจข้อความและโครงสร้างตารางหลังนำเข้า
- task: create_thai_event_flow_and_export_google_docs
- task_group: thai-event-planning-documents
- task_outcome: success
- cwd: /Users/tualek/Documents/Codex/2026-07-25/new-chat
- keywords: Thai, event-flow, ceremony-script, Google Docs, Google Drive, python-docx, title-sanitize, table-import
----
-
-### Task 1: จัดทำ flow และสคริปต์พิธีการ
-
-task: create consolidated Thai event flow with full royal names and concise thank-you script
-task_group: thai-event-planning-documents
-task_outcome: success
-
-Preference signals:
-- เมื่อผู้ใช้ขอ “แทรกชื่อองค์ภาและพระพันปีชื่อเต็มพร้อมบทเข้าไว้อาลัย” -> งานพิธีการควรใช้พระนามเต็มและมีบทนำเข้าสู่ช่วงถวายความอาลัย
-- เมื่อผู้ใช้ขอ “บทพูดให้คุณแดนด้วยสั้นๆ” -> ควรเขียนสคริปต์คุณแดนให้สั้น ประมาณ 1 นาที
-- เมื่อผู้ใช้ขอ “รวมทั้งหมดรวบเดียว” -> ควรส่งมอบฉบับรวมเดียวในตารางที่พร้อมใช้งาน
-
-Reusable knowledge:
-- ลำดับสุดท้ายใช้เวลา 18.55–19.20 น. โดยมีบทเข้าสู่ไว้อาลัย ยืนสงบนิ่ง 1 นาที คุณแดนกล่าวขอบคุณ นายกและประธานที่ปรึกษากล่าวโอวาท นายกประกาศเปิดงาน และส่งต่อพิธีกรหลัก
-- ช่วงไว้อาลัยต้องปิดเพลง งดเสียงปรบมือ ใช้ไฟนิ่งโทนสุภาพ; เพลงสนุกและไฟสีสันเริ่มหลังคำว่า “ณ บัดนี้”
-
-Failures and how to do differently:
-- Local DOCX render แสดงอักษรไทยได้ไม่สมบูรณ์ แม้เปลี่ยนฟอนต์และใช้ `SAL_FONTPATH`; future agents should report visual QA as limited unless Thai glyph rendering is independently confirmed.
-
-References:
-- `/Users/tualek/Documents/Codex/2026-07-25/new-chat/outputs/Flow-กิจกรรม-แบ่งปันน้ำใจสู่สังคม.docx`
-
-### Task 2: ส่งออกเป็น Google Docs
-
-task: import the prepared DOCX as a native Google Docs document
-task_group: Google Drive document export
- task_outcome: success
-
-Preference signals:
-- ผู้ใช้ขอ export เป็น Google Docs -> ควรสร้างเอกสาร native และส่งลิงก์ พร้อมตรวจเนื้อหาและตารางหลังนำเข้า
-
-Reusable knowledge:
-- Workflow ที่ใช้ได้: สร้าง DOCX ด้วย `python-docx` → รัน `google_docs_title_sanitize.py` → import ผ่าน Google Drive ด้วย `upload_mode: "native_google_docs"` → ตรวจ `_get_document_text` และ `_get_document_tables`
-- เอกสารที่สร้างสำเร็จมี ID `1NVjW2EBlV4WKJOjm7NN00CDBBBNczivck-cWSlbSeSo` และตาราง 16 แถว × 3 คอลัมน์
-
-Failures and how to do differently:
-- ตรวจยืนยันข้อความและโครงสร้างได้ แต่ไม่ได้ยืนยันภาพที่แสดงใน Google Docs โดยตรง; อย่าอ้าง visual QA เต็มรูปแบบจากหลักฐานนี้
-
-References:
-- `https://docs.google.com/document/d/1NVjW2EBlV4WKJOjm7NN00CDBBBNczivck-cWSlbSeSo/edit`
-- Sanitizer output: `[OK] no Google Docs title border/rule residue detected`
-- Import output included `converted:true` and `mimeType:"application/vnd.google-apps.document"`
-
 ## Thread `019fadbd-7acb-76b2-8d60-108475540831`
 updated_at: 2026-07-29T11:58:28+00:00
 cwd: /Users/tualek/ohochat/oho-web-app
@@ -5128,4 +5071,116 @@ References:
 - `oho-webhook/src/controllers/facebook/handler.ts`
 - Exact verification string: `Test Suites: 12 passed, 12 total; Tests: 2 skipped, 162 passed, 164 total`
 - Exact readiness verdict: `ยังไม่พร้อม deploy staging-1 และยังไม่ได้ขอ confirmation`
+
+## Thread `01a03371-c57c-7932-b347-aa128b3766b3`
+updated_at: 2026-08-24T12:44:25+00:00
+cwd: /Users/tualek/ohochat
+rollout_path: /Users/tualek/.codex/sessions/2026/08/24/rollout-2026-08-24T18-04-49-01a03371-c57c-7932-b347-aa128b3766b3.jsonl
+rollout_summary_file: 2026-08-24T11-04-49-4cQH-safe_local_mcp_core_no_delete.md
+
+---
+description: Implemented and verified a Python 3.9 local MCP core with scoped filesystem/Git access and capability-level no-delete enforcement; full Remote Desktop Commander integration remains incomplete.
+task: build-safe-local-mcp-core
+ task_group: /Users/tualek/ohochat remote-mcp
+ task_outcome: success
+cwd: /Users/tualek/ohochat
+keywords: remote-mcp, MCP, Remote Desktop Commander, Python 3.9, stdio, Streamable HTTP, workspace root, path traversal, symlink escape, bearer token, Origin, no-delete, git read-only
+---
+
+### Task 1: Investigate and avoid duplicating Remote Desktop Commander
+
+task: identify whether the requested 184-tool capability already exists as an installed plugin
+ task_group: plugin/MCP discovery
+ task_outcome: partial
+
+Preference signals:
+- The user asked for broad “Full access” but explicitly prohibited deletion without asking first -> similar future work should model safety as unavailable destructive capabilities or explicit approval gates, not rely only on natural-language instructions.
+
+Reusable knowledge:
+- Codex config contained project references for `remote-desktop-commander-plugin`, but those directories contained only `outputs/` and `work/`, not a usable repository.
+- Catalog lookup found `Remote Desktop Commander` with app ID `app-6a057d268ebc8191a27d7c7096cab4f6`; plugin management reported it was `not_installed`.
+- Agent-side tools could inspect permissions/dependencies and uninstall, but no install/connect tool was available for this app.
+- Official setup requires adding the plugin in ChatGPT Web and connecting a machine; the in-app page was logged out, so installation was not completed.
+
+Failures and how to do differently:
+- Do not claim the existing catalog entry is usable merely because it appears in the catalog. Verify installed status and perform a real tool call after installation.
+- Browser setup reached the install page but stopped at login rather than attempting to bypass authentication.
+
+References:
+- Catalog: `/Users/tualek/.codex/cache/remote_plugin_catalog/d335c3c53219bb8f.json`
+- App ID: `app-6a057d268ebc8191a27d7c7096cab4f6`
+- Setup URL: `https://desktopcommander.app/mcp/chatgpt/`
+
+### Task 2: Build the local MCP core
+
+task: create a safe local MCP server for read/add/update/copy/Git operations without deletion
+ task_group: remote-mcp implementation
+ task_outcome: success
+
+Preference signals:
+- The requested safety boundary was “เพิ่ม-อัปเดต-แก้ไขได้ ยกเว้น ลบ” -> final tool catalog contains no delete, move, rename, unlink, arbitrary shell, or project-command tool.
+
+Reusable knowledge:
+- `/Users/tualek/ohochat/remote-mcp/remote_mcp.py` is stdlib-only and compatible with the available Python `3.9.6` runtime.
+- Exposed tools: `workspace_list`, `read_file`, `search_text`, `write_file`, `apply_patch`, `copy_file`, `git_status`, `git_diff`, `git_log`.
+- Paths must be relative to one explicit root; absolute paths, parent traversal, and symlink escapes are rejected.
+- Writes are bounded and use temporary-file replacement. `apply_patch` requires exactly one `old_text` match. Copy preserves the source.
+- Git commands are read-only and scoped to a selected nested repository; external diff/fsmonitor and interactive prompts are disabled.
+- HTTP uses `/mcp` and `/health`, requires `REMOTE_MCP_TOKEN`, accepts only loopback binding, and checks configured/default-safe Origins.
+- Supports MCP protocol versions `2025-06-18` and `2025-03-26` over stdio and minimal Streamable HTTP.
+
+Failures and how to do differently:
+- Initial delegated Luna work stalled and produced only an incomplete test file; the local agent implemented the bounded core instead.
+- Sandbox socket restrictions caused HTTP tests to fail with `PermissionError: [Errno 1] Operation not permitted`; rerun loopback integration tests with appropriate elevated permission when the environment blocks binds.
+- Keep one canonical implementation; the temporary duplicate `server.py` and `test_server.py` were removed.
+
+References:
+- Implementation: `/Users/tualek/ohochat/remote-mcp/remote_mcp.py`
+- Tests: `/Users/tualek/ohochat/remote-mcp/test_remote_mcp.py`
+- README: `/Users/tualek/ohochat/remote-mcp/README.md`
+- Verification command: `cd /Users/tualek/ohochat/remote-mcp && python3 -m unittest -v`
+- Result: `Ran 7 tests in 2.591s` / `OK`
+- Compile check: `python3 -c 'from pathlib import Path; compile(Path("remote_mcp.py").read_text(encoding="utf-8"), "remote_mcp.py", "exec")'`
+
+## Thread `01a033bb-2b53-7d32-a3ae-05d7361135e5`
+updated_at: 2026-08-24T12:33:42+00:00
+cwd: /Users/tualek/ohochat
+rollout_path: /Users/tualek/.codex/sessions/2026/08/24/rollout-2026-08-24T19-24-59-01a033bb-2b53-7d32-a3ae-05d7361135e5.jsonl
+rollout_summary_file: 2026-08-24T12-24-59-o5w1-partial_remote_mcp_core_implementation_stopped_before_verifi.md
+
+---
+description: Started a scoped Python 3.9 stdlib-only local MCP core in remote-mcp; user stopped immediately after implementation was added, so functionality remains unverified.
+task: implement minimal auditable local MCP core
+ task_group: local-mcp-implementation
+task_outcome: partial
+cwd: /Users/tualek/ohochat/remote-mcp
+keywords: MCP, JSON-RPC, Streamable HTTP, Python 3.9, unittest, path escape, symlink, workspace boundary, public seam, stop request
+---
+
+### Task 1: Implement remote-mcp core
+
+task: implement minimal auditable local MCP core
+ task_group: local-mcp-implementation
+task_outcome: partial
+
+Preference signals:
+- The user required “Create only /Users/tualek/ohochat/remote-mcp” and prohibited touching paths outside it -> enforce the requested directory boundary strictly.
+- The user said “STOP immediately. Do not run any more commands and do not create or edit any files.” -> stop requests take precedence over pending verification or cleanup.
+- The user required exact test results and no commit/stage -> distinguish created code from verified completion.
+
+Reusable knowledge:
+- Public tests targeted `MCPServer` and `create_http_server`, with allowlisted tools only: workspace_list, read_file, search_text, write_file, apply_patch, copy_file, git_status, git_diff, git_log.
+- Required security seams included absolute/parent/symlink escape rejection, safe writes/copies/exact single-match patches, JSON-RPC dispatch, protocol versions 2025-06-18 and 2025-03-26, HTTP `/mcp`, `/health`, token, and Origin checks.
+- The implementation was added after the first test run, but no subsequent test or syntax verification occurred.
+
+Failures and how to do differently:
+- Initial command `rtk python3 -B -m unittest -v` failed with `ModuleNotFoundError: No module named 'remote_mcp'` because tests were run before implementation. If work resumes, rerun tests first, then inspect only failures.
+- Do not claim success: README, full verification, and final scope/status checks are incomplete.
+- After an explicit stop, perform no further commands or file changes until resumed by the user.
+
+References:
+- `/Users/tualek/ohochat/remote-mcp/test_remote_mcp.py`
+- `/Users/tualek/ohochat/remote-mcp/remote_mcp.py`
+- Exact test command: `rtk python3 -B -m unittest -v`
+- Exact pre-implementation failure: `ImportError: Failed to import test module: test_remote_mcp` / `ModuleNotFoundError: No module named 'remote_mcp'`
 

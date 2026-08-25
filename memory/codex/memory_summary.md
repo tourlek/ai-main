@@ -7,6 +7,7 @@ The user primarily uses Codex for OHO engineering: evidence-first code/plan revi
 ## User preferences
 
 - Use `gpt-5.6-sol` for consultation, investigation, planning, and final review. After explicit plan approval and implementation authorization, create `[Luna Working] - {name}` with `gpt-5.6-luna` at max; pass contract/worktree/tests/constraints/no-commit rule, then Sol reviews. If unavailable, stop—do not substitute. [ad-hoc note]
+- When deletion is prohibited, enforce it in the exposed capability set (no delete/move/rename/unlink/shell), not only in instructions. Honor an explicit “STOP immediately” before verification or cleanup; enforce an explicitly named directory boundary.
 - For review-only work, pin the worktree/SHA/diff; do not edit, stage, commit, or run state-writing commands.
 - Preserve dirty work and repo boundaries. Trace the actual runtime path before adding cache, retry, realtime, or cross-repo changes; ponytail means “ลบก่อนเพิ่ม, reuse ก่อนสร้าง, diff เล็กสุดที่แก้ root cause”.
 - Cite exact file:line and production evidence. Distinguish verified fact, inference, `no data`, and `Not run: <reason>`; never retain or print credentials.
@@ -24,10 +25,17 @@ The user primarily uses Codex for OHO engineering: evidence-first code/plan revi
 - For Cloud Logging, narrow by service, ID, exact error/event, and tight UTC window; use `jsonPayload.message:`/`SEARCH(...)`, selected fields, and redaction.
 - Global-removal claims require workspace-wide search and runtime/UI/config/docs/tests classification.
 - In OHO Meta work, a SWC build can miss Feathers service-registration startup crashes; audit preserved imports and whole-module `service.hooks(hooks)` exports, then run a startup smoke test.
+- For local MCP/plugin work, catalog/config/OAuth/handshake is not proof of usability: check installed state, then make a real read-only tool call. Preserve explicit workspace-root, traversal/symlink, loopback/token/Origin, and read-only-Git boundaries.
 
 ## What's in Memory
 
 ### /Users/tualek/ohochat
+
+#### 2026-08-24
+
+- Safe local MCP core and Remote Desktop Commander discovery: `remote-mcp`, `Remote Desktop Commander`, `app-6a057d268ebc8191a27d7c7096cab4f6`, `MCPServer`, `create_http_server`, `REMOTE_MCP_TOKEN`
+  - desc: Python 3.9 stdlib-only, nine-tool local core in `cwd=/Users/tualek/ohochat/remote-mcp`; separate catalog integration was not installed.
+  - learnings: The verified core has no destructive/shell tools; run `python3 -m unittest -v` from its directory, and do not call a catalog entry usable without a real tool call.
 
 #### 2026-08-21
 
@@ -53,12 +61,6 @@ The user primarily uses Codex for OHO engineering: evidence-first code/plan revi
   - desc: Thai PBS eligibility bug, manifest/journal inventory, and no-write rollback design for `script-oho/migrate-line-webhook-endpoint`.
   - learnings: `line_other` must hard-exclude/manual-review; refresh endpoint state immediately before any mutation.
 
-#### 2026-08-17
-
-- Live webhook domain-mapping cutover audit: `webhook.oho.chat`, `Cloud Run DomainMapping`, `oho-webhook-lb`, `createTask`
-  - desc: Source/config/runtime audit for old-host cutover and zero-loss evidence.
-  - learnings: URL-map host rule/HTTP 200 alone do not prove cutover or terminal delivery.
-
 ### Older Memory Topics
 
 #### /Users/tualek/ohochat
@@ -73,6 +75,8 @@ The user primarily uses Codex for OHO engineering: evidence-first code/plan revi
   - desc: Call-site, multi-tenancy, routing, and performance/correctness audits.
 - LINE monitoring and production diagnosis: `validate-business-integration-status`, `check_line_messaging_health`, `code=551`, `external_action=thaimetal_catalog`
   - desc: Token/webhook monitoring, terminal delivery proof, and business/payload-scoped Facebook/LINE incident diagnosis.
+- Live webhook domain-mapping cutover audit: `webhook.oho.chat`, `Cloud Run DomainMapping`, `oho-webhook-lb`, `createTask`
+  - desc: Source/config/runtime audit for old-host cutover and zero-loss evidence; URL-map host rules or HTTP 200 alone do not prove terminal delivery.
 
 #### /Users/tualek/ohochat/oho-web-app
 
@@ -97,8 +101,8 @@ The user primarily uses Codex for OHO engineering: evidence-first code/plan revi
 
 #### /Users/tualek/Documents and /Users/tualek/retourapac
 
-- Setup, docs, and artifact workflows: `CI=true pnpm install`, Docker Desktop, Prisma, Canva PDF, `native_google_docs`, `dashboard-plan.md`
-  - desc: Cwd-specific local setup, document export, and artifact-search workflows.
+- Setup, docs, and artifact workflows: `CI=true pnpm install`, Docker Desktop, Prisma, Canva PDF, `dashboard-plan.md`
+  - desc: Cwd-specific local setup, artifact export, and prior-artifact search workflows.
 
 #### /Users/tualek/life
 

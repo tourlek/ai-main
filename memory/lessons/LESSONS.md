@@ -193,3 +193,7 @@ consolidate: merge duplicates, drop obsolete ones, keep the rule one line each.
 ## 2026-08 — สรุปว่า Smartchat realtime แล้วจากการมี socket listener
 - **Mistake**: เห็น API emit และ web-app มี socket listener จึงสรุปว่า Meta AI state อัปเดตในห้องที่เปิดอยู่แล้ว โดยไม่ได้ทดสอบว่า payload ผ่าน field selection, stale-event guard และ current-room merge; user corrected ว่ายังต้องสลับแชทก่อน state จึงเปลี่ยน.
 - **Rule**: ก่อนสรุปว่า Smartchat state realtime ให้ replay event ผ่าน socket handler ถึง `current_contact` และ DOM ด้วย red-capable test; listener หรือ emit ที่มีอยู่ไม่ใช่หลักฐานว่า UI อัปเดต.
+
+## 2026-08 — ต้องเทียบ baseline ก่อนเพิ่ม unread/unresponded
+- **Mistake**: ตอบ behavior ของ flags จาก parent ของ realtime-badge fix แทนการย้อนเทียบ snapshot ก่อนเริ่ม unread/unresponded ราวสองเดือนก่อน; user corrected ให้ย้อนกลับไปเทียบกับช่วงก่อน feature.
+- **Rule**: เมื่อผู้ใช้ถามว่า behavior ควรเหมือนก่อน feature หรือไม่ ให้หา first-introduction commit และเทียบ source/runtime path กับ snapshot ก่อน feature โดยตรงก่อนสรุป.
