@@ -198,6 +198,10 @@ consolidate: merge duplicates, drop obsolete ones, keep the rule one line each.
 - **Mistake**: ตอบ behavior ของ flags จาก parent ของ realtime-badge fix แทนการย้อนเทียบ snapshot ก่อนเริ่ม unread/unresponded ราวสองเดือนก่อน; user corrected ให้ย้อนกลับไปเทียบกับช่วงก่อน feature.
 - **Rule**: เมื่อผู้ใช้ถามว่า behavior ควรเหมือนก่อน feature หรือไม่ ให้หา release tag ล่าสุดที่ยังไม่มีโค้ดของ feature นั้น แล้วเทียบ source/runtime path กับ tag โดยตรง; parent ของ commit ไม่ใช่ release baseline.
 
+## 2026-08 — จำกัดช่วง production test log เร็วเกินไป
+- **Mistake**: user บอกว่าส่งรูปทดสอบหลายรูป แต่ผมดึง log เฉพาะช่วงของรูปแรกแล้วสรุปจาก event เดียว.
+- **Rule**: เมื่อผู้ใช้ทดสอบ production เป็นหลาย event ให้ enumerate ทุก event ใน test window และจับคู่ terminal outcome ต่อ event ก่อนสรุปผลหรือสร้าง log link.
+
 ## 2026-08 — ตรวจ alpha channel ก่อนส่งภาพโปร่งใส
 - **Mistake**: accepted image-generation files described as transparent after visual checkerboard preview without checking `hasAlpha`; all outputs were RGB with checkerboard baked in.
 - **Rule**: for transparent-image deliverables, inspect the final file's alpha channel and verify `hasAlpha: yes` before handing off.
