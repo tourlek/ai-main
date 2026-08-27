@@ -201,3 +201,7 @@ consolidate: merge duplicates, drop obsolete ones, keep the rule one line each.
 ## 2026-08 — ตรวจ alpha channel ก่อนส่งภาพโปร่งใส
 - **Mistake**: accepted image-generation files described as transparent after visual checkerboard preview without checking `hasAlpha`; all outputs were RGB with checkerboard baked in.
 - **Rule**: for transparent-image deliverables, inspect the final file's alpha channel and verify `hasAlpha: yes` before handing off.
+
+## 2026-08 — ตอบเรื่อง config โดยไม่ตรวจของจริง
+- **Mistake**: ผู้ใช้ถามว่า instruction กลางใช้กับ OpenCode ได้หรือไม่ แต่ไม่ได้ตรวจไฟล์และ runtime configuration ก่อนตอบ; user corrected: `เหมือนนายไม่ทำงานเลย`.
+- **Rule**: เมื่อคำถามเกี่ยวกับ config หรือ capability ที่ตรวจได้จากเครื่อง ให้ตรวจ source, generated output และ runtime-loaded configuration ก่อนตอบเสมอ.
