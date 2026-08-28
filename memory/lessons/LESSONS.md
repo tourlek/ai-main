@@ -198,6 +198,10 @@ consolidate: merge duplicates, drop obsolete ones, keep the rule one line each.
 - **Mistake**: ตอบ behavior ของ flags จาก parent ของ realtime-badge fix แทนการย้อนเทียบ snapshot ก่อนเริ่ม unread/unresponded ราวสองเดือนก่อน; user corrected ให้ย้อนกลับไปเทียบกับช่วงก่อน feature.
 - **Rule**: เมื่อผู้ใช้ถามว่า behavior ควรเหมือนก่อน feature หรือไม่ ให้หา release tag ล่าสุดที่ยังไม่มีโค้ดของ feature นั้น แล้วเทียบ source/runtime path กับ tag โดยตรง; parent ของ commit ไม่ใช่ release baseline.
 
+## 2026-08 — สรุป Meta Thread Owner เกินหลักฐาน
+- **Mistake**: กล่าวว่าห้องใหม่จะได้ผล `thread_owner` ว่างหรือไม่มี `app_id` โดยยังไม่ได้ทดสอบ controlled live request หลัง inbound ใหม่; user ถามว่า `อนนี้เรา prove แล้วหรอ`.
+- **Rule**: แยก Meta docs, historical logs, และ live controlled API proof ให้ชัด; ห้ามสรุป response behavior ของ first-contact thread จนกว่าจะยิง endpoint กับ test Page/PSID และเก็บผลที่ sanitize แล้ว.
+
 ## 2026-08 — ยก hypothetical stale page เป็น MR finding
 - **Mistake**: review pagination แล้วแจ้ง out-of-range page จากจำนวนรายการลดลง โดยไม่ได้ยืนยันว่า flow ของหน้าเกิดสถานะนั้นจริง; user corrected ว่าเข้าหน้าหรือ reload จะ fetch ใหม่.
 - **Rule**: review ให้รายงานเฉพาะ regression ที่ trace ได้จาก MR และ runtime flow; hypothetical edge case ที่ไม่มี mutation/navigation path ใน scope ไม่ใช่ finding.
@@ -217,3 +221,7 @@ consolidate: merge duplicates, drop obsolete ones, keep the rule one line each.
 ## 2026-08 — Audit frontend จาก feature branch แทน master
 - **Mistake**: audit contact response field usage จาก worktree/current feature branch จนรวม feature ที่ยังไม่ขึ้น `master`; user corrected: `ให้ดู code จาก brach master นะ`.
 - **Rule**: เมื่อ audit contract หรือ field usage เพื่อปรับ backend response ให้ pin frontend source ที่ `master` explicitly, never current branch/worktree, และระบุ commit SHA ใน report.
+
+## 2026-08 — Let a diagnostic print authenticated request data
+- **Mistake**: ran a Stream SDK diagnostic without suppressing its verbose error object, which included credential-bearing request headers in tool output.
+- **Rule**: for authenticated diagnostics, catch and reduce errors to an allowlisted code/message before output; never let SDK exceptions serialize request config or headers.
