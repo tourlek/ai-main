@@ -225,3 +225,11 @@ consolidate: merge duplicates, drop obsolete ones, keep the rule one line each.
 ## 2026-08 — Let a diagnostic print authenticated request data
 - **Mistake**: ran a Stream SDK diagnostic without suppressing its verbose error object, which included credential-bearing request headers in tool output.
 - **Rule**: for authenticated diagnostics, catch and reduce errors to an allowlisted code/message before output; never let SDK exceptions serialize request config or headers.
+
+## 2026-08 — Imported only part of a financial monthly plan
+- **Mistake**: updated only CSV-mapped budget categories, leaving prior categories and income amounts in the same month; user: `ยอดค่าใช้จ่าย กันยายน 2569 ไม่ตรงละ แผนรายรับก็ไม่อัพเดท้`.
+- **Rule**: before updating a financial monthly plan, replace the complete category set for the target month and verify both income and expense totals exactly match the approved source before reporting success.
+
+## 2026-08 — ใช้ Mongo config ผิดชุด
+- **Mistake**: ตรวจ `oho-webhook/.env` ก่อน ทั้งที่ผู้ใช้กำหนด connection กลางไว้ใน `~/.config/oho/mongo.env`.
+- **Rule**: ทุกครั้งที่เข้า Mongo ให้โหลด `~/.config/oho/mongo.env` ก่อน แล้วเลือก database `oho-log-prod` หรือ `oho-prod` ให้ตรงกับงาน.
