@@ -233,3 +233,11 @@ consolidate: merge duplicates, drop obsolete ones, keep the rule one line each.
 ## 2026-08 — ใช้ Mongo config ผิดชุด
 - **Mistake**: ตรวจ `oho-webhook/.env` ก่อน ทั้งที่ผู้ใช้กำหนด connection กลางไว้ใน `~/.config/oho/mongo.env`.
 - **Rule**: ทุกครั้งที่เข้า Mongo ให้โหลด `~/.config/oho/mongo.env` ก่อน แล้วเลือก database `oho-log-prod` หรือ `oho-prod` ให้ตรงกับงาน.
+
+## 2026-08 — Escalated from GitLab too early
+- **Mistake**: ระหว่างไล่ deploy failure ผมขอ `gcloud auth login` ก่อนอธิบายว่า GitLab job trace ยืนยันอะไรแล้ว; user: `แต่จริงๆมันต้องดูใน gitlab หนิ`.
+- **Rule**: pipeline fail ให้เริ่มและสรุป failing GitLab job trace/artifacts ก่อน; escalate ไป provider log เฉพาะเมื่อ trace จบที่ external deploy โดยระบุ evidence และเหตุผลให้ชัด.
+
+## 2026-08 — Build passed but Feathers app could not boot
+- **Mistake**: registered `probeFacebookThreadOwnerOnFirstInbound` as a top-level Feathers hook type; `npm run build` passed because it only compiled source, while Cloud Run exited at startup with `'probeFacebookThreadOwnerOnFirstInbound' is not a valid hook type`.
+- **Rule**: when changing Feathers service hook registration, run a startup/service-registration smoke test in addition to build and hook-unit tests; only `before`, `after`, and `error` may be top-level hook keys.
