@@ -241,3 +241,11 @@ consolidate: merge duplicates, drop obsolete ones, keep the rule one line each.
 ## 2026-08 — Build passed but Feathers app could not boot
 - **Mistake**: registered `probeFacebookThreadOwnerOnFirstInbound` as a top-level Feathers hook type; `npm run build` passed because it only compiled source, while Cloud Run exited at startup with `'probeFacebookThreadOwnerOnFirstInbound' is not a valid hook type`.
 - **Rule**: when changing Feathers service hook registration, run a startup/service-registration smoke test in addition to build and hook-unit tests; only `before`, `after`, and `error` may be top-level hook keys.
+
+## 2026-08 — Inferred Meta ownership from manual reply behavior
+- **Mistake**: concluded that a manual OHO reply proved Meta AI's first-message condition no longer applied, before correlating the inbound type, `standby` delivery, `ai_generated` echo, and handover timeline.
+- **Rule**: for Meta AI routing claims, trace the full Page/PSID/message timeline first; distinguish delayed or unsupported Meta input handling from OHO ownership changes, and state only what the observed control event proves.
+
+## 2026-08 — Assumed Meta condition maps to standby
+- **Mistake**: stated that messages excluded by Meta's `first-time / ads / team` conditions would arrive outside `standby` without a controlled UAT for each condition.
+- **Rule**: never infer Meta routing-field behavior from a configured condition; prove the condition-to-webhook mapping with a new-user and repeat-user UAT matrix before using it in product behavior or stakeholder messaging.
