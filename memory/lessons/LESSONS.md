@@ -249,3 +249,15 @@ consolidate: merge duplicates, drop obsolete ones, keep the rule one line each.
 ## 2026-08 — Assumed Meta condition maps to standby
 - **Mistake**: stated that messages excluded by Meta's `first-time / ads / team` conditions would arrive outside `standby` without a controlled UAT for each condition.
 - **Rule**: never infer Meta routing-field behavior from a configured condition; prove the condition-to-webhook mapping with a new-user and repeat-user UAT matrix before using it in product behavior or stakeholder messaging.
+
+## 2026-09 — Preserve first-connect subscription behavior
+- **Mistake**: interpreted customer opt-in for `messaging_handovers` as a requirement to stop automatic subscription at first Facebook channel connection.
+- **Rule**: distinguish first-connect setup from backfill for already-connected Pages; retain verified onboarding behavior unless the user explicitly changes it.
+
+## 2026-09 — แยก field audit ตาม call site
+- **Mistake**: สรุป field usage รวมตาม endpoint/flow ทั้งที่ผู้ใช้ต้องการรู้ว่าแต่ละหน้าและ path ส่ง response ไปใช้ที่ component ไหน.
+- **Rule**: ทำตาราง `endpoint → page/route → caller path → consumer → fields` ก่อนสรุป field reduction และแยก runtime call จาก mock/comment/test.
+
+## 2026-09 — ตรวจ semantics ของ chat status ก่อนสรุป handoff
+- **Mistake**: ตีความ `ขอคุยกับคน` ว่าต้องเปลี่ยนเข้า `request` ทั้งที่ product contract ต้องคง `status=bot` และใช้ `chat_status=fallback` เพื่อแสดง “แชทบอทตอบไม่ได้”.
+- **Rule**: ก่อนเสนอ status transition ให้ map label ฝั่ง UI กับค่า `status/chat_status` จริงและยืนยัน contract ของ flow ก่อนเสมอ.

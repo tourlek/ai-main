@@ -1,3 +1,111 @@
+# Task Group: /Users/tualek/ai-main / centralized RTK, Caveman, and Ponytail session defaults
+
+scope: Maintain shared session-efficiency defaults across managed AI tools and Cursor; use when changing global agent workflow/configuration rather than a single checkout.
+applies_to: cwd=/Users/tualek/ai-main (rollout initiated from /Users/tualek/ohochat); reuse_rule=recheck generated profiles, token budgets, target config paths, and installed tooling before editing or claiming propagation.
+
+## Task 1: Enable global RTK/Caveman/Ponytail defaults across managed tools; success
+
+### rollout_summary_files
+
+- rollout_summaries/2026-08-31T11-26-52-AzlI-global_session_efficiency_defaults.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/08/31/rollout-2026-08-31T18-26-52-01a05792-79ea-74f3-abcd-9ea74e06432e.jsonl, updated_at=2026-08-31T11:31:47+00:00, thread_id=01a05792-79ea-74f3-abcd-9ea74e06432e, profiles and RTK monitoring verified)
+
+### keywords
+
+- ai-main, workflow.md, install.sh, RTK, rtk gain, Caveman, Ponytail, Cursor rules, alwaysApply, profile budgets, OpenCode, Qwen, Zcode
+
+## User preferences
+
+- when the user asks to make RTK, Caveman, and Ponytail available in “ทุก session” -> centralize and propagate defaults across managed tools, rather than enabling them only for the current session. [Task 1]
+- preserve exact paths, commands, numbers, errors, risks, and evidence while keeping replies concise; Ponytail means smallest root-cause diff, reuse first, and preserve dirty work. [Task 1]
+
+## Reusable knowledge
+
+- Shared defaults live in `/Users/tualek/ai-main/config/workflow.md`; run `rtk ./install.sh --sync` from `/Users/tualek/ai-main` to compile/deploy them. Full-profile consumers are Claude, Codex, Gemini, OpenCode, Qwen, and Zcode. [Task 1]
+- Cursor needs its own global `/Users/tualek/.cursor/rules/session-efficiency.mdc` with `alwaysApply: true`; skill links only make skills available and do not automatically apply rules. [Task 1]
+- Verification passed configured budgets: full ~2,859/4,000, lean ~1,599/1,600, min ~630/650 tokens. `rtk gain` was operational outside sandbox (27,338 commands; 87.8M tokens saved; 65.9%). Caveman compresses generated responses/history, not system prompts/source/tool output; Ponytail controls scope/diff, not context trimming. [Task 1]
+
+## Failures and how to do differently
+
+- Symptom: patching `ai-main` from a request rooted elsewhere fails `LSP file path must be inside request cwd`. Fix: edit from the target repo (or use a suitable shell edit), then verify generated files. [Task 1]
+- Symptom: generated profiles exceed lean/min ceilings. Fix: compact the shared section and rebuild until every configured budget passes. `rtk gain` can fail in sandbox with `unable to open database file`; verify with access to RTK's local database. [Task 1]
+
+# Task Group: /Users/tualek/ohochat/oho-web-app / Meta Business AI frontend fixes and Stream credential-rotation design
+
+scope: Review or implement the narrowly scoped Meta sender/open-room refresh contract, or answer web-only Stream credential/business-switch questions; separate current code facts from unimplemented recommendations.
+applies_to: cwd=/Users/tualek/ohochat/oho-web-app (architecture consultation initiated from /Users/tualek/ohochat); reuse_rule=pin the active branch/diff and current Stream/bootstrap implementation before reusing findings; local focused tests do not prove staging/UAT.
+
+## Task 1: Re-review and fix Meta AI sender identity plus request-event contact refresh; success after P1/P2/P3 follow-up
+
+### rollout_summary_files
+
+- rollout_summaries/2026-08-24T10-12-16-Xs6C-meta_business_ai_review_webapp_staging_fixes.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/08/24/rollout-2026-08-24T17-12-16-01a03341-aaf8-71b0-b02d-3f7bdc25fcc2.jsonl, updated_at=2026-08-24T10:28:24+00:00, thread_id=01a03341-aaf8-71b0-b02d-3f7bdc25fcc2, focused fixes validated; staging proof pending)
+- rollout_summaries/2026-08-24T09-23-09-Ozdc-oho_1802_meta_business_ai_webapp_fixes.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/08/24/rollout-2026-08-24T16-23-09-01a03314-b2c2-71d0-a739-b4f9779e359e.jsonl, updated_at=2026-08-24T09:37:22+00:00, thread_id=01a03314-b2c2-71d0-a739-b4f9779e359e, initial W1/W2 implementation)
+- rollout_summaries/2026-08-24T02-06-38-x1yq-meta_business_ai_webapp_rereview_fetch_fanout_blocker.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/08/24/rollout-2026-08-24T09-06-38-01a03185-0c19-7bf2-9a56-536792abf3b2.jsonl, updated_at=2026-08-24T10:16:19+00:00, thread_id=01a03185-0c19-7bf2-9a56-536792abf3b2, P1 fan-out found then fixed in follow-up)
+
+### keywords
+
+- tk-sprint-2616/feature/oho-1802-meta-biz-ai, ai_generated, @meta-ai, @inbox, Meta Business Agent, chat/request created, handleSmartchatRealtimeUpdate, refreshChatRoomBadgeRealtime, DEFAULT_UPDATE_FIELDS, API fan-out, --runTestsByPath
+
+## Task 2: Map web Stream credentials, business switching, and rotation design; success
+
+### rollout_summary_files
+
+- rollout_summaries/2026-08-31T11-30-49-ihHh-web_stream_credential_rotation_decision_map.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/08/31/rollout-2026-08-31T18-30-49-01a05796-1807-7993-9bd1-5d0a87e4b8cf.jsonl, updated_at=2026-08-31T11:41:48+00:00, thread_id=01a05796-1807-7993-9bd1-5d0a87e4b8cf, verified current web behavior plus proposed contract)
+
+### keywords
+
+- StreamChat, stream_client, initStream, window.location.replace, tokenProvider, credential_version, key_fingerprint, Firebase Remote Config, fire-and-forget, bootstrap, business switch, disconnectUser, connectUser
+
+## User preferences
+
+- when the user says “review อีกรอบ” -> re-pin the current worktree/diff and revalidate prior assumptions; keep a review-only request read-only and exclude unrelated untracked work. [Task 1]
+- for Meta reviews, give Thai evidence-first findings with severity/exact paths and distinguish focused validation from staging/UAT proof. [Task 1]
+- when the user says “focus คำตอบของ web app พอ” -> scope to web immediately. When they ask “เอาคำตอบ map กับคำถามให้หน่อย”, preserve original numbering in a direct question-to-answer table; explain async flow plainly first. [Task 2]
+
+## Reusable knowledge
+
+- Meta sender contract: `message.ai_generated === true` or a user ID ending `@meta-ai` maps to existing `bot` before `@inbox`; display label is `Meta Business Agent`, while normal `@inbox` remains agent-inbox/right-side styling. Do not add a Meta sender type, endpoint, flag, or room state machine. [Task 1]
+- For `chat/request created`, retain `refreshChatRoomBadgeRealtime` for closed rooms. An authoritative `handleSmartchatRealtimeUpdate` fetch with `_id: contact_id`, `DEFAULT_UPDATE_FIELDS`, and `is_fetch_contact:true` is only needed when both badge flags are disabled and the event matches the open room; otherwise every connected client causes API fan-out. Test suffix fallback without `ai_generated`, and use `sender_type === 'agent'` instead of recomputing classification. [Task 1]
+- Focused Jest must use `--runTestsByPath` because `.claude-worktrees` produces duplicate manual-mock warnings/duplicate collection. The latest focused suites passed 117/117; local ESLint was unavailable, and no staging/UAT was run. [Task 1]
+- Current web code uses `$config.stream_key` plus `oho_member.streamToken`; it has no `tokenProvider`, `credential_version`, or `key_fingerprint`. Firebase Remote Config is deliberately fire-and-forget after hydration; await bootstrap/login credentials before creating Stream, not the whole Firebase plugin. [Task 2]
+- Current `window.location.replace('/business/{id}/smartchat?status=me')` reloads, resets Vuex, and starts a new client. A future no-reload switch needs explicit `disconnectUser -> create StreamChat -> connectUser`; on a version-change notification, await bootstrap, compare version/fingerprint, then rebuild under an owner outside the SDK. Never log tokens. [Task 2]
+
+## Failures and how to do differently
+
+- Symptom: a requested handoff causes all clients to fetch contact data. Cause: unconditional `is_fetch_contact:true` dispatch. Fix: scope fetch to the open room/necessary badge-disabled condition and prove closed rooms avoid it. [Task 1]
+- Symptom: tests appear broad but collect duplicate worktree suites, or baseline Node/Jest failures obscure the feature. Fix: target source suites with `--runTestsByPath` and report environmental noise separately. [Task 1]
+- Symptom: an architecture answer treats credential-version transport as implemented. Fix: clearly label current state (it does not exist) versus recommended bootstrap/socket contract; do not mix mobile after a web-only request. [Task 2]
+
+# Task Group: /Users/tualek/Documents/Codex/2026-08-24/new-chat / sandboxed local-files MCP plugin and Secure MCP Tunnel
+
+scope: Create/read-connect a local-files MCP plugin bounded to `/Users/tualek/ohochat`; use for local file access from ChatGPT while defaulting to read-only.
+applies_to: cwd=/Users/tualek/Documents/Codex/2026-08-24/new-chat (bound root=/Users/tualek/ohochat); reuse_rule=verify plugin files, launcher root, tunnel profile, and current tunnel-client before claiming connectivity; never store/share runtime keys.
+
+## Task 1: Build a sandboxed local-files MCP plugin and partially configure Secure MCP Tunnel; partial
+
+### rollout_summary_files
+
+- rollout_summaries/2026-08-24T10-24-58-kSu4-local_files_mcp_secure_tunnel_setup.md (cwd=/Users/tualek/Documents/Codex/2026-08-24/new-chat, rollout_path=/Users/tualek/.codex/sessions/2026/08/24/rollout-2026-08-24T17-24-58-01a0334d-49c2-7dd2-ad12-70396594dcb0.jsonl, updated_at=2026-08-24T11:02:14+00:00, thread_id=01a0334d-49c2-7dd2-ad12-70396594dcb0, plugin/handshake verified; tunnel blocked on absent key)
+
+### keywords
+
+- local-files, plugin-creator, LOCAL_FILES_ROOT, LOCAL_FILES_ALLOW_WRITE, list_directory, read_file, search_files, write_file, Secure MCP Tunnel, tunnel-client, CONTROL_PLANE_API_KEY, tunnel_6a8c2342048c819192e0d4f70a8f6c59
+
+## User preferences
+
+- when the user selects `/Users/tualek/ohochat` for ChatGPT local-file access -> bind the server to that exact root, not the home directory. Write access was not requested, so default read-only and require explicit opt-in. [Task 1]
+
+## Reusable knowledge
+
+- Plugin files live under `outputs/local-files`: `.codex-plugin/plugin.json`, `.mcp.json`, and `run-local-files.sh`. The dependency-free Python stdio server exposes `list_directory`, `read_file`, `search_files`, and opt-in `write_file`; `LOCAL_FILES_ROOT` rejects traversal and `LOCAL_FILES_ALLOW_WRITE=1` enables writes. No delete/move/shell/arbitrary-command tools exist. [Task 1]
+- Unit tests (3), raw stdio initialize/initialized/tools-list plus `list_directory`, and JSON parsing passed. ChatGPT cannot launch a local MCP process directly; it needs a remote endpoint or Secure MCP Tunnel. [Task 1]
+- Use Homebrew `/opt/homebrew/bin/tunnel-client`, not the downloaded `tunnel-client-runtime-cloudflared-source-v0.0.12` source directory. Profile `~/.config/tunnel-client/local-files.yaml` references `env:CONTROL_PLANE_API_KEY` rather than a key value. [Task 1]
+
+## Failures and how to do differently
+
+- Symptom: plugin validation fails `ModuleNotFoundError: No module named 'yaml'`. Cause: validator runtime lacks PyYAML. Fix: record it as validator environment limitation; a temporary stub may validate structure but is not a permanent dependency fix. [Task 1]
+- Symptom: configuration is called ChatGPT-connected. Fix: require `CONTROL_PLANE_API_KEY` in the running terminal, passing `tunnel-client doctor --profile local-files --explain`, and a healthy `tunnel-client run --profile local-files` (or managed runtime status). Never share the key in chat. [Task 1]
+
 # Task Group: /Users/tualek/ohochat/remote-mcp / safe local MCP core and Remote Desktop Commander discovery
 
 scope: Build or resume the bounded local MCP core, or determine whether the separate Remote Desktop Commander integration is actually installed; use when read/create/update access must exclude destructive capabilities.
@@ -120,6 +228,27 @@ applies_to: cwd=/Users/tualek/ohochat; reuse_rule=recheck current feature branch
 
 - subscribed_fields, messaging_handovers, message_deliveries, standby, feed, request-page-subscribed-app.js, GET union POST GET verify, 429 Too Many Requests
 
+## Task 8: Audit deployed staging-1 performance and the Meta AI realtime emitter defect; partial
+
+### rollout_summary_files
+
+- rollout_summaries/2026-08-24T06-25-13-41hN-staging_1_meta_business_ai_performance_runtime_audit.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/08/24/rollout-2026-08-24T13-25-13-01a03271-ccdf-7331-a5f9-270c1b5c2923.jsonl, updated_at=2026-08-24T06:49:56+00:00, thread_id=01a03271-ccdf-7331-a5f9-270c1b5c2923, matched latency no-regression; emitter defect deployed)
+
+### keywords
+
+- core-api--staging-1, 0075eedb, Cloud Run, gcloud logging, ai_generated, businessChannel, updateMetaBusinessAiContactStatus, businessId or channel paths is required, contact/profile updated, Stream 201
+
+## Task 9: Apply Ponytail backend/webhook hardening and cross-repo review fixes; partial
+
+### rollout_summary_files
+
+- rollout_summaries/2026-08-24T11-49-13-YJ4J-meta_business_ai_ponytail_review_fixes.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/08/24/rollout-2026-08-24T18-49-13-01a0339a-6b7c-7ba1-9247-3f8cb0212b69.jsonl, updated_at=2026-08-24T12:08:53+00:00, thread_id=01a0339a-6b7c-7ba1-9247-3f8cb0212b69, focused cross-repo fixes; uncommitted/unpushed)
+- rollout_summaries/2026-08-24T06-30-11-mh6n-meta_business_ai_ponytail_hardening_and_runtime_gates.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/08/24/rollout-2026-08-24T13-30-11-01a03276-58b0-7101-bb0e-2909ee1da2ff.jsonl, updated_at=2026-08-24T07:30:45+00:00, thread_id=01a03276-58b0-7101-bb0e-2909ee1da2ff, local hardening/validation; runtime proof incomplete)
+
+### keywords
+
+- Ponytail, Meta authority fields require /contact/upsert, __fromContactUpsert, is_unresponded, chat_status, T9.1, T9.2, T9.3, thread_owner, ownershipConfirmed, 622851382610562, meta_business_ai_handoff_unmatched, legacy 64eb8249
+
 ## User preferences
 
 - when the user asks about an already connected Page having “ปุ่มเพื่อขอสิทธิ์การเข้าถึงเพิ่มเติม” -> design a separate existing-Page flow; do not require creating a new connection, and separate OAuth permission, webhook subscription, routing, and Business AI activation in Thai evidence-first output. [Task 1]
@@ -131,6 +260,8 @@ applies_to: cwd=/Users/tualek/ohochat; reuse_rule=recheck current feature branch
 - when the user says “ไฟล์ deploy กับ gitlab ci นายแก้ไขทำไมเอาออไว้เหมือนเดิมได้ไหม” or asks for commits in both repos -> preserve pre-existing dirty deploy/CI files, state the root-cause change separately from logging, and commit only the relevant source/tests per repo. [Task 6]
 - when the user says “ไม่เอาไฟล์ selft ที่ไว้เทส deploy push ไป” -> list exact included/excluded paths before pushing and clarify whether an ambiguous `self` filename is a runtime fix or a test helper. [Task 5]
 - when the user asks whether `docs/meta business ai ขาด subscribed_fields ไหนไหม` -> answer directly in Thai from repo evidence and distinguish the MVP contract from optional and legacy fields. [Task 7]
+- when asked whether deployment caused a performance drop -> compare matched UTC windows, endpoint mix, error rates, and feature-path timing; do not infer from HTTP 200 or broad logs. [Task 8]
+- when applying review fixes, “ponytail มาดู” means blockers/root causes only: protect existing tracked/untracked work, do not stage/commit/push without authorization, and separate focused validation from staging/UAT. [Task 9]
 
 ## Reusable knowledge
 
@@ -145,6 +276,10 @@ applies_to: cwd=/Users/tualek/ohochat; reuse_rule=recheck current feature branch
 - `standby` is evidence another app may own delivery, not proof of Meta Business AI; `message.ai_generated === true` is author identity, not activation or ownership. The approved flow uses explicit `channel.meta_business_ai_enabled`, persists standby customer messages before suppressing OHO automation, and uses tenant-scoped `${businessId}@meta-ai` Stream identity with fallback. [Task 5]
 - The contact-flow contract spans repos: webhook passes Meta authority fields to `/contact/upsert`, then `oho-api` `/contact.create` must accept `meta_business_ai_enabled`, `facebook_delivery_authority`, `facebook_delivery_authority_observed_at`, and `facebook_meta_business_ai_observed_at`. Logging changes are observability-only, not a substitute for this validation/persistence fix. [Task 6]
 - `request-page-subscribed-app.js` base fields are `messages`, `messaging_postbacks`, `messaging_referrals`, `message_echoes`, `message_reads`, `standby`, and `feed`; Facebook mode must add `messaging_handovers`. `message_deliveries` is optional delivery observability, while the 13-field test-page list is not a minimum contract. Update Page fields as GET current → union required → POST → GET verify; never replace the existing set. [Task 7]
+- Matched staging windows showed no global latency regression and no 5xx, while nine `ai_generated` messages reached Stream `/message` 201 in 34–96ms. `DEADLINE_EXCEEDED` from `streamChat.js` → `ScheduledDataPusher` → `gcp-metric.js` was background instrumentation noise, not feature latency proof. [Task 8]
+- The same nine replies logged `businessId or channel paths is required`: deployed `inbox.hooks.js` called `businessChannel(businessId)` without the required path. Stream delivery therefore succeeded while `contact/profile updated` and unread/unresponded broadcasts could be skipped; verify contact state and terminal data separately. [Task 8]
+- Keep authority fields internal to `/contact/upsert` (`__fromContactUpsert: true`); external providers must fail `Meta authority fields require /contact/upsert`. Chat-status/profile emit and `is_unresponded` clear are deliberately separate fail-soft blocks, so either failure does not suppress the other. [Task 9]
+- Current web scope is only sender identity plus open-room refresh. Do not restore legacy `64eb8249` features (takeover/return endpoints, Firebase flag, composer locks, room state machine). A real send ownership error is stronger evidence than a passive `thread_owner` read; use `ownershipConfirmed:true` only in that recovery path. Historical `928891643393937` is not an ownership oracle; `622851382610562` is the current return-to-AI target. [Task 9]
 
 ## Failures and how to do differently
 
@@ -156,6 +291,8 @@ applies_to: cwd=/Users/tualek/ohochat; reuse_rule=recheck current feature branch
 - Symptom: normal Jest scans `.claude/worktrees` and fails on duplicate mocks or Node 26 `Utils.isRegExp`/`Utils.isDate`. Cause: broad roots include worktrees and legacy dependencies are incompatible. Fix: use `--runTestsByPath` with `--roots src` plus the tested compatibility shim, or use the repository-supported Node version; disclose that focused test boundary. [Task 6]
 - Symptom: webhook/core HTTP success is called end-to-end success. Cause: no correlation proved persistence and Stream/member-message delivery; later core/webhook errors were not fully retrieved. Fix: send one unique test message and correlate webhook receipt → `/contact/upsert` → persistence → `/member-send-message/inbox` or Stream write → exact error payloads. [Task 6]
 - Symptom: a subscription review claims direct Meta docs were verified or `git status` at `/Users/tualek/ohochat` represents repo state. Cause: direct docs returned `429 Too Many Requests` and the rollout root is not itself a Git repository. Fix: cite repo/Postman evidence with the source limitation, and locate the actual sub-repo before Git commands. [Task 7]
+- Symptom: Stream 201 is called feature-ready. Cause: post-send emitter failure can leave contact/badge UI stale. Fix: correlate deployed SHA/source with logs and trace webhook → upsert → persistence → Stream → contact/profile/broadcast. [Task 8]
+- Symptom: broad Jest runs create unrelated duplicate mocks/baseline failures. Cause: `.claude` worktrees and Node/dependency compatibility are in the checkout. Fix: use `--runTestsByPath` (or API `--roots src` where appropriate), report the environment blocker, and do not delete user worktrees to silence warnings. [Task 9]
 
 # Task Group: /Users/tualek/ohochat/script-oho / LINE webhook migration eligibility and LINE-only rollback scoping
 
@@ -1135,7 +1272,6 @@ applies_to: cwd=/Users/tualek/ai-main; reuse_rule=use for `bin/aimain`, `workspa
 
 ### rollout_summary_files
 
-- rollout_summaries/2026-07-31T17-07-42-OOQ2-ai_main_workspace_linking_review_and_design_adjudication.md (cwd=/Users/tualek/ai-main, rollout_path=/Users/tualek/.codex/sessions/2026/08/01/rollout-2026-08-01T00-07-42-019fb925-627a-7253-bc76-6715214f2a22.jsonl, updated_at=2026-07-31T17:26:31+00:00, thread_id=019fb925-627a-7253-bc76-6715214f2a22, success; static read-only review)
 
 ### keywords
 
@@ -1145,7 +1281,6 @@ applies_to: cwd=/Users/tualek/ai-main; reuse_rule=use for `bin/aimain`, `workspa
 
 ### rollout_summary_files
 
-- rollout_summaries/2026-07-31T17-07-42-OOQ2-ai_main_workspace_linking_review_and_design_adjudication.md (cwd=/Users/tualek/ai-main, rollout_path=/Users/tualek/.codex/sessions/2026/08/01/rollout-2026-08-01T00-07-42-019fb925-627a-7253-bc76-6715214f2a22.jsonl, updated_at=2026-07-31T17:26:31+00:00, thread_id=019fb925-627a-7253-bc76-6715214f2a22, success; design adjudication)
 
 ### keywords
 
@@ -1210,9 +1345,6 @@ applies_to: cwd=/Users/tualek/ohochat/oho-api/.claude-worktrees/jera-tab-is-miss
 ### rollout_summary_files
 
 - rollout_summaries/2026-07-30T09-25-01-qjNc-final_read_only_jera_login_feature_flags_review.md (cwd=/Users/tualek/ohochat/oho-api/.claude-worktrees/jera-tab-is-missing, rollout_path=/Users/tualek/.codex/sessions/2026/07/30/rollout-2026-07-30T16-25-02-019fb257-6da8-7681-aa63-4c62263ee116.jsonl, updated_at=2026-07-30T09:33:14+00:00, thread_id=019fb257-6da8-7681-aa63-4c62263ee116, final live-diff review: 2 suites / 14 tests passed; no ship blockers)
-- rollout_summaries/2026-07-30T09-13-25-kdFe-review_comment_cleanup_jera_tab.md (cwd=/Users/tualek/ohochat/oho-api/.claude-worktrees/jera-tab-is-missing, rollout_path=/Users/tualek/.codex/sessions/2026/07/30/rollout-2026-07-30T16-13-25-019fb24c-cc6f-7c03-b144-34394eac4620.jsonl, updated_at=2026-07-30T09:22:45+00:00, thread_id=019fb24c-cc6f-7c03-b144-34394eac4620, earlier review found comments-only scope drift and worktree movement)
-- rollout_summaries/2026-07-30T09-05-06-mY16-oho_api_jera_login_feature_flags_review.md (cwd=/Users/tualek/ohochat/oho-web-app/.claude-worktrees/jera-tab-is-missing, rollout_path=/Users/tualek/.codex/sessions/2026/07/30/rollout-2026-07-30T16-05-06-019fb245-30e8-7533-a6c3-ba67f1a607a4.jsonl, updated_at=2026-07-30T09:14:18+00:00, thread_id=019fb245-30e8-7533-a6c3-ba67f1a607a4, earlier live review: cold-start P1 was closed; 13 targeted tests passed)
-- rollout_summaries/2026-07-30T08-42-56-lECv-oho_api_jera_login_feature_flags_review.md (cwd=/Users/tualek/ohochat/oho-web-app, rollout_path=/Users/tualek/.codex/sessions/2026/07/30/rollout-2026-07-30T15-42-56-019fb230-e359-7f60-893d-3467569eb66b.jsonl, updated_at=2026-07-30T08:50:25+00:00, thread_id=019fb230-e359-7f60-893d-3467569eb66b, initial review found the cold-start authoritative-false blocker later fixed)
 
 ### keywords
 
@@ -1259,7 +1391,6 @@ applies_to: cwd=/Users/tualek/ohochat/oho-backoffice with plan=/Users/tualek/oho
 
 ### rollout_summary_files
 
-- rollout_summaries/2026-07-31T17-56-21-UeF9-round_2_react_migration_plan_review_partial.md (cwd=/Users/tualek/ohochat/oho-backoffice, rollout_path=/Users/tualek/.codex/sessions/2026/08/01/rollout-2026-08-01T00-56-21-019fb951-ea5f-7483-bc82-456377b2d2df.jsonl, updated_at=2026-07-31T18:07:44+00:00, thread_id=019fb951-ea5f-7483-bc82-456377b2d2df, incomplete requested 18-item audit)
 
 ### keywords
 
@@ -1269,7 +1400,6 @@ applies_to: cwd=/Users/tualek/ohochat/oho-backoffice with plan=/Users/tualek/oho
 
 ### rollout_summary_files
 
-- rollout_summaries/2026-07-31T18-36-00-Lk1s-backoffice_react_v2_plan_time_boxed_review.md (cwd=/Users/tualek/ohochat/oho-backoffice, rollout_path=/Users/tualek/.codex/sessions/2026/08/01/rollout-2026-08-01T01-36-00-019fb976-370c-7e03-b35f-7520e84e70a2.jsonl, updated_at=2026-07-31T18:37:38+00:00, thread_id=019fb976-370c-7e03-b35f-7520e84e70a2, scoped five-file review; NEEDS-FIX before implementation)
 
 ### keywords
 
@@ -1279,7 +1409,6 @@ applies_to: cwd=/Users/tualek/ohochat/oho-backoffice with plan=/Users/tualek/oho
 
 ### rollout_summary_files
 
-- rollout_summaries/2026-07-31T17-45-44-dIut-round_2_backoffice_react_migration_plan_review.md (cwd=/Users/tualek/ohochat/oho-backoffice, rollout_path=/Users/tualek/.codex/sessions/2026/08/01/rollout-2026-08-01T00-45-44-019fb948-34df-78c3-acf3-404943218769.jsonl, updated_at=2026-07-31T17:55:34+00:00, thread_id=019fb948-34df-78c3-acf3-404943218769, incomplete adversarial review; not an approval)
 
 ### keywords
 
@@ -1327,10 +1456,7 @@ applies_to: cwd=/Users/tualek/ohochat/oho-web-app and /Users/tualek/ohochat/oho-
 
 ### rollout_summary_files
 
-- rollout_summaries/2026-07-30T09-13-04-OoVw-firebase_remote_config_comment_trimming_review.md (cwd=/Users/tualek/ohochat/oho-api/.claude-worktrees/jera-tab-is-missing, rollout_path=/Users/tualek/.codex/sessions/2026/07/30/rollout-2026-07-30T16-13-04-019fb24c-796b-7f70-87ac-e3cbecc0fb7e.jsonl, updated_at=2026-07-30T09:21:40+00:00, thread_id=019fb24c-796b-7f70-87ac-e3cbecc0fb7e, AST-identical comment trim; 1 suite / 9 tests passed)
 - rollout_summaries/2026-07-30T09-07-45-YIjD-firebase_remote_config_cache_hit_rereview.md (cwd=/Users/tualek/ohochat/oho-web-app/.claude-worktrees/jera-tab-is-missing, rollout_path=/Users/tualek/.codex/sessions/2026/07/30/rollout-2026-07-30T16-07-45-019fb247-9cdc-76a3-a098-2b88906c3dc1.jsonl, updated_at=2026-07-30T09:16:07+00:00, thread_id=019fb247-9cdc-76a3-a098-2b88906c3dc1, final signal-ordering review; 9 tests passed)
-- rollout_summaries/2026-07-30T09-05-32-HGYT-firebase_remote_config_review_partial_jest_blocked.md (cwd=/Users/tualek/ohochat/oho-web-app/.claude-worktrees/jera-tab-is-missing, rollout_path=/Users/tualek/.codex/sessions/2026/07/30/rollout-2026-07-30T16-05-32-019fb245-9645-7471-8e1c-d06b902e573f.jsonl, updated_at=2026-07-30T09:07:28+00:00, thread_id=019fb245-9645-7471-8e1c-d06b902e573f, partial re-review superseded by the successful final run)
-- rollout_summaries/2026-07-30T08-47-57-M3ng-firebase_remote_config_tab_cache_review.md (cwd=/Users/tualek/ohochat/oho-web-app/.claude-worktrees/jera-tab-is-missing, rollout_path=/Users/tualek/.codex/sessions/2026/07/30/rollout-2026-07-30T15-47-57-019fb235-7d01-7910-8c06-037d382b4d1e.jsonl, updated_at=2026-07-30T08:56:35+00:00, thread_id=019fb235-7d01-7910-8c06-037d382b4d1e, earlier review found cross-tab blockers; signal-ordering fix later verified)
 
 ### keywords
 
@@ -1365,7 +1491,6 @@ applies_to: cwd=/Users/tualek/ohochat/oho-web-app with /Users/tualek/ohochat/oho
 
 ### rollout_summary_files
 
-- rollout_summaries/2026-07-29T11-58-23-dnwJ-unread_unresponded_report_verification_request.md (cwd=/Users/tualek/ohochat/oho-web-app, rollout_path=/Users/tualek/.codex/sessions/2026/07/29/rollout-2026-07-29T18-58-23-019fadbd-7acb-76b2-8d60-108475540831.jsonl, updated_at=2026-07-29T11:58:28+00:00, thread_id=019fadbd-7acb-76b2-8d60-108475540831, request only; no inspection results)
 - rollout_summaries/2026-07-29T11-59-38-K1iF-unread_unresponded_optimization_report_verification.md (cwd=/Users/tualek/ohochat/oho-web-app, rollout_path=/Users/tualek/.codex/sessions/2026/07/29/rollout-2026-07-29T18-59-38-019fadbe-9f4b-7e81-955d-a4ab24c396a9.jsonl, updated_at=2026-07-29T12:13:38+00:00, thread_id=019fadbe-9f4b-7e81-955d-a4ab24c396a9, source-only verification; final NO-SHIP as-is)
 
 ### keywords
@@ -1431,7 +1556,6 @@ applies_to: cwd=/Users/tualek/ohochat/oho-backoffice; reuse_rule=reuse for simil
 
 ### rollout_summary_files
 
-- rollout_summaries/2026-07-20T02-21-10-WqUb-oho_backoffice_mr32_external_message_code_review.md (cwd=/Users/tualek/ohochat/oho-backoffice, rollout_path=/Users/tualek/.codex/sessions/2026/07/20/rollout-2026-07-20T09-21-10-019f7d53-c7cc-7ea2-9fb1-76d2f5ace193.jsonl, updated_at=2026-07-20T02:28:26+00:00, thread_id=019f7d53-c7cc-7ea2-9fb1-76d2f5ace193, GitLab MR review found late-save baseline corruption, page-reset stale rows, dialog-token drift, and debounced-search stale-response risk)
 
 ### keywords
 
@@ -1492,7 +1616,6 @@ applies_to: cwd=/Users/tualek/ohochat; reuse_rule=reuse for similar cross-repo r
 
 ### rollout_summary_files
 
-- rollout_summaries/2026-07-15T01-16-06-ttm9-cross_repo_unread_unresponded_deploy_gate_review.md (cwd=/Users/tualek/ohochat/oho-web-app, rollout_path=/Users/tualek/.codex/sessions/2026/07/15/rollout-2026-07-15T08-16-06-019f6358-6a26-7531-ab13-b4360a1b5799.jsonl, updated_at=2026-07-15T01:29:28+00:00, thread_id=019f6358-6a26-7531-ab13-b4360a1b5799, round-2 deploy-gate pass verified live diffs in all three repos and found frontend pagination/rollback drift plus `oho-api` mixed-success timestamp collateral risk)
 
 ### keywords
 
@@ -1504,7 +1627,6 @@ applies_to: cwd=/Users/tualek/ohochat; reuse_rule=reuse for similar cross-repo r
 
 ### rollout_summary_files
 
-- rollout_summaries/2026-07-14T18-31-25-OSyU-oho_unread_unresponded_cross_repo_deploy_gate_review.md (cwd=/Users/tualek/ohochat/oho-web-app, rollout_path=/Users/tualek/.codex/sessions/2026/07/15/rollout-2026-07-15T01-31-25-019f61e5-e958-75d1-ae40-e7dc4ffd3d5c.jsonl, updated_at=2026-07-14T18:42:39+00:00, thread_id=019f61e5-e958-75d1-ae40-e7dc4ffd3d5c, stricter deploy-gate pass verified real repo state first and found bulk-send timestamp, websocket cache, and frontend rollback/counter edge cases)
 
 ### keywords
 
@@ -1516,7 +1638,6 @@ applies_to: cwd=/Users/tualek/ohochat; reuse_rule=reuse for similar cross-repo r
 
 ### rollout_summary_files
 
-- rollout_summaries/2026-07-14T15-18-52-8PEC-mr1285_cross_repo_unread_unresponded_review.md (cwd=/Users/tualek/ohochat/oho-api/.claude/worktrees/mr-1285-fixes, rollout_path=/Users/tualek/.codex/sessions/2026/07/14/rollout-2026-07-14T22-18-52-019f6135-9fb1-7b72-b968-52241fd501a2.jsonl, updated_at=2026-07-14T15:35:19+00:00, thread_id=019f6135-9fb1-7b72-b968-52241fd501a2, read-only review across `oho-api`, `oho-websocket`, and `oho-web-app` found a websocket `message.read` blocker and frontend Remote Config / optimistic-counter drift risks)
 
 ### keywords
 
@@ -1565,7 +1686,6 @@ applies_to: cwd=/Users/tualek/ohochat/oho-api; reuse_rule=reuse for similar code
 
 ### rollout_summary_files
 
-- rollout_summaries/2026-07-31T08-15-01-Mjxm-rev2_unread_unresponded_refactor_plan_adversarial_review.md (cwd=/Users/tualek/ohochat/oho-api, rollout_path=/Users/tualek/.codex/sessions/2026/07/31/rollout-2026-07-31T15-15-01-019fb73d-b08e-7d42-947c-493c374ac7c0.jsonl, updated_at=2026-07-31T08:25:23+00:00, thread_id=019fb73d-b08e-7d42-947c-493c374ac7c0, production-enablement backlog and explicit Track B cut-line)
 
 ### keywords
 
@@ -1575,8 +1695,6 @@ applies_to: cwd=/Users/tualek/ohochat/oho-api; reuse_rule=reuse for similar code
 
 ### rollout_summary_files
 
-- rollout_summaries/2026-07-31T07-43-22-cSLQ-no_ship_contact_chat_states_refactor_plan_audit.md (cwd=/Users/tualek/ohochat/oho-api, rollout_path=/Users/tualek/.codex/sessions/2026/08/01/rollout-2026-08-01T00-43-22-019fb720-b89a-7483-ad06-486d9c12dd1e.jsonl, updated_at=2026-07-31T07:53:55+00:00, thread_id=019fb720-b89a-7483-ad06-486d9c12dd1e, pinned `origin/develop` cross-repo audit; NO-SHIP)
-- rollout_summaries/2026-07-31T07-42-00-B5iQ-read_only_review_contact_chat_states_refactor_plan.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/07/31/rollout-2026-07-31T14-42-00-019fb71f-7572-71d1-b82a-670541b3921c.jsonl, updated_at=2026-07-31T07:51:34+00:00, thread_id=019fb71f-7572-71d1-b82a-670541b3921c, independent local-develop audit; NO-SHIP)
 
 ### keywords
 
@@ -1586,7 +1704,6 @@ applies_to: cwd=/Users/tualek/ohochat/oho-api; reuse_rule=reuse for similar code
 
 ### rollout_summary_files
 
-- rollout_summaries/2026-07-29T17-36-04-EvVz-oho_1272_final_single_flight_timeout_verification.md (cwd=/Users/tualek/ohochat/oho-api/.claude-worktrees/oho-1272-realtime-badge, rollout_path=/Users/tualek/.codex/sessions/2026/07/30/rollout-2026-07-30T00-36-04-019faef2-a12e-78c2-b951-01d71a1deffd.jsonl, updated_at=2026-07-29T18:06:31+00:00, thread_id=019faef2-a12e-78c2-b951-01d71a1deffd, static/spec verification plus Promise probe; VERDICT: ship)
 
 ### keywords
 
@@ -1598,7 +1715,6 @@ applies_to: cwd=/Users/tualek/ohochat/oho-api; reuse_rule=reuse for similar code
 
 ### rollout_summary_files
 
-- rollout_summaries/2026-07-15T07-12-24-BMSu-oho_api_badge_count_redis_cache_review.md (cwd=/Users/tualek/ohochat/oho-api, rollout_path=/Users/tualek/.codex/sessions/2026/07/15/rollout-2026-07-15T14-12-24-019f649e-9cc4-7813-bcca-a102cb1b4a2a.jsonl, updated_at=2026-07-15T07:21:36+00:00, thread_id=019f649e-9cc4-7813-bcca-a102cb1b4a2a, scope/key isolation and `0` hit semantics checked; Redis late-write and miss-stampede risks remained)
 
 ### keywords
 
@@ -1608,7 +1724,6 @@ applies_to: cwd=/Users/tualek/ohochat/oho-api; reuse_rule=reuse for similar code
 
 ### rollout_summary_files
 
-- rollout_summaries/2026-07-15T09-05-53-eBHL-oho_api_uncommitted_review_startup_blocker_and_behavior_pres.md (cwd=/Users/tualek/ohochat/oho-api, rollout_path=/Users/tualek/.codex/sessions/2026/07/15/rollout-2026-07-15T16-05-53-019f6506-8353-7c13-9dda-4d97fcfab9ad.jsonl, updated_at=2026-07-15T09:18:31+00:00, thread_id=019f6506-8353-7c13-9dda-4d97fcfab9ad, live-diff read-only review confirmed a Feathers startup blocker while the other targeted refactors preserved behavior)
 
 ### keywords
 
@@ -1690,7 +1805,6 @@ applies_to: cwd=/Users/tualek/ohochat/oho-web-app; reuse_rule=reuse for similar 
 ### rollout_summary_files
 
 - rollout_summaries/2026-07-31T06-05-37-BMns-oho_1272_second_round_realtime_badge_review.md (cwd=/Users/tualek/ohochat/oho-web-app/.claude-worktrees/oho-1272-realtime-badge, rollout_path=/Users/tualek/.codex/sessions/2026/07/31/rollout-2026-07-31T13-05-37-019fb6c7-39c5-7110-9c61-b4878f375e66.jsonl, updated_at=2026-07-31T06:35:27+00:00, thread_id=019fb6c7-39c5-7110-9c61-b4878f375e66, earlier worktree state; NO-SHIP pending formatting and meaningful visibility test)
-- rollout_summaries/2026-07-31T04-16-20-SFMO-cross_repo_review_mr872_mr1291_realtime_badge_blockers.md (cwd=/Users/tualek/ohochat, rollout_path=/Users/tualek/.codex/sessions/2026/07/31/rollout-2026-07-31T11-16-20-019fb663-2d39-79b3-9364-4845f05664c6.jsonl, updated_at=2026-07-31T04:25:57+00:00, thread_id=019fb663-2d39-79b3-9364-4845f05664c6, earlier MR heads; !872 blocked, !1291 code-mergeable)
 
 ### keywords
 
