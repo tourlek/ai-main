@@ -261,3 +261,7 @@ consolidate: merge duplicates, drop obsolete ones, keep the rule one line each.
 ## 2026-09 — ตรวจ semantics ของ chat status ก่อนสรุป handoff
 - **Mistake**: ตีความ `ขอคุยกับคน` ว่าต้องเปลี่ยนเข้า `request` ทั้งที่ product contract ต้องคง `status=bot` และใช้ `chat_status=fallback` เพื่อแสดง “แชทบอทตอบไม่ได้”.
 - **Rule**: ก่อนเสนอ status transition ให้ map label ฝั่ง UI กับค่า `status/chat_status` จริงและยืนยัน contract ของ flow ก่อนเสมอ.
+
+## 2026-09 — สรุป Meta auto-reengage โดยไม่ยืนยันผู้กระทำ
+- **Mistake**: เห็น AI กลับมาตอบหลังจบแชทแล้วสรุปว่า Meta auto-reengage ทั้งที่ผู้ใช้ยิงคืนห้องผ่าน Bruno เอง.
+- **Rule**: สำหรับ Meta ownership ให้ผูกทุก control action กับ Graph/GCP evidence หรือยืนยันจากผู้ทดสอบก่อนระบุว่าเป็น automatic behavior.
