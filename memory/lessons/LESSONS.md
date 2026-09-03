@@ -265,3 +265,12 @@ consolidate: merge duplicates, drop obsolete ones, keep the rule one line each.
 ## 2026-09 — สรุป Meta auto-reengage โดยไม่ยืนยันผู้กระทำ
 - **Mistake**: เห็น AI กลับมาตอบหลังจบแชทแล้วสรุปว่า Meta auto-reengage ทั้งที่ผู้ใช้ยิงคืนห้องผ่าน Bruno เอง.
 - **Rule**: สำหรับ Meta ownership ให้ผูกทุก control action กับ Graph/GCP evidence หรือยืนยันจากผู้ทดสอบก่อนระบุว่าเป็น automatic behavior.
+
+## 2026-09 — Assigning lightweight model to deep reasoning advisor (Oracle)
+- **Mistake**: mapped `oracle` to `gpt-5.6-luna` when user asked to use Luna for `orchestrator`; Oracle requires frontier reasoning (GPT Sol or Qwen Max), not lightweight models. User: `oracle มันเอาปใช้ luna ได้หรอ นายต้องดูความเหมาะสมด้วยนะ`.
+- **Rule**: match agent role to model capability — never assign lightweight/fast models (Luna/Flash) to deep-reasoning advisory roles (Oracle/Architect). Oracle must use frontier models (`gpt-5.6-sol`, `qwen3.8-max`, `deepseek-v4-pro`); reserve lightweight models for coordination (`orchestrator`) and file discovery (`explorer`/`librarian`).
+
+## 2026-09 — Downgrading Orchestrator to lightweight model without evaluating cognitive demands
+- **Mistake**: agreed to downgrade `orchestrator` to `gpt-5.6-luna` to "save tokens", framing it merely as a task dispatcher; user pushed back: `orchestrator เหมาะกับงานแจกจ่าย จริงๆ หรอ ... นายต้องดูบริบทขอ agent นั้น ๆ สิ`.
+- **Rule**: evaluate an agent's full operational prompt and cognitive burden before selecting its model tier. In multi-agent frameworks (`oh-my-opencode`), the Orchestrator is the cognitive core (planning execution graphs, validating specialist output, managing task lifecycles, and user dialogue) — not a dumb router. It requires a high-intelligence frontier model (`gpt-5.6-terra`, `deepseek-v4-pro`); token savings must come from delegating file scans to Flash subagents, not by lobotomizing the Orchestrator.
+
