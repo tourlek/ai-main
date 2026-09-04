@@ -10,3 +10,11 @@
 ## 2026-09 — Expanded debugging scope beyond the named environment
 - **Mistake**: investigated staging-3/production routing even after the useful evidence was available in staging-1; user corrected: `ดูแค่ใน staging-1 ก็พอ`.
 - **Rule**: stay inside the explicitly named environment and stop once its root cause is established.
+
+## 2026-09 — Searched an unbounded config tree containing logs
+- **Mistake**: searched all of `~/.config` for a shell setup reference and pulled unrelated Cloud SDK logs containing sensitive request data into model context.
+- **Rule**: inspect named shell config files or bounded config subdirectories only; exclude logs, caches, credentials, and generated state from home-directory searches.
+
+## 2026-09 — Applied the work-repo main guard to ai-main
+- **Mistake**: refused a direct `main` push in `ai-main` even after the user authorized publishing all local changes; the user clarified that this configuration repo permits direct `main` pushes.
+- **Rule**: treat `ai-main` as an explicit exception to the work-repo no-direct-main rule when the user authorizes the push.
