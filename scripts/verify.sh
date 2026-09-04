@@ -95,7 +95,7 @@ follow_imports() {
     if [ "$n" -eq 0 ]; then
         # Entry files are compiled (imports inlined) — verify known section headers instead
         case "$(basename "$entry")" in
-            CLAUDE.md|AGENTS.md|GEMINI.md)
+            CLAUDE.md|AGENTS.md|GEMINI.md|APPEND_SYSTEM.md)
                 if grep -q "User Profile & Environment" "$entry" && grep -q "Working Rules" "$entry" \
                    && grep -q "Shared Cross-Tool Memory" "$entry" && grep -q "Rules earned from mistakes" "$entry"; then
                     ok "  Compiled successfully (profile, workflow, shared memory, rules all inlined)"
@@ -118,10 +118,12 @@ echo -e "${CYAN}--- Codex (~/.codex/AGENTS.md) ---${NC}"
 follow_imports "${ACTUAL_HOME}/.codex/AGENTS.md"
 echo -e "${CYAN}--- Gemini (~/.gemini/GEMINI.md) ---${NC}"
 follow_imports "${ACTUAL_HOME}/.gemini/GEMINI.md"
+echo -e "${CYAN}--- Pi Agent (~/.pi/agent/APPEND_SYSTEM.md) ---${NC}"
+follow_imports "${ACTUAL_HOME}/.pi/agent/APPEND_SYSTEM.md"
 
 # ----- 2. Shared files point at canonical ai-main sources -----
 echo -e "\n${BLUE}${BOLD}2) Shared configs point at canonical sources${NC}"
-for tool in claude codex gemini; do
+for tool in claude codex gemini pi/agent; do
     echo -e "${CYAN}--- $tool ---${NC}"
     for f in style.md workflow.md profile.md; do
         check_symlink_into_repo "${ACTUAL_HOME}/.${tool}/shared/${f}"
@@ -133,6 +135,7 @@ echo -e "\n${BLUE}${BOLD}3) RTK files match canonical (these are copies, so drif
 check_file_matches_canonical "${ACTUAL_HOME}/.claude/RTK.md" "${SCRIPT_DIR}/config/RTK.md"
 check_file_matches_canonical "${ACTUAL_HOME}/.codex/RTK.md"  "${SCRIPT_DIR}/config/RTK.manual.md"
 check_file_matches_canonical "${ACTUAL_HOME}/.gemini/RTK.md" "${SCRIPT_DIR}/config/RTK.manual.md"
+check_file_matches_canonical "${ACTUAL_HOME}/.pi/agent/RTK.md" "${SCRIPT_DIR}/config/RTK.manual.md"
 
 # ----- 4. Skills present per tool -----
 echo -e "\n${BLUE}${BOLD}4) Skills installed per tool${NC}"
@@ -154,8 +157,10 @@ expected_owned=(
     grilling
     grill-with-docs
     ponytail
+    agy
+    obsidian-vault
 )
-for tool in claude codex cursor gemini; do
+for tool in claude codex cursor gemini pi/agent; do
     dir="${ACTUAL_HOME}/.${tool}/skills"
     echo -e "${CYAN}--- ~/.$tool/skills ---${NC}"
     if [ ! -d "$dir" ]; then
@@ -186,13 +191,13 @@ total_bytes_per_tool() {
     done < <(grep -E '^@' "$entry" | sed 's/^@//')
     echo "$sum"
 }
-for tool in claude codex gemini; do
+for tool in claude codex gemini pi; do
     case "$tool" in
-        claude) entry_name="CLAUDE.md" ;;
-        codex)  entry_name="AGENTS.md" ;;
-        gemini) entry_name="GEMINI.md" ;;
+        claude) entry_name="CLAUDE.md"; entry="${ACTUAL_HOME}/.${tool}/${entry_name}" ;;
+        codex)  entry_name="AGENTS.md"; entry="${ACTUAL_HOME}/.${tool}/${entry_name}" ;;
+        gemini) entry_name="GEMINI.md"; entry="${ACTUAL_HOME}/.${tool}/${entry_name}" ;;
+        pi)     entry_name="APPEND_SYSTEM.md"; entry="${ACTUAL_HOME}/.pi/agent/${entry_name}" ;;
     esac
-    entry="${ACTUAL_HOME}/.${tool}/${entry_name}"
     bytes=$(total_bytes_per_tool "$entry")
     tokens=$(( bytes / 4 ))  # rough English-heavy approximation
     ok "$tool: ${bytes} bytes  ~${tokens} tokens (rough)"

@@ -4,3 +4,6 @@
 [submodule "external/agent-skills"]
 	path = external/agent-skills
 	url = https://github.com/vercel-labs/agent-skills.git
+[submodule "external/mattpocock-skills"]
+	path = external/mattpocock-skills
+	url = https://github.com/mattpocock/skills.git

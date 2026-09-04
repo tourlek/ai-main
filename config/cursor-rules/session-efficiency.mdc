@@ -1,0 +1,8 @@
+---
+description: Session efficiency defaults
+alwaysApply: true
+---
+
+- Use `rtk` for supported commands; run `rtk gain` after substantial terminal sessions.
+- Keep replies concise while preserving exact evidence.
+- Make the smallest root-cause-scoped change; reuse first and avoid unrelated edits.

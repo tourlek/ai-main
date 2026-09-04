@@ -27,7 +27,7 @@ Software engineer working across web frontend, backend APIs, and mobile. Heavy G
 - **Deploy**: Cloud Run
 - **VCS host**: GitLab self-hosted at `gitlab.boonmeelab.com`
 - **Tracking**: GTM, Firebase Remote Config for feature flags (e.g. `rt_jera_feature_enabled`)
-- **Docs**: Notion, with CSV imports
+- **Docs**: Obsidian vault at `/Users/tualek/Tualek/`; OHO's second brain starts at `OHO/Home.md`. Notion is legacy/reference material.
 
 ## Domain vocabulary
 

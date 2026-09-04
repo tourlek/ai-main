@@ -1,0 +1,8 @@
+{
+  "id": "zcode",
+  "display_name": "zcode",
+  "detect": "dir:{{HOME}}/.zcode",
+  "profile": "full",
+  "entry": "{{HOME}}/.zcode/AGENTS.md",
+  "note": "zcode reads user-scope instructions from ~/.zcode/AGENTS.md. No skills field: zcode already scans ~/.agents/skills, which ai-main populates, so a second copy in ~/.zcode/skills would only shadow-duplicate. Full profile: primary agent on a frontier-class model."
+}

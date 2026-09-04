@@ -75,9 +75,12 @@ mkdir -p "${ACTUAL_HOME}/.claude/commands"
 mkdir -p "${ACTUAL_HOME}/.claude/shared"
 mkdir -p "${ACTUAL_HOME}/.cursor/skills"
 mkdir -p "${ACTUAL_HOME}/.cursor/commands"
+mkdir -p "${ACTUAL_HOME}/.cursor/rules"
 mkdir -p "${ACTUAL_HOME}/.codex/skills"
 mkdir -p "${ACTUAL_HOME}/.codex/shared"
 mkdir -p "${ACTUAL_HOME}/.agents/skills"
+mkdir -p "${ACTUAL_HOME}/.pi/agent/skills"
+mkdir -p "${ACTUAL_HOME}/.pi/agent/shared"
 
 # 3. Automated Backups
 backup_if_exists() {
@@ -104,6 +107,8 @@ if [ "$SYNC_MODE" -eq 0 ]; then
     backup_if_exists "${ACTUAL_HOME}/.codex/skills/gitlab-mr-description"
     backup_if_exists "${ACTUAL_HOME}/.gemini/skills/gitlab-mr-description"
     backup_if_exists "${ACTUAL_HOME}/.claude/skills/gitlab-mr-description"
+    backup_if_exists "${ACTUAL_HOME}/.pi/agent/APPEND_SYSTEM.md"
+    backup_if_exists "${ACTUAL_HOME}/.pi/agent/RTK.md"
 fi
 
 # 4. Link central shared-skills folder
@@ -176,6 +181,7 @@ copy_file() {
 copy_file "${SCRIPT_DIR}/config/RTK.md"        "${ACTUAL_HOME}/.claude/RTK.md"
 copy_file "${SCRIPT_DIR}/config/RTK.manual.md" "${ACTUAL_HOME}/.codex/RTK.md"
 copy_file "${SCRIPT_DIR}/config/RTK.manual.md" "${ACTUAL_HOME}/.gemini/RTK.md"
+copy_file "${SCRIPT_DIR}/config/RTK.manual.md" "${ACTUAL_HOME}/.pi/agent/RTK.md"
 
 # 6b. Compile the tiered prompt profiles, then link the FULL tier into each tool.
 #
@@ -192,11 +198,14 @@ echo -e "\n${BLUE}🪞 Linking shared rules into each tool...${NC}"
 for shared_file in style.md workflow.md profile.md SHARED.md RULES.md; do
     src="${SCRIPT_DIR}/build/full/${shared_file}"
     [ -f "$src" ] || { echo -e "  ${YELLOW}⚠ build/full/${shared_file} missing — skipped${NC}"; continue; }
-    for tool_shared_dir in "${ACTUAL_HOME}/.claude/shared" "${ACTUAL_HOME}/.codex/shared" "${ACTUAL_HOME}/.gemini/shared"; do
+    for tool_shared_dir in "${ACTUAL_HOME}/.claude/shared" "${ACTUAL_HOME}/.codex/shared" "${ACTUAL_HOME}/.gemini/shared" "${ACTUAL_HOME}/.pi/agent/shared"; do
         ln -sfn "$src" "${tool_shared_dir}/${shared_file}"
     done
-    echo -e "  ${GREEN}✓ ${shared_file} → claude/codex/gemini shared/${NC}"
+    echo -e "  ${GREEN}✓ ${shared_file} → claude/codex/gemini/pi shared/${NC}"
 done
+
+echo -e "  ${GREEN}✓ Cursor session defaults${NC}"
+ln -sfn "${SCRIPT_DIR}/config/cursor-rules/session-efficiency.mdc" "${ACTUAL_HOME}/.cursor/rules/session-efficiency.mdc"
 
 # 6c. Link canonical memory (repo is source of truth; ~/.ai-memory is the stable alias)
 echo -e "\n${BLUE}🧠 Linking shared memory...${NC}"
@@ -245,6 +254,7 @@ echo -e "\n${BLUE}⚙️ Compiling personalized configurations from templates...
 compile_template "${SCRIPT_DIR}/config/CLAUDE.md.template" "${ACTUAL_HOME}/.claude/CLAUDE.md"
 compile_template "${SCRIPT_DIR}/config/AGENTS.md.template" "${ACTUAL_HOME}/.codex/AGENTS.md"
 compile_template "${SCRIPT_DIR}/config/GEMINI.md.template" "${ACTUAL_HOME}/.gemini/GEMINI.md"
+compile_template "${SCRIPT_DIR}/config/PI.md.template" "${ACTUAL_HOME}/.pi/agent/APPEND_SYSTEM.md"
 
 # 7. Redirect skills for tools that need an in-tree SKILL.md (Claude, Gemini)
 echo -e "\n${BLUE}🔄 Creating redirect pointer files for Claude & Gemini skills...${NC}"
@@ -261,6 +271,8 @@ ln -sfn "${SCRIPT_DIR}/skills/gitlab-mr-description" "${ACTUAL_HOME}/.codex/skil
 echo -e "  ${GREEN}✓ ~/.codex/skills/gitlab-mr-description${NC}"
 ln -sfn "${SCRIPT_DIR}/skills/gitlab-mr-description" "${ACTUAL_HOME}/.agents/skills/gitlab-mr-description"
 echo -e "  ${GREEN}✓ ~/.agents/skills/gitlab-mr-description (Antigravity)${NC}"
+ln -sfn "${SCRIPT_DIR}/skills/gitlab-mr-description" "${ACTUAL_HOME}/.pi/agent/skills/gitlab-mr-description"
+echo -e "  ${GREEN}✓ ~/.pi/agent/skills/gitlab-mr-description (Pi Agent)${NC}"
 
 # 8b. Direct-symlink every other owned skill in ai-main/skills/ to all four tools
 echo -e "\n${BLUE}🧩 Linking other owned skills (ai-main/skills/*) to all AI tools...${NC}"
@@ -273,7 +285,7 @@ for skill_dir in "${SCRIPT_DIR}"/skills/*/; do
     if [ ! -f "${skill_dir}/SKILL.md" ]; then
         continue
     fi
-    for tool_skills in "${ACTUAL_HOME}/.claude/skills" "${ACTUAL_HOME}/.codex/skills" "${ACTUAL_HOME}/.cursor/skills" "${ACTUAL_HOME}/.gemini/skills" "${ACTUAL_HOME}/.agents/skills"; do
+    for tool_skills in "${ACTUAL_HOME}/.claude/skills" "${ACTUAL_HOME}/.codex/skills" "${ACTUAL_HOME}/.cursor/skills" "${ACTUAL_HOME}/.gemini/skills" "${ACTUAL_HOME}/.agents/skills" "${ACTUAL_HOME}/.pi/agent/skills"; do
         target="${tool_skills}/${name}"
         if [ -e "$target" ] && [ ! -L "$target" ]; then
             rm -rf "$target"
@@ -283,13 +295,14 @@ for skill_dir in "${SCRIPT_DIR}"/skills/*/; do
     echo -e "  ${GREEN}✓ linked ${name}${NC}"
 done
 
-# 9. Sync external skill packs (9arm-skills, vercel-labs/agent-skills) to all four tools
+# 9. Sync external skill packs (9arm-skills, vercel-labs/agent-skills) to all AI tools
 TOOL_SKILL_DIRS=(
     "${ACTUAL_HOME}/.claude/skills"
     "${ACTUAL_HOME}/.codex/skills"
     "${ACTUAL_HOME}/.cursor/skills"
     "${ACTUAL_HOME}/.gemini/skills"
     "${ACTUAL_HOME}/.agents/skills"    # Antigravity (agy) global skills
+    "${ACTUAL_HOME}/.pi/agent/skills"  # Pi Coding Agent
 )
 
 link_external_pack() {
@@ -306,8 +319,8 @@ link_external_pack() {
         local src name target tool_dir
         src="$(dirname "$skill_md")"
         name="$(basename "$src")"
-        # Don't overwrite our centrally-managed gitlab-mr-description
-        if [ "$name" = "gitlab-mr-description" ]; then
+        # Don't overwrite centrally-managed owned skills (ai-main/skills/*)
+        if [ -d "${SCRIPT_DIR}/skills/${name}" ]; then
             continue
         fi
         for tool_dir in "${TOOL_SKILL_DIRS[@]}"; do
@@ -328,6 +341,46 @@ link_external_pack() {
 
 link_external_pack "9arm-skills"             "${SCRIPT_DIR}/external/9arm-skills"
 link_external_pack "vercel-labs/agent-skills" "${SCRIPT_DIR}/external/agent-skills"
+link_external_pack "mattpocock/skills"        "${SCRIPT_DIR}/external/mattpocock-skills"
+
+# 9b. Sync plugins for Antigravity (~/.gemini/config/plugins/)
+echo -e "\n${BLUE}✨ Syncing Antigravity global plugins...${NC}"
+sync_gemini_plugin() {
+    local plugin_name="$1"
+    local plugin_desc="$2"
+    local src_pack_dir="$3"
+
+    [ -d "${src_pack_dir}/skills" ] || return 0
+    local target_plugin_dir="${ACTUAL_HOME}/.gemini/config/plugins/${plugin_name}"
+    mkdir -p "${target_plugin_dir}/skills"
+
+    cat > "${target_plugin_dir}/plugin.json" <<EOF
+{
+  "name": "${plugin_name}",
+  "version": "1.0.0",
+  "description": "${plugin_desc}"
+}
+EOF
+
+    while IFS= read -r -d '' skill_md; do
+        local skill_dir name target
+        skill_dir="$(dirname "$skill_md")"
+        name="$(basename "$skill_dir")"
+        [ -d "${SCRIPT_DIR}/skills/${name}" ] && [ "$plugin_name" != "ai-main-skills" ] && continue
+        target="${target_plugin_dir}/skills/${name}"
+        ln -sfn "$skill_dir" "$target"
+    done < <(find "${src_pack_dir}/skills" -name SKILL.md \
+        -not -path '*/node_modules/*' \
+        -not -path '*/deprecated/*' \
+        -not -path '*/in-progress/*' \
+        -not -path '*/personal/*' \
+        -print0)
+    echo -e "  ${GREEN}✓ plugin ${plugin_name} synced to Antigravity${NC}"
+}
+
+sync_gemini_plugin "ai-main-skills"    "Centralized workspace skills"    "${SCRIPT_DIR}"
+sync_gemini_plugin "9arm-skills"       "9arm curated AI skills"         "${SCRIPT_DIR}/external/9arm-skills"
+sync_gemini_plugin "mattpocock-skills" "Matt Pocock engineering skills" "${SCRIPT_DIR}/external/mattpocock-skills"
 
 # 10. Sync slash commands (Claude + Cursor)
 if [ -d "${SCRIPT_DIR}/commands" ]; then
@@ -519,11 +572,16 @@ verify_link "${ACTUAL_HOME}/.gemini/shared/style.md"
 verify_link "${ACTUAL_HOME}/.codex/AGENTS.md"
 verify_link "${ACTUAL_HOME}/.codex/RTK.md"
 verify_link "${ACTUAL_HOME}/.codex/shared/style.md"
+verify_link "${ACTUAL_HOME}/.cursor/rules/session-efficiency.mdc"
 verify_link "${ACTUAL_HOME}/.cursor/skills/gitlab-mr-description"
 verify_link "${ACTUAL_HOME}/.codex/skills/gitlab-mr-description"
 verify_link "${ACTUAL_HOME}/.claude/skills/git-commit-helper"
 verify_link "${ACTUAL_HOME}/.claude/skills/branch-perf-compare"
 verify_link "${ACTUAL_HOME}/.claude/skills/gitlab-mr-comment-reply"
+verify_link "${ACTUAL_HOME}/.pi/agent/APPEND_SYSTEM.md"
+verify_link "${ACTUAL_HOME}/.pi/agent/RTK.md"
+verify_link "${ACTUAL_HOME}/.pi/agent/shared/style.md"
+verify_link "${ACTUAL_HOME}/.pi/agent/skills/gitlab-mr-description"
 
 # 12. Summary
 echo -e "\n${GREEN}${BOLD}🎉 INSTALLATION SUCCESSFUL!${NC}"

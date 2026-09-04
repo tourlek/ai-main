@@ -1,0 +1,20 @@
+@{{HOME}}/.pi/agent/RTK.md
+@{{HOME}}/.pi/agent/shared/profile.md
+@{{HOME}}/.pi/agent/shared/style.md
+@{{HOME}}/.pi/agent/shared/workflow.md
+@{{HOME}}/.pi/agent/shared/SHARED.md
+@{{HOME}}/.pi/agent/shared/RULES.md
+
+## Self-Learning
+
+When the user corrects you, pushes back, or you discover a mistake you made, follow {{HOME}}/.ai-skills/self-learning/SKILL.md: append a lesson to {{HOME}}/.ai-memory/lessons/LESSONS.md so every AI tool stops repeating it.
+
+## Work Log
+
+When the user says `/worklog` or `log งาน`, or a substantial work session ends, follow {{HOME}}/.ai-skills/worklog/SKILL.md: append a one-line entry to {{AI_MAIN}}/logs/<YYYY-MM>.md.
+
+## Shared AI Skills
+
+For GitLab merge request description work, use {{HOME}}/.ai-skills/gitlab-mr-description/SKILL.md.
+
+Trigger it when the user sends a GitLab MR link or asks to draft, improve, standardize, or fill an MR description. Read the paired template at {{HOME}}/.ai-skills/gitlab-mr-description/template.md before drafting. Use `glab` first for MR metadata, diff, notes, and API details when available.

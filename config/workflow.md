@@ -51,6 +51,10 @@
 - `glab` is the GitLab CLI of choice.
 - Use `find . -name 'pattern'` from a specific path, not from `/`.
 
+## Defaults <!--min-->
+
+- RTK commands + `rtk gain` after substantial sessions. Caveman concise with evidence. Ponytail smallest root-cause diff; reuse first, no unrelated edits. Off: `/caveman off`, `stop ponytail`, or `normal mode`. <!--min-->
+
 ## Code search (pick by question, cheapest first)
 
 - Exact string/regex → `rg` (ripgrep). <!--lean-->

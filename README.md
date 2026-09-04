@@ -196,6 +196,21 @@ Every skill below is symlinked into `~/.claude/skills/`, `~/.codex/skills/`, `~/
 | `composition-patterns` | React composition patterns for scalable component architecture (compound components, render props, etc.). |
 | `web-design-guidelines` | Audit UI code against the Web Interface Guidelines (100+ rules), incl. accessibility. |
 
+### From [`mattpocock/skills`](https://github.com/mattpocock/skills) — `external/mattpocock-skills/` (Matt Pocock's skills)
+
+| Skill | Purpose |
+| --- | --- |
+| `code-review` | Two-axis review of a diff against repo standards and original spec using parallel sub-agents. |
+| `tdd` | Test-driven development discipline: Red-Green-Refactor loop with minimal viable tests. |
+| `to-spec` | Grounding and generating technical specifications from requirements and codebase context. |
+| `to-tickets` | Break down specs into small, vertical, tracer-bullet tickets. |
+| `diagnosing-bugs` | Systematic bug diagnosis flow before jumping into fixes. |
+| `improve-codebase-architecture` | Architecture refactoring guidelines and domain modeling workflows. |
+| `implement` | Focused implementation workflows following specifications. |
+| `prototype` | Rapid prototyping workflows with clear guardrails. |
+| `resolving-merge-conflicts` | Guided resolution of git merge conflicts preserving intent. |
+| `wayfinder` | Codebase navigation and discovery helper. |
+
 > Skills under `deprecated/`, `in-progress/`, `personal/`, or `node_modules/` in any external pack are automatically excluded by `install.sh`.
 
 ---

@@ -35,9 +35,12 @@ function flush(   i, prev_blank, is_blank) {
 
 {
     line = $0
-    lvl = heading_level(line)
+    heading = line
+    sub(/[[:space:]]*<!--(min|lean)-->[[:space:]]*$/, "", heading)
+    lvl = heading_level(heading)
 
     if (lvl > 0) {
+        line = heading
         # This heading supersedes an unflushed sibling at the same level: drop that
         # sibling and everything buffered under it.
         if (lvl in start) n = start[lvl] - 1

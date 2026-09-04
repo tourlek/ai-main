@@ -80,6 +80,7 @@ link_skill_farm() {
 link_skill_farm "$AI_MAIN/skills"
 link_skill_farm "$AI_MAIN/external/9arm-skills/skills"
 link_skill_farm "$AI_MAIN/external/agent-skills/skills"
+link_skill_farm "$AI_MAIN/external/mattpocock-skills/skills"
 
 python3 - "$HERMES_CONFIG" "$HERMES_FARM" <<'PY'
 import pathlib, re, sys
