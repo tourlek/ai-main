@@ -18,3 +18,7 @@
 ## 2026-09 — Applied the work-repo main guard to ai-main
 - **Mistake**: refused a direct `main` push in `ai-main` even after the user authorized publishing all local changes; the user clarified that this configuration repo permits direct `main` pushes.
 - **Rule**: treat `ai-main` as an explicit exception to the work-repo no-direct-main rule when the user authorizes the push.
+
+## 2026-09 — Redirected UAT tests to production
+- **Mistake**: changed UAT webhook endpoints to the production `webhook2.oho.chat` domain while updating production test endpoints.
+- **Rule**: preserve environment boundaries; when changing production endpoints, modify only explicit production configuration and test paths unless UAT is explicitly included.
