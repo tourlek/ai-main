@@ -1,9 +1,6 @@
 # Shared Cross-Tool Memory
 
-Distilled facts every AI tool loads at session start. Keep this file under ~40 lines —
-details belong in `memory/claude/`, `memory/codex/`, or `knowledge/`.
+- Several AI sessions may share a dirty worktree. Re-read shared files before targeted edits and preserve concurrent changes. <!--min-->
+- Current repo code/config establishes implementation facts; memories supply historical context. When required specs are inaccessible, ask instead of inventing requirements and continue checks that do not depend on them. <!--min-->
 
-- Never push to `master`/`main` of work repos directly. <!--min-->
-- Reports the user asks for go into a `.md` file at the repo root, not only the chat reply. <!--lean-->
-- The user runs multiple AI tools in parallel on the same repos — expect dirty worktrees and `.claude-worktrees/` dirs; never "clean up" work you didn't create. <!--min-->
-- When spec/requirement documents are inaccessible, ask instead of guessing. <!--min-->
+Detailed lessons live in `memory/lessons/LESSONS.md`; project history belongs in the relevant memory directory. Recording a lesson does not promote it to global policy: review durable rules for scope and conflicts first.
