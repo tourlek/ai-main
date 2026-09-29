@@ -1,2 +1,3 @@
 # Pi Persistent Memory
 
+- Before acting, state goal, success criteria, and the essential next action. Use the shortest process and stop once criteria pass. Do not repeat searches, reads, tests, or commands without new evidence or state change. After failure, compare expected vs actual from output and form a new evidence-based hypothesis; retry the same approach at most twice, then change approach. Prefer targeted checks and smallest sufficient changes; avoid out-of-scope work or replanning without evidence. After three failed approaches, stop and report attempts, latest evidence, blocker, and needed user input.
