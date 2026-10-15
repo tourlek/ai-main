@@ -61,31 +61,8 @@ Snapshots live under `state/omp-managed-skills/<content-digest>/`, with original
 
 ## 🔌 Adapters — adding a tool without editing shell
 
-`adapters/*.json` and the Hermes bridge describe preserved legacy targets. They are not invoked by normal OMP-first deployment; explicit legacy commands retain their ownership checks.
+`adapters/*.json` describe preserved legacy targets. They are not invoked by normal OMP-first deployment; explicit legacy commands retain their ownership checks.
 See `adapters/README.md` for ownership, scoped loading, and owned upstream overrides.
-
-## 🧩 Hermes Agent bridge
-
-Hermes can consume the same shared baseline without replacing its native memory or bundled
-skills. On a machine where Hermes is installed, run:
-
-```bash
-./bin/aimain hermes sync
-```
-
-The bridge:
-
-- generates Hermes `SOUL.md` from `config/hermes-soul.md` and the full shared baseline, including approval/scope rules;
-- builds a gitignored skill farm at `build/hermes-skills/` (owned skills + external packs,
-  excluding `deprecated/`/`in-progress/`/`personal/`/`node_modules/`) and points Hermes
-  `skills.external_dirs` at it, alongside native skills;
-- redeploys registered workspace knowledge so Hermes can load `AGENTS.md` / `.hermes.md`;
-- keeps Hermes native memory separate from Codex memory to avoid format and ownership conflicts.
-
-On Linux the bridge prefers the service profile at `~/lekagents/hermes/profiles/personal`;
-override it with `AI_MAIN_HERMES_HOME=/path/to/hermes-home ./bin/aimain hermes sync`. The
-bridge does not commit or push changes. Pull the private repo first, then run the command
-when shared rules or skills change. Restart Hermes or start a new session after syncing.
 
 ## 🛡️ Checks instead of prompt rules
 
@@ -118,7 +95,7 @@ Asserts profile safety rules, Pi memory bounds and mutation behavior, deployment
 
 The shared core governs safety and approvals; workspace roots route to repos; repo and nested-folder instructions specialize their own paths. Starting at `ohochat` does not authorize scanning every child repo. Follow applicable ancestor/nested instructions without loading unrelated Markdown or recursively traversing references.
 
-See [the adjustment summary](shared-brain-adjustment-summary.md) and [the adapter contract](adapters/README.md). `AGENTS.md` documents ai-main's own source ownership and local validation. Installer/sync deployment is separate from editing these sources and needs an explicitly scoped rollout.
+See [the adjustment summary](docs/history/shared-brain-adjustment-summary.md) and [the adapter contract](adapters/README.md). `AGENTS.md` documents ai-main's own source ownership and local validation. Installer/sync deployment is separate from editing these sources and needs an explicitly scoped rollout.
 
 ### Task sessions and document placement
 

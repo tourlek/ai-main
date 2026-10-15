@@ -51,8 +51,6 @@ The subsequent full-workflow canary used the same OMP/model settings with only `
 
 Antigravity's installed `agy` exposes its own plugin registry (`agy plugin list`) and agent catalog. Current official [CLI migration guidance](https://antigravity.google/docs/cli/gcli-migration/) documents global `~/.gemini/GEMINI.md` plus workspace `GEMINI.md`/`AGENTS.md` loading, while [CLI plugins](https://antigravity.google/docs/cli/plugins/) documents `~/.gemini/antigravity-cli/plugins/<name>/` and `agy plugin install <target>`. In installed agy 1.1.28, the plugin stages into `~/.gemini/config/plugins/ai-main-shared/`, sharing plugin storage with Gemini CLI while managing registration through agy commands. The installer registers only its owned Antigravity plugin and preserves existing registry imports, including `agent-skills`.
 
-Hermes bridge deployment validates that the `hermes` runtime itself starts before mutating its native `SOUL.md`, `config.yaml`, or skill farm. A PATH launcher alone is not readiness evidence.
-
 ## Owned upstream overrides
 
 These names intentionally override upstream workflows through existing owned-first discovery:
@@ -69,7 +67,7 @@ These names intentionally override upstream workflows through existing owned-fir
 | `post-mortem` | Provisional drafts with evidence limits instead of blocking all documentation |
 | `management-talk` | Channel formatting does not block a factual draft |
 
-The Pi builder and main installer prefer owned skills. Hermes's ai-main farm also keeps owned entries ahead of external packs; native Hermes skill collisions still require verification in the installed harness. Upstream submodules remain pinned and unchanged. Review overrides intentionally when updating upstream, rather than silently copying new behavior over them.
+The Pi builder and main installer prefer owned skills. Upstream submodules remain pinned and unchanged. Review overrides intentionally when updating upstream, rather than silently copying new behavior over them.
 
 ## Rollout evidence
 

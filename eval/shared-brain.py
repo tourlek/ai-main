@@ -189,31 +189,6 @@ class DeploymentTests(unittest.TestCase):
         self.aimain('adapters', 'deploy')
         self.assertIn('Updated shared policy', entry.read_text())
 
-    def test_hermes_farm_prefers_owned_workflow_and_includes_shared_policy(self):
-        (self.repo / 'scripts').mkdir()
-        shutil.copy2(ROOT / 'scripts/hermes-sync.sh', self.repo / 'scripts/hermes-sync.sh')
-        (self.repo / 'config/hermes-soul.md').write_text('Fixture identity\n')
-        (self.repo / 'build/full').mkdir(parents=True)
-        (self.repo / 'build/full/SYSTEM.md').write_text('Fixture shared approval policy\n')
-        # Isolate bridge assembly from build/deployment and from a real Hermes runtime.
-        (self.repo / 'bin/aimain').write_text('#!/bin/sh\nexit 0\n')
-        (self.repo / 'bin/aimain').chmod(0o755)
-        (self.repo / 'bin/hermes').write_text('#!/bin/sh\nexit 0\n')
-        (self.repo / 'bin/hermes').chmod(0o755)
-        owned = self.repo / 'skills/debug-mantra'
-        upstream = self.repo / 'external/9arm-skills/skills/debug-mantra'
-        for directory in (owned, upstream):
-            directory.mkdir(parents=True)
-            (directory / 'SKILL.md').write_text('Fixture skill\n')
-        home = self.root / 'hermes-home'
-        home.mkdir()
-        (home / 'config.yaml').write_text('skills:\n  external_dirs: []\n')
-        self.env['AI_MAIN_HERMES_HOME'] = str(home)
-        self.env['PATH'] = str(self.repo / 'bin') + os.pathsep + self.env['PATH']
-        self.run_cmd(['bash', str(self.repo / 'scripts/hermes-sync.sh')])
-        self.assertEqual((self.repo / 'build/hermes-skills/debug-mantra').resolve(), owned.resolve())
-        self.assertIn('Fixture shared approval policy', (home / 'SOUL.md').read_text())
-
     def test_cursor_project_baseline_is_scoped_and_preserves_local_owner(self):
         baseline = self.repo / 'build/full/SYSTEM.md'
         baseline.parent.mkdir(parents=True)

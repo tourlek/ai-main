@@ -4,9 +4,6 @@ description: Use when the user explicitly enables Caveman response mode.
 disable-model-invocation: true
 version: 1.0.0
 platforms: [macos, linux]
-metadata:
-  hermes:
-    tags: [style, tokens, efficiency]
 ---
 
 # Caveman — Compressed Response Mode

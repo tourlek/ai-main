@@ -55,4 +55,4 @@
 - Use RTK by default for shell commands: prefix commands with `rtk`; when debugging requires complete logs and RTK truncates or hides relevant output, run that command raw and resume RTK afterward. Run `rtk gain` after substantial terminal work.
 - Exact search: `rg`. Structural search: `ast-grep`. Relationships: `codegraph explore`/MCP when its index is available and current, otherwise targeted search and caller reads. <!--lean-->
 - Concise prose with evidence by default. Caveman and interview modes activate only on explicit request; `normal mode` disables response modes. <!--min-->
-- Scheduled jobs: high-frequency polling (< 30m, watchdogs) MUST use `hermes cron` with `--no-agent --script <path>` (silent on empty stdout, zero LLM tokens) or `--monitor-script <path>` (diff-triggered); reserve traditional LLM cron for low-frequency synthesis (daily/weekly).
+- Scheduled jobs: high-frequency polling (< 30m, watchdogs) MUST use a non-LLM script scheduler that is silent on empty output (zero LLM tokens); reserve LLM-driven scheduled runs for low-frequency synthesis (daily/weekly).
