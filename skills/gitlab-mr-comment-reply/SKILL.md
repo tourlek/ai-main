@@ -1,6 +1,6 @@
 ---
 name: gitlab-mr-comment-reply
-description: Draft concise Thai or Thai/English replies to GitLab merge request review comments, anchored to the actual discussion thread and the change the reviewer is pointing at. Use when the user sends a GitLab MR URL with reviewer comments and asks to draft replies, respond to senior reviewer feedback, explain why a change is/isn't a regression, or push back on a comment.
+description: Use to draft replies to specific GitLab review discussions.
 ---
 
 # GitLab MR Comment Reply

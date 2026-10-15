@@ -8,3 +8,6 @@
 
 # Generated prompt profiles (bin/aimain build)
 build/
+
+# This repository owns its instructions, even on hosts with legacy global ignores.
+!/AGENTS.md

@@ -1,6 +1,6 @@
 ---
 name: worklog
-description: Append a one-line work log entry to the central log in ai-main. Use when the user says /worklog, "log งาน", "จดงาน", asks what was done recently, or when a substantial work session ends and the work is worth recording.
+description: Use to record work on explicit request or enabled auto-log, or to read recent work.
 ---
 
 # Worklog
@@ -11,7 +11,7 @@ Central work log shared by every AI tool, at `~/ai-main/logs/<YYYY-MM>.md` (one 
 
 ## Writing an entry
 
-1. Determine the current month file: `~/ai-main/logs/$(date +%Y-%m).md`. Create it with a `# Worklog YYYY-MM` heading if missing.
+1. Write only for an explicit log request or enabled auto-log; read-only/chat-only restrictions override auto-log. A request to create a task is not a worklog request. Determine the current month file: `~/ai-main/logs/$(date +%Y-%m).md`. Create it with a `# Worklog YYYY-MM` heading if missing.
 2. Append ONE line per completed piece of work:
 
 ```markdown
@@ -26,7 +26,7 @@ Examples:
 ```
 
 3. Keep it one line — outcome, not narration. Unfinished work states what remains (`not deployed yet`, `blocked on review`).
-4. Do not commit — `scripts/sync.sh` auto-commits `logs/` on its schedule.
+4. Logging does not authorize a commit or push. Scheduled `scripts/sync.sh` automation is separate from agent authorization; do not invoke it to bypass approval.
 
 ## Reading back
 

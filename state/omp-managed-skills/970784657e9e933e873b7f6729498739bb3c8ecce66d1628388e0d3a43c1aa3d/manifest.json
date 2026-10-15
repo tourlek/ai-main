@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "source": "/Users/tualek/.omp/agent/managed-skills",
+  "createdAt": "2026-10-01T09:20:21.836410+00:00",
+  "note": "omp-first-cutover",
+  "skills": [
+    "clickup-format-estimate",
+    "clickup-mr-crosslink",
+    "clickup-subtask-breakdown",
+    "clickup-working-branch",
+    "code-first-refactor-qa"
+  ],
+  "files": {
+    "clickup-format-estimate/SKILL.md": {
+      "sha256": "f8882dc8de955c24f08c6c98d326d251be988a5a174ae07994f789bb0cfc3729",
+      "size": 1812,
+      "mode": 420
+    },
+    "clickup-mr-crosslink/SKILL.md": {
+      "sha256": "c9be2c9d30d53cb434cb91a4d5f9446baa2e9ac403057cdc7f76848c170ad3bd",
+      "size": 2097,
+      "mode": 420
+    },
+    "clickup-subtask-breakdown/SKILL.md": {
+      "sha256": "9d8b39c7a2dd548998f22c149a64c32b8778a7f9ca5d991f7ee9d3a851ab2b09",
+      "size": 3364,
+      "mode": 420
+    },
+    "clickup-working-branch/SKILL.md": {
+      "sha256": "2b89185a6e01a7e373028c4c0882009269ba3678acbaf90063c8008181dcbed5",
+      "size": 5264,
+      "mode": 420
+    },
+    "code-first-refactor-qa/SKILL.md": {
+      "sha256": "7b9a9dac40ba9b0155a1bb9b50c26c5066fa7e0c7789754cf72b222658013b3e",
+      "size": 4752,
+      "mode": 420
+    }
+  }
+}

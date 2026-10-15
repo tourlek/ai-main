@@ -1,6 +1,7 @@
 ---
 name: caveman
-description: "Compressed response mode for token efficiency. Use when the user invokes /caveman or asks for compressed/short responses."
+description: Use when the user explicitly enables Caveman response mode.
+disable-model-invocation: true
 version: 1.0.0
 platforms: [macos, linux]
 metadata:
@@ -25,7 +26,7 @@ it does not shrink the system prompt, AGENTS.md, source code, or tool output.
 
 ## When to Use
 
-- **Default mode**: active for every response until the user says `/caveman off` or `normal mode`, or the session ends.
+- Activate only on explicit request; normal concise prose is the session default. After activation, use `full` unless another level is requested, until `/caveman off`, `normal mode`, or session end.
 - User may switch levels with `/caveman lite`, `/caveman full`, `/caveman ultra`, or disable with `/caveman off`.
 
 ## Rules (full level)

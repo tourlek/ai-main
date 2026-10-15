@@ -39,7 +39,9 @@ assert_allowed() {
 }
 
 echo -e "${BLUE}${BOLD}1) Profiles build and stay under their ceiling${NC}"
-"${AI_MAIN}/bin/aimain" build >/dev/null 2>&1
+if ! "${AI_MAIN}/bin/aimain" build >/dev/null 2>&1; then
+    fail "profile/skill build failed"
+fi
 while read -r tier tokens budget; do
     if [ "$tokens" = "-" ]; then fail "profile $tier was not built"
     elif [ "$tokens" -le "$budget" ]; then pass "profile $tier ~${tokens} tokens (ceiling ${budget})"
@@ -47,15 +49,28 @@ while read -r tier tokens budget; do
     fi
 done < <("${AI_MAIN}/bin/aimain" budget)
 
-echo -e "\n${BLUE}${BOLD}2) The min profile carries the rules a 7B still has to obey${NC}"
-assert_in min "Never commit without explicit authorization" "commit authorization"
-assert_in min "stay inside that repo" "scope discipline"
-assert_in min "Only revert when the user asks" "no unasked reverts"
-assert_in min "Don't change test files" "hands off tests"
-assert_in min "actually ran" "evidence honesty"
-assert_in min "Confirm the target branch and worktree" "branch/worktree confirmation"
+echo -e "\n${BLUE}${BOLD}2) Every profile preserves equivalent safety and scope gates${NC}"
+for tier in full lean min; do
+    assert_in "$tier" "Never commit without explicit authorization" "commit authorization"
+    assert_in "$tier" "stay inside that repo" "scope discipline"
+    assert_in "$tier" "Only revert when the user asks" "no unasked reverts"
+    assert_in "$tier" "Don't change test files" "hands off tests"
+    assert_in "$tier" "actually ran" "evidence honesty"
+    assert_in "$tier" "Confirm the target branch and worktree" "branch/worktree confirmation"
+    assert_in "$tier" "restricted (non-admin) account" "permission validation"
+    assert_in "$tier" "Read-only/chat-only" "no incidental writes"
+    assert_in "$tier" "applicable ancestor and nested instructions" "folder-scoped instructions"
+    assert_in "$tier" "finish the approved steps without asking again" "continuation"
+done
 
-echo -e "\n${BLUE}${BOLD}3) The min profile drops what a small model cannot use${NC}"
+echo -e "\n${BLUE}${BOLD}2b) Every profile points curated memory to Obsidian${NC}"
+for tier in full lean min omp; do
+    assert_in "$tier" "Obsidian is canonical" "canonical curated-memory source"
+    assert_in "$tier" "native memory is only a cache" "native memory cache boundary"
+    assert_in "$tier" "AI Memory/Home.md" "indexed prior-work recall"
+done
+
+echo -e "\n${BLUE}${BOLD}3) The min profile drops optional detail, not authority${NC}"
 assert_not_in min "Banned patterns" "Thai style examples"
 assert_not_in min "codegraph explore" "code-search ladder"
 assert_not_in min "Primary workspaces" "workspace inventory"
@@ -89,6 +104,20 @@ for tier in full lean min; do
         pass "profile ${tier} is marker-free"
     fi
 done
+
+echo -e "\n${BLUE}${BOLD}8) Pi memory stays bounded and mutation-safe${NC}"
+if python3 -B "${AI_MAIN}/eval/pi-memory.py"; then
+    pass "Pi memory regressions"
+else
+    fail "Pi memory regressions"
+fi
+
+echo -e "\n${BLUE}${BOLD}9) Scoped deployment and skill regressions (isolated fixtures)${NC}"
+if python3 -B "${AI_MAIN}/eval/shared-brain.py"; then
+    pass "shared-brain regressions"
+else
+    fail "shared-brain regressions"
+fi
 
 echo ""
 if [ "$FAIL" -eq 0 ]; then

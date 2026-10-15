@@ -1,0 +1,5 @@
+interface:
+  display_name: "Grill with Docs"
+  short_description: "Interview with ADR and glossary drafts"
+policy:
+  allow_implicit_invocation: false

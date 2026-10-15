@@ -1,12 +1,8 @@
 # Lesson coverage
 
-Where each lesson in `LESSONS.md` ended up. Not loaded into any prompt — this file exists so
-the shrink stays auditable: every lesson is either a rule in `RULES.md`, a deterministic check,
-repo knowledge, or explicitly archived.
+Historical promotion map from the earlier ai-main lesson journal. Not loaded into prompts; the tables below record earlier destinations and are not a claim that every row was reverified during the Obsidian cutover.
 
-`LESSONS.md` itself stays in git as the full incident journal and is still what the
-`self-learning` skill appends to. It is no longer compiled into any tool's entry file
-(it was ~13.4 KB — roughly 3,350 tokens on every session of every tool).
+The six journal entries present on 2026-10-06 were migrated to `~/Tualek/AI Memory/Lessons.md`. `LESSONS.md` is now a pointer; `self-learning` follows the vault workflow for new captures. Promoted rules and deterministic checks remain owned by ai-main. Earlier versions of this journal remain in Git history.
 
 ## Enforced by a check instead of a prompt line
 
@@ -36,5 +32,4 @@ verification, delivery evidence — all in `RULES.md`.
 
 ## Archived
 
-The scanned-PDF duplicate-audit lesson is a one-off with no recurring surface; it stays in
-`LESSONS.md` only.
+The earlier scanned-PDF duplicate-audit lesson was classified as a one-off. It was not present among the six entries migrated on 2026-10-06; consult Git history for its original record.

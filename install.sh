@@ -21,6 +21,24 @@ echo -e "${CYAN}${BOLD}======================================================${N
 # 1. Detect Active User Home Directory
 ACTUAL_HOME="${HOME:-/Users/$(whoami)}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Scoped OMP-first dispatch (default). Everything below is the LEGACY
+# all-harness installer (Gemini/Claude/Cursor/Codex/Pi/...) and is opt-in only:
+#   ./install.sh --legacy
+# Default and `--sync` invocations run scripts/deploy-omp.sh instead, which
+# touches only OMP-owned destinations.
+_LEGACY_DISPATCH=0
+for _dispatch_arg in "$@"; do
+    [ "$_dispatch_arg" = "--legacy" ] && _LEGACY_DISPATCH=1
+done
+if [ "$_LEGACY_DISPATCH" -eq 0 ]; then
+    case "${1:-}" in
+        --help|-h) exec "${SCRIPT_DIR}/scripts/deploy-omp.sh" "$@" ;;
+    esac
+    "${SCRIPT_DIR}/bin/aimain" build
+    exec "${SCRIPT_DIR}/scripts/deploy-omp.sh" "$@"
+fi
+
 BACKUP_DIR="${ACTUAL_HOME}/.ai-backup-$(date +%Y%m%d_%H%M%S)"
 
 # --sync: fast redeploy mode used by scripts/sync.sh — skips brew/submodules/backups,
@@ -81,6 +99,8 @@ mkdir -p "${ACTUAL_HOME}/.codex/shared"
 mkdir -p "${ACTUAL_HOME}/.agents/skills"
 mkdir -p "${ACTUAL_HOME}/.pi/agent/skills"
 mkdir -p "${ACTUAL_HOME}/.pi/agent/shared"
+mkdir -p "${ACTUAL_HOME}/.pi/agent/bin"
+mkdir -p "${ACTUAL_HOME}/.config/mcp"
 
 # 3. Automated Backups
 backup_if_exists() {
@@ -109,6 +129,16 @@ if [ "$SYNC_MODE" -eq 0 ]; then
     backup_if_exists "${ACTUAL_HOME}/.claude/skills/gitlab-mr-description"
     backup_if_exists "${ACTUAL_HOME}/.pi/agent/APPEND_SYSTEM.md"
     backup_if_exists "${ACTUAL_HOME}/.pi/agent/RTK.md"
+    backup_if_exists "${ACTUAL_HOME}/.config/mcp/mcp.json"
+    PI_MCP_OVERRIDE="${ACTUAL_HOME}/.pi/agent/mcp.json"
+    if [ -f "$PI_MCP_OVERRIDE" ]; then
+        if jq -e '((.mcpServers.obsidian.args // []) | index("obsidian-mcp@2")) != null or ((.mcpServers.codegraph.command // "") | startswith("/"))' "$PI_MCP_OVERRIDE" >/dev/null 2>&1; then
+            backup_if_exists "$PI_MCP_OVERRIDE"
+            echo -e "  ${YELLOW}Migrated legacy Pi MCP base; ~/.pi/agent/mcp.json is now reserved for overrides.${NC}"
+        else
+            echo -e "  ${YELLOW}Preserving Pi-specific MCP overrides: ${PI_MCP_OVERRIDE}${NC}"
+        fi
+    fi
 fi
 
 # 4. Link central shared-skills folder
@@ -191,21 +221,43 @@ copy_file "${SCRIPT_DIR}/config/RTK.manual.md" "${ACTUAL_HOME}/.pi/agent/RTK.md"
 # from the annotated sources.
 echo -e "\n${BLUE}🧱 Compiling prompt profiles (full / lean / min)...${NC}"
 if [ -x "${SCRIPT_DIR}/bin/aimain" ]; then
-    "${SCRIPT_DIR}/bin/aimain" build || echo -e "  ${RED}✗ profile build failed — tools keep the previously built profiles${NC}"
+    # Legacy path: Pi farm + full/lean/min profiles (aimain default builds the OMP farm).
+    "${SCRIPT_DIR}/bin/aimain" build --legacy || echo -e "  ${RED}✗ profile build failed — tools keep the previously built profiles${NC}"
 fi
 
 echo -e "\n${BLUE}🪞 Linking shared rules into each tool...${NC}"
 for shared_file in style.md workflow.md profile.md SHARED.md RULES.md; do
     src="${SCRIPT_DIR}/build/full/${shared_file}"
     [ -f "$src" ] || { echo -e "  ${YELLOW}⚠ build/full/${shared_file} missing — skipped${NC}"; continue; }
-    for tool_shared_dir in "${ACTUAL_HOME}/.claude/shared" "${ACTUAL_HOME}/.codex/shared" "${ACTUAL_HOME}/.gemini/shared" "${ACTUAL_HOME}/.pi/agent/shared"; do
+    for tool_shared_dir in "${ACTUAL_HOME}/.claude/shared" "${ACTUAL_HOME}/.codex/shared" "${ACTUAL_HOME}/.gemini/shared"; do
         ln -sfn "$src" "${tool_shared_dir}/${shared_file}"
     done
-    echo -e "  ${GREEN}✓ ${shared_file} → claude/codex/gemini/pi shared/${NC}"
+
+    pi_src="${SCRIPT_DIR}/build/lean/${shared_file}"
+    [ -f "$pi_src" ] || { echo -e "  ${YELLOW}⚠ build/lean/${shared_file} missing — skipped for Pi${NC}"; continue; }
+    ln -sfn "$pi_src" "${ACTUAL_HOME}/.pi/agent/shared/${shared_file}"
+    echo -e "  ${GREEN}✓ ${shared_file} → claude/codex/gemini full; pi lean${NC}"
 done
 
 echo -e "  ${GREEN}✓ Cursor session defaults${NC}"
 ln -sfn "${SCRIPT_DIR}/config/cursor-rules/session-efficiency.mdc" "${ACTUAL_HOME}/.cursor/rules/session-efficiency.mdc"
+
+# The Caveman startup hook otherwise defaults to full, overriding the shared prose rule.
+# Merge only the centrally managed default; preserve other local options and session modes.
+CAVEMAN_CONFIG="${ACTUAL_HOME}/.config/caveman/config.json"
+if [ -L "$CAVEMAN_CONFIG" ] || { [ -e "$CAVEMAN_CONFIG" ] && ! jq -e 'type == "object"' "$CAVEMAN_CONFIG" >/dev/null 2>&1; }; then
+    echo -e "  ${YELLOW}⚠ Caveman config is symlinked or invalid — preserved: ${CAVEMAN_CONFIG}${NC}"
+else
+    mkdir -p "$(dirname "$CAVEMAN_CONFIG")"
+    caveman_tmp="$(mktemp)"
+    if [ -f "$CAVEMAN_CONFIG" ]; then
+        jq -s '.[0] * .[1]' "$CAVEMAN_CONFIG" "${SCRIPT_DIR}/config/caveman.json" > "$caveman_tmp"
+    else
+        cp "${SCRIPT_DIR}/config/caveman.json" "$caveman_tmp"
+    fi
+    mv "$caveman_tmp" "$CAVEMAN_CONFIG"
+    echo -e "  ${GREEN}✓ Caveman startup default: off (explicit activation only)${NC}"
+fi
 
 # 6c. Link canonical memory (repo is source of truth; ~/.ai-memory is the stable alias)
 echo -e "\n${BLUE}🧠 Linking shared memory...${NC}"
@@ -256,6 +308,16 @@ compile_template "${SCRIPT_DIR}/config/AGENTS.md.template" "${ACTUAL_HOME}/.code
 compile_template "${SCRIPT_DIR}/config/GEMINI.md.template" "${ACTUAL_HOME}/.gemini/GEMINI.md"
 compile_template "${SCRIPT_DIR}/config/PI.md.template" "${ACTUAL_HOME}/.pi/agent/APPEND_SYSTEM.md"
 
+# 6e. Deploy the shared MCP base. Pi-specific overrides remain in ~/.pi/agent/mcp.json.
+echo -e "\n${BLUE}🔌 Deploying shared MCP configuration...${NC}"
+SHARED_MCP_CONFIG="${ACTUAL_HOME}/.config/mcp/mcp.json"
+if [ -e "$SHARED_MCP_CONFIG" ] && ! jq -e '.["$comment"] == "generated by ai-main — edit ai-main/config/mcp.json.template"' "$SHARED_MCP_CONFIG" >/dev/null 2>&1; then
+    echo -e "  ${YELLOW}⚠ ${SHARED_MCP_CONFIG} is not ai-main-managed — skipped${NC}"
+else
+    generate_from_template "${SCRIPT_DIR}/config/mcp.json.template" "$SHARED_MCP_CONFIG"
+    echo -e "  ${GREEN}✓ ${SHARED_MCP_CONFIG}${NC}"
+fi
+
 # 7. Redirect skills for tools that need an in-tree SKILL.md (Claude, Gemini)
 echo -e "\n${BLUE}🔄 Creating redirect pointer files for Claude & Gemini skills...${NC}"
 mkdir -p "${ACTUAL_HOME}/.gemini/skills/gitlab-mr-description"
@@ -270,9 +332,7 @@ echo -e "  ${GREEN}✓ ~/.cursor/skills/gitlab-mr-description${NC}"
 ln -sfn "${SCRIPT_DIR}/skills/gitlab-mr-description" "${ACTUAL_HOME}/.codex/skills/gitlab-mr-description"
 echo -e "  ${GREEN}✓ ~/.codex/skills/gitlab-mr-description${NC}"
 ln -sfn "${SCRIPT_DIR}/skills/gitlab-mr-description" "${ACTUAL_HOME}/.agents/skills/gitlab-mr-description"
-echo -e "  ${GREEN}✓ ~/.agents/skills/gitlab-mr-description (Antigravity)${NC}"
-ln -sfn "${SCRIPT_DIR}/skills/gitlab-mr-description" "${ACTUAL_HOME}/.pi/agent/skills/gitlab-mr-description"
-echo -e "  ${GREEN}✓ ~/.pi/agent/skills/gitlab-mr-description (Pi Agent)${NC}"
+echo -e "  ${GREEN}✓ ~/.agents/skills/gitlab-mr-description (Zcode / generic agents)${NC}"
 
 # 8b. Direct-symlink every other owned skill in ai-main/skills/ to all four tools
 echo -e "\n${BLUE}🧩 Linking other owned skills (ai-main/skills/*) to all AI tools...${NC}"
@@ -285,10 +345,17 @@ for skill_dir in "${SCRIPT_DIR}"/skills/*/; do
     if [ ! -f "${skill_dir}/SKILL.md" ]; then
         continue
     fi
-    for tool_skills in "${ACTUAL_HOME}/.claude/skills" "${ACTUAL_HOME}/.codex/skills" "${ACTUAL_HOME}/.cursor/skills" "${ACTUAL_HOME}/.gemini/skills" "${ACTUAL_HOME}/.agents/skills" "${ACTUAL_HOME}/.pi/agent/skills"; do
+    for tool_skills in "${ACTUAL_HOME}/.claude/skills" "${ACTUAL_HOME}/.codex/skills" "${ACTUAL_HOME}/.cursor/skills" "${ACTUAL_HOME}/.gemini/skills" "${ACTUAL_HOME}/.agents/skills"; do
         target="${tool_skills}/${name}"
         if [ -e "$target" ] && [ ! -L "$target" ]; then
-            rm -rf "$target"
+            echo -e "  ${YELLOW}⚠ local skill preserved: ${target}${NC}"
+            continue
+        fi
+        if [ -L "$target" ]; then
+            case "$(readlink "$target")" in
+                "${SCRIPT_DIR}"/*) ;;
+                *) echo -e "  ${YELLOW}⚠ foreign skill link preserved: ${target}${NC}"; continue ;;
+            esac
         fi
         ln -sfn "${skill_dir%/}" "$target"
     done
@@ -301,8 +368,7 @@ TOOL_SKILL_DIRS=(
     "${ACTUAL_HOME}/.codex/skills"
     "${ACTUAL_HOME}/.cursor/skills"
     "${ACTUAL_HOME}/.gemini/skills"
-    "${ACTUAL_HOME}/.agents/skills"    # Antigravity (agy) global skills
-    "${ACTUAL_HOME}/.pi/agent/skills"  # Pi Coding Agent
+    "${ACTUAL_HOME}/.agents/skills"    # Zcode / generic agents global skills
 )
 
 link_external_pack() {
@@ -326,7 +392,14 @@ link_external_pack() {
         for tool_dir in "${TOOL_SKILL_DIRS[@]}"; do
             target="${tool_dir}/${name}"
             if [ -e "$target" ] && [ ! -L "$target" ]; then
-                rm -rf "$target"
+                echo -e "  ${YELLOW}⚠ local skill preserved: ${target}${NC}"
+                continue
+            fi
+            if [ -L "$target" ]; then
+                case "$(readlink "$target")" in
+                    "${SCRIPT_DIR}"/*) ;;
+                    *) echo -e "  ${YELLOW}⚠ foreign skill link preserved: ${target}${NC}"; continue ;;
+                esac
             fi
             ln -sfn "$src" "$target"
         done
@@ -343,8 +416,36 @@ link_external_pack "9arm-skills"             "${SCRIPT_DIR}/external/9arm-skills
 link_external_pack "vercel-labs/agent-skills" "${SCRIPT_DIR}/external/agent-skills"
 link_external_pack "mattpocock/skills"        "${SCRIPT_DIR}/external/mattpocock-skills"
 
-# 9b. Sync plugins for Antigravity (~/.gemini/config/plugins/)
-echo -e "\n${BLUE}✨ Syncing Antigravity global plugins...${NC}"
+# Pi loads its curated farm explicitly through bin/pi-launcher. Remove only stale
+# installer-owned links from Pi's default discovery root; preserve user/package entries.
+echo -e "\n${BLUE}🥧 Configuring Pi's curated skill launcher...${NC}"
+for target in "${ACTUAL_HOME}"/.pi/agent/skills/*; do
+    [ -L "$target" ] || continue
+    case "$(readlink "$target")" in
+        "${SCRIPT_DIR}"/*) rm -f "$target" ;;
+    esac
+done
+ln -sfn "${SCRIPT_DIR}/bin/pi-launcher" "${ACTUAL_HOME}/.pi/agent/bin/pi"
+ln -sfn "${SCRIPT_DIR}/bin/pi-launcher" "${ACTUAL_HOME}/.pi/agent/bin/pi-raw"
+ln -sfn "${SCRIPT_DIR}/bin/pi-memory" "${ACTUAL_HOME}/.pi/agent/bin/pi-memory"
+echo -e "  ${GREEN}✓ Pi persistent memory CLI${NC}"
+echo -e "  ${GREEN}✓ pi → lean context + curated skills${NC}"
+echo -e "  ${GREEN}✓ pi-raw → default Pi discovery${NC}"
+
+if [ -d "${SCRIPT_DIR}/config/pi-agents" ]; then
+    mkdir -p "${ACTUAL_HOME}/.pi/agent/agents"
+    for agent_file in "${SCRIPT_DIR}/config/pi-agents"/*.md; do
+        [ -f "$agent_file" ] || continue
+        agent_name="$(basename "$agent_file")"
+        ln -sfn "$agent_file" "${ACTUAL_HOME}/.pi/agent/agents/${agent_name}"
+        echo -e "  ${GREEN}✓ pi agent: ${agent_name} (advertised)${NC}"
+    done
+fi
+
+# 9b. Sync plugins for Gemini CLI (~/.gemini/config/plugins/).
+# In installed agy 1.1.28, agy plugin install also stages to ~/.gemini/config/plugins/
+# (sharing registry location), while docs also cite ~/.gemini/antigravity-cli.
+echo -e "\n${BLUE}✨ Syncing Gemini CLI global plugins...${NC}"
 sync_gemini_plugin() {
     local plugin_name="$1"
     local plugin_desc="$2"
@@ -366,8 +467,24 @@ EOF
         local skill_dir name target
         skill_dir="$(dirname "$skill_md")"
         name="$(basename "$skill_dir")"
-        [ -d "${SCRIPT_DIR}/skills/${name}" ] && [ "$plugin_name" != "ai-main-skills" ] && continue
         target="${target_plugin_dir}/skills/${name}"
+        if [ -d "${SCRIPT_DIR}/skills/${name}" ] && [ "$plugin_name" != "ai-main-skills" ]; then
+            # Retire only this installer's exact upstream link now overridden by an owned skill.
+            if [ -L "$target" ] && [ "$(readlink "$target")" = "$skill_dir" ]; then
+                rm -f "$target"
+            fi
+            continue
+        fi
+        if [ -e "$target" ] && [ ! -L "$target" ]; then
+            echo -e "  ${YELLOW}⚠ local plugin skill preserved: ${target}${NC}"
+            continue
+        fi
+        if [ -L "$target" ]; then
+            case "$(readlink "$target")" in
+                "${SCRIPT_DIR}"/*) ;;
+                *) echo -e "  ${YELLOW}⚠ foreign plugin skill link preserved: ${target}${NC}"; continue ;;
+            esac
+        fi
         ln -sfn "$skill_dir" "$target"
     done < <(find "${src_pack_dir}/skills" -name SKILL.md \
         -not -path '*/node_modules/*' \
@@ -375,12 +492,107 @@ EOF
         -not -path '*/in-progress/*' \
         -not -path '*/personal/*' \
         -print0)
-    echo -e "  ${GREEN}✓ plugin ${plugin_name} synced to Antigravity${NC}"
+    echo -e "  ${GREEN}✓ Gemini CLI plugin ${plugin_name} synced${NC}"
 }
 
 sync_gemini_plugin "ai-main-skills"    "Centralized workspace skills"    "${SCRIPT_DIR}"
 sync_gemini_plugin "9arm-skills"       "9arm curated AI skills"         "${SCRIPT_DIR}/external/9arm-skills"
 sync_gemini_plugin "mattpocock-skills" "Matt Pocock engineering skills" "${SCRIPT_DIR}/external/mattpocock-skills"
+
+# Antigravity CLI has a documented registry. Build and register only an
+# ai-main-owned plugin; existing imports (for example agent-skills) are untouched.
+if command -v agy >/dev/null 2>&1; then
+    ANTIGRAVITY_PLUGIN="${SCRIPT_DIR}/build/antigravity-plugin"
+    ANTIGRAVITY_MANIFEST="${ANTIGRAVITY_PLUGIN}/.ai-main-skill-hashes"
+    rm -rf "$ANTIGRAVITY_PLUGIN"
+    mkdir -p "${ANTIGRAVITY_PLUGIN}/skills"
+    cat > "${ANTIGRAVITY_PLUGIN}/plugin.json" <<'EOF'
+{
+  "$schema": "https://antigravity.google/schemas/v1/plugin.json",
+  "name": "ai-main-shared",
+  "description": "ai-main owned shared engineering skills"
+}
+EOF
+    : > "$ANTIGRAVITY_MANIFEST"
+    for skill_dir in "${SCRIPT_DIR}"/skills/*/; do
+        [ -f "${skill_dir}SKILL.md" ] || continue
+        skill_name="$(basename "${skill_dir%/}")"
+        ln -sfn "${skill_dir%/}" "${ANTIGRAVITY_PLUGIN}/skills/${skill_name}"
+        printf '%s\t%s\n' "$skill_name" "$(shasum -a 256 "${skill_dir}SKILL.md" | awk '{print $1}')" >> "$ANTIGRAVITY_MANIFEST"
+    done
+    sync_agy_owned_plugin() { # <installed plugin path>
+        local installed="$1" name expected source target current source_hash changed=0
+        if ! cmp -s "$ANTIGRAVITY_PLUGIN/plugin.json" "$installed/plugin.json"; then
+            echo -e "  ${YELLOW}⚠ Antigravity CLI ai-main-shared manifest has a local owner — preserved${NC}"
+            return 1
+        fi
+        if [ ! -f "$installed/.ai-main-skill-hashes" ]; then
+            # Bootstrap only if every copied skill still exactly matches its owned source.
+            while IFS=$'\t' read -r name expected; do
+                source="${SCRIPT_DIR}/skills/${name}/SKILL.md"; target="$installed/skills/${name}/SKILL.md"
+                [ -f "$target" ] && [ "$(shasum -a 256 "$target" | awk '{print $1}')" = "$(shasum -a 256 "$source" | awk '{print $1}')" ] || {
+                    echo -e "  ${YELLOW}⚠ Antigravity CLI ai-main-shared has untracked local skill content — preserved${NC}"; return 1; }
+            done < "$ANTIGRAVITY_MANIFEST"
+            cp "$ANTIGRAVITY_MANIFEST" "$installed/.ai-main-skill-hashes"
+            echo -e "  ${GREEN}✓ Antigravity CLI plugin ai-main-shared ownership manifest adopted${NC}"
+            return 0
+        fi
+        local new_manifest="${installed}/.ai-main-skill-hashes.tmp.$$"
+        : > "$new_manifest"
+        while IFS=$'\t' read -r name expected; do
+            source="${SCRIPT_DIR}/skills/${name}/SKILL.md"; target="$installed/skills/${name}/SKILL.md"
+            [ -f "$source" ] || continue
+            current="$(shasum -a 256 "$target" 2>/dev/null | awk '{print $1}')"
+            source_hash="$(shasum -a 256 "$source" 2>/dev/null | awk '{print $1}')"
+            if [ "$current" = "$expected" ]; then
+                if [ "$current" != "$source_hash" ]; then
+                    mkdir -p "$(dirname "$target")"; cp "$source" "$target"; changed=1
+                fi
+                printf '%s\t%s\n' "$name" "$source_hash" >> "$new_manifest"
+            elif [ "$current" != "$source_hash" ]; then
+                echo -e "  ${YELLOW}⚠ Antigravity CLI local skill preserved: ${target}${NC}"
+                printf '%s\t%s\n' "$name" "$expected" >> "$new_manifest"
+                continue
+            else
+                printf '%s\t%s\n' "$name" "$source_hash" >> "$new_manifest"
+            fi
+        done < "$installed/.ai-main-skill-hashes"
+        while IFS=$'\t' read -r name expected; do
+            target="$installed/skills/${name}/SKILL.md"
+            if [ ! -e "$target" ]; then
+                source="${SCRIPT_DIR}/skills/${name}/SKILL.md"
+                mkdir -p "$(dirname "$target")"; cp "$source" "$target"; changed=1
+                printf '%s\t%s\n' "$name" "$expected" >> "$new_manifest"
+            fi
+        done < "$ANTIGRAVITY_MANIFEST"
+        mv "$new_manifest" "$installed/.ai-main-skill-hashes"
+        [ "$changed" -eq 0 ] || echo -e "  ${GREEN}✓ Antigravity CLI plugin ai-main-shared skills refreshed${NC}"
+    }
+    if agy plugin validate "$ANTIGRAVITY_PLUGIN" >/dev/null 2>&1; then
+        if agy plugin list 2>/dev/null | grep -q '"name": "ai-main-shared"'; then
+            # 1.1.28 stages here; retain the documented path as a future-compatible candidate.
+            for installed in "${ACTUAL_HOME}/.gemini/config/plugins/ai-main-shared" "${ACTUAL_HOME}/.gemini/antigravity-cli/plugins/ai-main-shared"; do
+                [ -d "$installed" ] || continue
+                sync_agy_owned_plugin "$installed" || true
+                break
+            done
+        elif agy plugin install "$ANTIGRAVITY_PLUGIN"; then
+            echo -e "  ${GREEN}✓ Antigravity CLI plugin ai-main-shared registered${NC}"
+            for installed in "${ACTUAL_HOME}/.gemini/config/plugins/ai-main-shared" "${ACTUAL_HOME}/.gemini/antigravity-cli/plugins/ai-main-shared"; do
+                if [ -d "$installed" ] && cmp -s "$ANTIGRAVITY_PLUGIN/plugin.json" "$installed/plugin.json"; then
+                    cp "$ANTIGRAVITY_MANIFEST" "$installed/.ai-main-skill-hashes"
+                    break
+                fi
+            done
+        else
+            echo -e "  ${YELLOW}⚠ Antigravity CLI plugin registration failed; existing registry preserved${NC}"
+        fi
+    else
+        echo -e "  ${YELLOW}⚠ Antigravity CLI plugin validation failed; registry preserved${NC}"
+    fi
+else
+    echo -e "  ${YELLOW}⚠ agy not found; Antigravity CLI plugin not registered${NC}"
+fi
 
 # 10. Sync slash commands (Claude + Cursor)
 if [ -d "${SCRIPT_DIR}/commands" ]; then
@@ -488,22 +700,10 @@ if [ "$SYNC_MODE" -eq 0 ] && [ -d "$CLAUDE_CONFIG_DIR" ]; then
     jq -r '.preferences.localAgentModeTrustedFolders[] | "    - \(. )"' "$CLAUDE_CONFIG_FILE"
 fi
 
-# 10d. Global gitignore — deployed AGENTS.md/CLAUDE.md/GEMINI.md must never land in work repos
-echo -e "\n${BLUE}🙈 Ensuring global gitignore entries...${NC}"
-GLOBAL_IGNORE="$(git config --global core.excludesFile 2>/dev/null || true)"
-GLOBAL_IGNORE="${GLOBAL_IGNORE/#\~/$ACTUAL_HOME}"
-if [ -z "$GLOBAL_IGNORE" ]; then
-    GLOBAL_IGNORE="${ACTUAL_HOME}/.config/git/ignore"
-fi
-mkdir -p "$(dirname "$GLOBAL_IGNORE")"
-touch "$GLOBAL_IGNORE"
-for ignore_entry in CLAUDE.md AGENTS.md GEMINI.md CLAUDE.local.md; do
-    if ! grep -qxF "$ignore_entry" "$GLOBAL_IGNORE"; then
-        echo "$ignore_entry" >> "$GLOBAL_IGNORE"
-        echo -e "  ${GREEN}✓ added ${ignore_entry}${NC}"
-    fi
-done
-echo -e "  ${GREEN}✓ global ignore: ${GLOBAL_IGNORE}${NC} (use 'git add -f' if a repo should track one)"
+# 10d. Generated workspace files are excluded locally by aimain deploy.
+# Never add global AGENTS.md/CLAUDE.md/GEMINI.md patterns: they hide legitimate
+# nested instructions owned by other repositories. Existing user/global entries
+# are left untouched; inspect with `git check-ignore -v <path>` before changing them.
 
 # 10e. Claude Code SessionStart hook — pull latest ai-main at session start
 if [ "$SYNC_MODE" -eq 0 ] && command -v jq >/dev/null 2>&1; then
@@ -581,7 +781,10 @@ verify_link "${ACTUAL_HOME}/.claude/skills/gitlab-mr-comment-reply"
 verify_link "${ACTUAL_HOME}/.pi/agent/APPEND_SYSTEM.md"
 verify_link "${ACTUAL_HOME}/.pi/agent/RTK.md"
 verify_link "${ACTUAL_HOME}/.pi/agent/shared/style.md"
-verify_link "${ACTUAL_HOME}/.pi/agent/skills/gitlab-mr-description"
+verify_link "${ACTUAL_HOME}/.pi/agent/bin/pi"
+verify_link "${ACTUAL_HOME}/.pi/agent/bin/pi-raw"
+verify_link "${ACTUAL_HOME}/.pi/agent/bin/pi-memory"
+verify_link "${ACTUAL_HOME}/.config/mcp/mcp.json"
 
 # 12. Summary
 echo -e "\n${GREEN}${BOLD}🎉 INSTALLATION SUCCESSFUL!${NC}"

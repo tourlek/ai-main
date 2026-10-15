@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+#
+# omp-verify — scoped OMP verify role launcher (GLM).
+# Thin shim: resolves symlinks back to the repository, then delegates to
+# bin/omp-role.ts. Role facts live in config/omp-roles.json — see
+# `omp-verify --help` and `omp-verify --describe`.
+
+set -euo pipefail
+
+SOURCE="${BASH_SOURCE[0]}"
+while [ -L "$SOURCE" ]; do
+    DIR="$(cd -P "$(dirname "$SOURCE")" && pwd)"
+    SOURCE="$(readlink "$SOURCE")"
+    case "$SOURCE" in
+        /*) ;;
+        *) SOURCE="$DIR/$SOURCE" ;;
+    esac
+done
+REPO_ROOT="$(cd -P "$(dirname "$SOURCE")/.." && pwd)"
+
+BUN_BIN="$(command -v bun || true)"
+if [ -z "$BUN_BIN" ]; then
+    for candidate in "${HOME:-}/.bun/bin/bun" /opt/homebrew/bin/bun /usr/local/bin/bun; do
+        if [ -x "$candidate" ]; then
+            BUN_BIN="$candidate"
+            break
+        fi
+    done
+fi
+if [ -z "$BUN_BIN" ]; then
+    echo "omp-verify: bun not found on PATH or ~/.bun/bin/bun" >&2
+    exit 127
+fi
+
+exec "$BUN_BIN" "${REPO_ROOT}/bin/omp-role.ts" verify "$@"

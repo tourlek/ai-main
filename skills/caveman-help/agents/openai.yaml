@@ -1,0 +1,5 @@
+interface:
+  display_name: "Caveman Help"
+  short_description: "Show Caveman modes and commands"
+policy:
+  allow_implicit_invocation: false

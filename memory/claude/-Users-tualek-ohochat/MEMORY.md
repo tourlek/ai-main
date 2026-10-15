@@ -13,3 +13,5 @@
 - [Smartchat deep-link channel regression](project_smartchat_deeplink_channel_regression.md) — v1.113.0 (commit 2692b732) ลบ channel_id จาก direct contact fetch → restricted member เปิดห้องผ่านลิงก์ไม่ได้ แต่ search เจอ
 - [Unread migration ordering](project_unread_migration_ordering.md) — flag ปิดตอน migrate เสมอ, ห้ามแตะ oho-api, ลำดับ migrate → เปิด flag → recap
 - [Worktree branch self-tracking](feedback_worktree_branch_self_tracking.md) — working branch จาก master ต้อง push -u ให้ track ตัวเอง ไม่ใช่ origin/master (repo เปิด autoSetupMerge)
+- [Worktree base = master](feedback_worktree_base_master.md) — สร้าง worktree ใหม่จาก origin/master เสมอ ไม่ถาม ไม่ใช้ develop/staging
+- [Slack dev-merge-request format](reference_slack_dev_mr_format.md) — header [repos]: title (OHO-x) / card: / link: / @Tong; ร่างให้ user เท่านั้น

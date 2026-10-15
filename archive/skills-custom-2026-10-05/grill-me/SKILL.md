@@ -1,6 +1,6 @@
 ---
 name: grill-me
-description: A relentless interview to sharpen a plan or design.
+description: Use /grill-me to start an interactive design interview.
 disable-model-invocation: true
 ---
 

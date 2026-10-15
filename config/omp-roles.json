@@ -1,0 +1,44 @@
+{
+  "version": 1,
+  "$comment": "Role models, tools and prompts for fresh OMP review/verify sessions. Models use explicit provider/model ids. User deny/prompt Bash policies precede narrowly allowed Git inspection, Orca check/send, and exact verifier --check commands; broad user allow rules are not copied into the role overlay.",
+  "startupMessage": "Read-only startup handshake only. No review or verification assignment and no Orca Dispatch exist yet. Do not inspect files, run commands, call tools, or emit lifecycle messages. Reply exactly READY and then idle.",
+  "bashAllow": [
+    { "match": "git status*", "approval": "allow" },
+    { "match": "git diff*", "approval": "allow" },
+    { "match": "git log*", "approval": "allow" },
+    { "match": "git show*", "approval": "allow" },
+    { "match": "git blame*", "approval": "allow" },
+    { "match": "git shortlog*", "approval": "allow" },
+    { "match": "git describe*", "approval": "allow" },
+    { "match": "git rev-parse*", "approval": "allow" },
+    { "match": "git ls-files*", "approval": "allow" },
+    { "match": "git grep*", "approval": "allow" },
+    { "match": "git branch --show-current", "approval": "allow" },
+    { "match": "git worktree list*", "approval": "allow" },
+    { "match": "git remote get-url*", "approval": "allow" },
+    { "match": "git config --get*", "approval": "allow" }
+  ],
+  "deniedTools": ["task", "ask", "write", "edit", "learn", "todo"],
+  "roles": {
+    "review": {
+      "label": "Review",
+      "model": "openai-codex/gpt-6.1-sol",
+      "thinking": "high",
+      "tools": ["read", "find", "grep", "glob", "lsp", "bash"],
+      "approvalMode": "yolo",
+      "noPrewalk": true,
+      "promptPath": "config/omp-roles/review.md",
+      "summary": "Fresh scoped code review; evidence-backed findings with severity/file/line; outcomes clean/findings/blocked; no builds, no source edits."
+    },
+    "verify": {
+      "label": "Verify",
+      "model": "zai/glm-5.3-flash",
+      "thinking": "high",
+      "tools": ["read", "find", "grep", "glob", "lsp", "bash"],
+      "approvalMode": "yolo",
+      "noPrewalk": true,
+      "promptPath": "config/omp-roles/verify.md",
+      "summary": "Evidence-first verification; only inspected, safe package checks in a restricted env; commands+results reported; missing proof is Blocked, never Passed."
+    }
+  }
+}

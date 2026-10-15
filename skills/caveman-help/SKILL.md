@@ -1,9 +1,7 @@
 ---
 name: caveman-help
-description: >
-  Quick-reference card for all caveman modes, skills, and commands.
-  One-shot display, not a persistent mode. Trigger: /caveman-help,
-  "caveman help", "what caveman commands", "how do I use caveman".
+description: Use to show Caveman commands and modes on request.
+disable-model-invocation: true
 ---
 
 # Caveman Help
@@ -42,7 +40,7 @@ Keep user's language by default. User write Portuguese → reply Portuguese cave
 
 ## Configure Default Mode
 
-Default mode = `full`. Change it:
+ai-main starts in normal concise prose. After explicit activation, the default level is `full`. The following upstream settings apply only when the corresponding Caveman integration is installed:
 
 **Environment variable** (highest priority):
 ```bash
@@ -54,7 +52,7 @@ export CAVEMAN_DEFAULT_MODE=ultra
 { "defaultMode": "lite" }
 ```
 
-Set `"off"` to disable auto-activation on session start. User can still activate manually with `/caveman`.
+Set `"off"` to keep integration startup consistent with ai-main's explicit activation policy. Users can still activate manually with `/caveman`.
 
 Resolution: env var > config file > `full`.
 

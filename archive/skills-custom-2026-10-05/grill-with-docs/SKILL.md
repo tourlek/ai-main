@@ -1,6 +1,6 @@
 ---
 name: grill-with-docs
-description: A relentless interview to sharpen a plan or design, which also creates docs (ADR's and glossary) as we go.
+description: Use /grill-with-docs for a design interview with ADR and glossary drafts.
 disable-model-invocation: true
 ---
 

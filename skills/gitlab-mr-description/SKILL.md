@@ -1,6 +1,6 @@
 ---
 name: gitlab-mr-description
-description: Create clear GitLab merge request descriptions from an MR link, branch diff, commits, issue context, or pasted notes. Use when the user sends a GitLab MR URL and asks an AI agent to draft, improve, standardize, or fill a merge request description, including summary, changes, testing, risk, rollout, and reviewer notes.
+description: Use to draft or revise a GitLab merge request description.
 ---
 
 # GitLab MR Description

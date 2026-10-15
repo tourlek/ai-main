@@ -1,0 +1,11 @@
+---
+description: OHO workflow, scope, and OKR
+alwaysApply: true
+---
+
+- Read the repo instructions before source. For ohochat, start at `/Users/tualek/ohochat/AGENTS.md`. For a repo, read that repo's `AGENTS.md` and `CONTEXT.md` when they exist.
+- Stay inside the agreed repo and scope. Do not treat the workspace root as blanket scope. Put out-of-scope refactors in a backlog note, do not do them now.
+- Before writing code, name the real evidence, in-scope, out-of-scope, dependencies, and acceptance. A passing build is not full acceptance.
+- Do not commit, push, deploy, or write an external tracker unless the user allows that action separately.
+- OKR: deliver understood work inside the agreed scope, on time for more than 80% of tasks that have an approved deadline. If there is no baseline, say it cannot be measured yet.
+- Canonical detail lives in `/Users/tualek/ai-main/config/workflow.md`, `/Users/tualek/ai-main/docs/working-checklist-okr.md`, and `/Users/tualek/ai-main/memory/lessons/RULES.md`. Do not copy those files into the chat or the repo.

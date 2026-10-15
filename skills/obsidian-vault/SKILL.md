@@ -1,59 +1,47 @@
 ---
 name: obsidian-vault
-description: Search, create, and manage notes in the Obsidian vault with wikilinks and index notes. Use when user wants to find, create, or organize notes in Obsidian.
+description: Use for Obsidian work, curated long-term memory, or cross-repo knowledge missing from repo docs.
 ---
 
 # Obsidian Vault
 
-## Vault location
+## Scope and authority
 
-`/Users/tualek/Tualek/`
+- Vault: `/Users/tualek/Tualek/`.
+- Curated long-term memory starts at `AI Memory/Home.md`; capture and consolidation follow its linked workflow.
+- OHO discovery starts at `OHO/Home.md` and follows only links relevant to the task.
+- Repository documentation is canonical for code behavior, API contracts, setup, and release procedures.
+- Obsidian owns curated long-term preferences, corrections, and cross-project decisions, plus cross-repo context and summaries.
+- Link to canonical repository material instead of copying entire implementation documents into the vault.
 
-Mostly flat at root level.
+## Primary workflow
 
-## Naming conventions
+Use the configured Obsidian MCP server when available:
 
-- **Index notes**: aggregate related topics (e.g., `Ralph Wiggum Index.md`, `Skills Index.md`, `RAG Index.md`)
-- **Title case** for all note names
-- No folders for organization - use links and index notes instead
+1. List vaults when the vault id is unknown.
+2. Search filenames/content/tags with a narrow query and bounded result count.
+3. Read only the matching note or linked section; paginate bounded reads when needed.
+4. When OHO vault context is needed, start at `OHO/Home.md`, then follow only the relevant link; ordinary local code work does not require a vault read.
+5. Before editing an existing note, read it and pass its latest etag to the edit operation when supported.
 
-## Linking
+Use MCP discovery when exact tool names are not visible. In Pi, search or describe the `obsidian` server through the MCP proxy before the first call.
 
-- Use Obsidian `[[wikilinks]]` syntax: `[[Note Title]]`
-- Notes link to dependencies/related notes at the bottom
-- Index notes are just lists of `[[wikilinks]]`
+## Write policy
 
-## Workflows
+- `create`, `edit`, and tag operations require an explicit user request to write or organize notes.
+- `move` and `delete` always require tool approval.
+- Never sync Obsidian content back over repository documentation automatically.
+- Preserve the local folder's existing naming and frontmatter conventions.
+- For a new standalone note without a local convention, use Title Case and add relevant `[[wikilinks]]`.
+- Use index notes to expose navigation, but preserve structured OHO folders such as `OHO/Source Docs` and `OHO/Indexes`.
 
-### Search for notes
+## Shell fallback
 
-```bash
-# Search by filename
-find "/Users/tualek/Tualek/" -name "*.md" | grep -i "keyword"
-
-# Search by content
-grep -rl "keyword" "/Users/tualek/Tualek/" --include="*.md"
-```
-
-Or use Grep/Glob tools directly on the vault path.
-
-### Create a new note
-
-1. Use **Title Case** for filename
-2. Write content as a unit of learning (per vault rules)
-3. Add `[[wikilinks]]` to related notes at the bottom
-4. If part of a numbered sequence, use the hierarchical numbering scheme
-
-### Find related notes
-
-Search for `[[Note Title]]` across the vault to find backlinks:
+Use direct filesystem search only when the Obsidian MCP is unavailable. Keep searches bounded to the vault and exclude `.obsidian`, trash, caches, and generated/plugin state.
 
 ```bash
-grep -rl "\\[\\[Note Title\\]\\]" "/Users/tualek/Tualek/"
+find "/Users/tualek/Tualek" -path '*/.obsidian' -prune -o -name '*.md' -iname '*keyword*' -print
+rg -l --glob '*.md' --glob '!.obsidian/**' 'keyword' "/Users/tualek/Tualek"
 ```
 
-### Find index notes
-
-```bash
-find "/Users/tualek/Tualek/" -name "*Index*"
-```
+Do not run an unbounded search from the user's home directory.

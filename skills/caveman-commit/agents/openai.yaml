@@ -1,0 +1,5 @@
+interface:
+  display_name: "Caveman Commit"
+  short_description: "Compact commit-message formatting"
+policy:
+  allow_implicit_invocation: false

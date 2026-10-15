@@ -1,0 +1,17 @@
+{
+  "$comment": "OMP startup allowlist. Other discovered skills remain manual /skill:name pointers. Owned skills win over pinned external packs, ~/.agents/skills and native user skills. Runtime-managed skills load independently; neither managed skills nor repository backups are farmed.",
+  "auto": [
+    "code-review",
+    "codebase-design",
+    "debug-mantra",
+    "git-commit-helper",
+    "gitlab-mr-comment-reply",
+    "gitlab-mr-description",
+    "obsidian-vault",
+    "omp-orca-roles",
+    "orca-cli",
+    "resolving-merge-conflicts",
+    "self-learning",
+    "writing-for-agents"
+  ]
+}

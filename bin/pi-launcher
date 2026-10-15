@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+
+set -uo pipefail
+
+AI_MAIN="${AI_MAIN_HOME:-${HOME}/ai-main}"
+LAUNCHER_DIR="${HOME}/.pi/agent/bin"
+
+find_real_pi() {
+    if [ -n "${PI_REAL_BIN:-}" ] && [ -x "${PI_REAL_BIN}" ]; then
+        printf '%s\n' "${PI_REAL_BIN}"
+        return 0
+    fi
+
+    local filtered="" part old_ifs
+    old_ifs="$IFS"
+    IFS=':'
+    for part in $PATH; do
+        [ "$part" = "$LAUNCHER_DIR" ] && continue
+        if [ -z "$filtered" ]; then filtered="$part"; else filtered="${filtered}:$part"; fi
+    done
+    IFS="$old_ifs"
+    PATH="$filtered" command -v pi
+}
+
+REAL_PI="$(find_real_pi || true)"
+if [ -z "$REAL_PI" ] || [ ! -x "$REAL_PI" ]; then
+    echo "pi launcher: real pi executable not found" >&2
+    exit 127
+fi
+
+if [ "$(basename "$0")" = "pi-raw" ]; then
+    exec "$REAL_PI" "$@"
+fi
+
+if [ "${AIMAIN_SKIP_STARTUP_SYNC:-0}" != "1" ] && [ -x "${AI_MAIN}/scripts/sync.sh" ]; then
+    "${AI_MAIN}/scripts/sync.sh" --pull-only --quiet || true
+fi
+
+SKILL_FARM="${AI_MAIN}/build/pi-skills"
+if [ ! -d "$SKILL_FARM" ] && [ -x "${AI_MAIN}/bin/aimain" ]; then
+    "${AI_MAIN}/bin/aimain" build >/dev/null
+fi
+if [ ! -d "$SKILL_FARM" ]; then
+    echo "pi launcher: curated skill farm missing: $SKILL_FARM" >&2
+    exit 1
+fi
+
+exec "$REAL_PI" --no-skills --skill "$SKILL_FARM" "$@"

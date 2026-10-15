@@ -1,0 +1,5 @@
+interface:
+  display_name: "Caveman Stats"
+  short_description: "Show usage when the stats hook is installed"
+policy:
+  allow_implicit_invocation: false

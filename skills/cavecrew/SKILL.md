@@ -1,17 +1,13 @@
 ---
 name: cavecrew
-description: >
-  Decision guide for delegating to caveman-style subagents. Tells the main
-  thread WHEN to spawn `cavecrew-investigator` (locate code), `cavecrew-builder`
-  (1-2 file edit), or `cavecrew-reviewer` (diff review) instead of doing the
-  work inline or using vanilla `Explore`. Subagent output is caveman-compressed
-  so the tool-result injected back into main context is ~60% smaller — main
-  context lasts longer across long sessions.
-  Trigger: "delegate to subagent", "use cavecrew", "spawn investigator/builder/reviewer",
-  "save context", "compressed agent output".
+description: Use when the user requests Cavecrew delegation with compact outputs.
 ---
 
 Cavecrew = three subagent presets that emit caveman output. Same job as Anthropic defaults (`Explore`, edit-style agents, reviewer); difference is the tool-result they return is compressed, so main context shrinks per delegation.
+
+## Harness boundary
+
+Discover available agents before dispatch. Names below are presets, not guaranteed capabilities. Use the current harness's delegation, approval, and isolation protocol; do not substitute a CLI runner after a governed launch fails. Compact output does not replace evidence verification.
 
 ## When to use cavecrew vs alternatives
 

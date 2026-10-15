@@ -1,6 +1,6 @@
 ---
 name: branch-perf-compare
-description: Compare runtime performance (RAM, CPU, startup time, bundle size) of the same app across two or more git branches and produce a paste-ready Markdown report. Use when the user asks to "compare performance between branches", "benchmark uat vs nuxt3", "why does X branch use more RAM than Y", or wants a written perf summary saved to a .md file at repo root.
+description: Use to measure the same workload across named Git refs.
 ---
 
 # Branch Performance Comparison
@@ -11,22 +11,24 @@ Standardizes the workflow of running the same app on multiple branches, capturin
 
 1. Identify the branches and what to measure.
    - List of branches must be explicit. Common shape: `origin/uat`, `origin/nuxt3`, `perf/nuxt3-ram-reductions`, `feature/tk-XXXX-*`.
-   - Default metrics: dev-server RAM (RSS), dev-server startup time, first-page TTFB, bundle size if a build step exists. Add Lighthouse / web-vitals only if the user asks.
-   - Ask the user which page(s) or flow(s) define "the same workload" before measuring. Default to opening the app idle on `/` if not specified.
+   - Measure the requested metric first; add supporting metrics only when needed to interpret it. Build, Lighthouse, and web-vitals are not automatic additions to a RAM comparison.
+   - Use the specified workload; for an explicitly idle comparison, state the idle `/` assumption. Ask when page/flow choice materially changes the comparison.
 
 2. Pre-flight check.
-   - `git fetch --all --prune` to refresh remotes.
-   - `git stash` or refuse to proceed if the working tree is dirty — never measure on dirty trees.
-   - Confirm Node version and package-manager (npm/yarn/pnpm) is the same across branches; if not, flag in the report.
-   - If branches use different lockfiles, do a clean `node_modules` install per branch (`rm -rf node_modules && <pm> install --frozen-lockfile`) and record install time too.
+   - Resolve and record exact commit IDs; fetch only the relevant remote when fresh refs are required.
+   - A dirty caller worktree does not block benchmarking committed refs in isolation. Never stash, reset, clean, or checkout over user/other-agent work; ask if uncommitted changes are part of the requested comparison.
+   - Create one disposable detached worktree per branch with `git worktree add --detach <temp-dir> <branch>`.
+   - Confirm Node version and package-manager (npm/yarn/pnpm) is the same across worktrees; if not, flag in the report.
+   - If branches use different lockfiles, do a clean dependency install inside each disposable worktree and record install time too.
 
 3. Run each branch.
-   - `git checkout <branch>`.
+   - Run from its disposable worktree; never switch the caller's branch.
    - Boot the dev server (or production build, if that's what was asked).
    - Wait until the server logs "ready" / equivalent stable signal, then start the measurement window.
    - Sample RSS at fixed intervals (e.g. every 2s for 60s) via `ps -o rss= -p <pid>` or `/usr/bin/time -l` for build commands. Average and peak both matter.
    - Open the agreed page once, wait for idle, sample again.
    - Capture command output and timings. Stop the server cleanly between branches.
+   - Remove only worktrees created by this run with `git worktree remove`; leave failed worktrees in place and report their paths when cleanup is unsafe.
 
 4. Compute deltas.
    - For each metric, compute absolute and percentage delta from the baseline branch (default: `origin/uat` or the branch the user names as baseline).
@@ -34,7 +36,7 @@ Standardizes the workflow of running the same app on multiple branches, capturin
    - Cross-reference with `git log <baseline>..<branch> --oneline` to suggest likely contributors when a regression is large.
 
 5. Write the report.
-   - Save to `<perf-report>.md` at repo root (e.g. `nuxt3-perf-review.md`, `jera-performance-review.md`).
+   - Save to `<perf-report>.md` at repo root unless the user requests chat-only/read-only output.
    - Use the template below. Keep numbers, drop adjectives.
    - If a measurement wasn't run (env couldn't boot, etc.), write `Not measured: <reason>` — never fabricate.
 
@@ -74,7 +76,7 @@ Standardizes the workflow of running the same app on multiple branches, capturin
 
 ## Rules
 
-- Never compare branches by reading code alone. The report is empty without numbers — if measurement isn't possible, say so and stop.
-- One branch per process; never run two dev servers in parallel on the same port.
+- Never present static analysis as measured performance. If measurement is blocked, report the exact blocker and reproducible benchmark plan; complete any independent requested analysis with its evidence limits stated.
+- One branch per disposable worktree and process; never run two dev servers in parallel on the same port.
 - Don't include performance theories the user didn't ask for. Stick to measured deltas and the smallest reasonable contributor list.
 - If the user mentions a specific concern (`local uat ใช้ ram less then nuxt3`), order the metrics table so that concern is the first row.

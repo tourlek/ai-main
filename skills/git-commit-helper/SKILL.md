@@ -1,13 +1,13 @@
 ---
 name: git-commit-helper
-description: Inspect local git changes and suggest commit names and which files to stage. Use when the user asks to name commits, review local changes before committing, decide whether changes should be split across multiple commits or combined, follow commit prefixes such as fix:, feat:, refactor:, core:, chore:, docs:, test:, style:, or add a commit body/description when the subject alone is insufficient.
+description: Use to group local changes and draft a staging plan and commit messages.
 ---
 
 # Git Commit Helper
 
 ## Overview
 
-Inspect local changes and output a staging + commit plan. Do not run `git add`, `git commit`, or `git push` — only report what the user should do.
+This skill supplies grouping and message drafts; advice alone does not authorize staging or committing. If the user explicitly requested a commit, the parent continues with the approved grouping under the harness's approval protocol after this drafting step. Commit approval does not authorize push, amend, or unrelated files.
 
 ## Workflow
 
@@ -52,7 +52,7 @@ Inspect local changes and output a staging + commit plan. Do not run `git add`, 
 
 ## Output Format
 
-Always output a plan in this shape — never run git commands that mutate state:
+For an advice-only request, output the plan below. For an authorized commit request, use it as the execution plan rather than stopping at the draft:
 
 ```
 Commit 1:
@@ -65,4 +65,4 @@ Commit 2 (if applicable):
   Message: <prefix>: <subject>
 ```
 
-Do not run `git add`, `git commit`, `git push`, or any other mutating git command.
+Completion: grouping and messages cover only the intended changes; the parent either returns the requested advice or completes the separately authorized commit and reports its result.

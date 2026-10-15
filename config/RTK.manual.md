@@ -4,7 +4,7 @@
 
 ## Rule
 
-This tool does **not** have an auto-rewrite hook configured. Always prefix shell commands with `rtk`.
+Use `rtk <command>` by default for shell commands. During debugging, run the raw command without RTK whenever it truncates or hides logs needed to diagnose the issue; resume RTK afterward.
 
 Examples:
 
