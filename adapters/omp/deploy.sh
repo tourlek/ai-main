@@ -6,7 +6,7 @@
 # Never touches legacy tool homes (Claude, Gemini, Cursor, Pi, external packs) — use
 # `install.sh --legacy` for the old all-harness installer.
 #
-# Usage: scripts/deploy-omp.sh [--codex] [--sync] [--quiet] [--legacy] [--help]
+# Usage: adapters/omp/deploy.sh [--codex] [--sync] [--quiet] [--legacy] [--help]
 #   --codex   additionally deploy the optional Codex GUI entry + owned skills
 #   --sync    redeploy mode used by scripts/sync.sh (identical, quieter banner)
 #   --quiet   suppress informational output (launchd)
@@ -18,7 +18,7 @@
 # (nonzero) instead of being overwritten.
 #
 # Sources (built by `bin/aimain build`, never built here):
-#   config/OMP.md.template     -> OMP entry      (@imports build/omp/SYSTEM.md)
+#   adapters/omp/entry.md.template -> OMP entry      (@imports build/omp/SYSTEM.md)
 #   build/omp/SYSTEM.md        -> OMP system body
 #   build/omp-skills/          -> OMP skill farm (skills.customDirectories[0])
 #   build/lean/SYSTEM.md       -> Codex entry body (--codex only)
@@ -38,22 +38,23 @@ for arg in "$@"; do
         --codex)  CODEX_MODE=1 ;;
         --sync)   SYNC_MODE=1 ;;
         --quiet)  QUIET=1 ;;
-        --legacy) exec "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/install.sh" "$@" ;;
+        --legacy) exec "$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)/install.sh" "$@" ;;
         --help|-h)
             sed -n '2,16p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
             exit 0 ;;
         *)
-            echo "deploy-omp.sh: unknown option: $arg (try --help)" >&2
+            echo "deploy.sh: unknown option: $arg (try --help)" >&2
             exit 2 ;;
     esac
 done
 
-REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
+REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
+ADAPTER_DIR="${REPO_DIR}/adapters/omp"
 ACTUAL_HOME="${HOME:-$(cd ~ && pwd -P)}"
 AGENT_DIR="${PI_CODING_AGENT_DIR:-${ACTUAL_HOME}/.omp/agent}"
 BACKUP_DIR="${ACTUAL_HOME}/.ai-backup-$(date +%Y%m%d_%H%M%S)"
 
-OMP_TEMPLATE="${REPO_DIR}/config/OMP.md.template"
+OMP_TEMPLATE="${ADAPTER_DIR}/entry.md.template"
 OMP_SYSTEM="${REPO_DIR}/build/omp/SYSTEM.md"
 FARM_DIR="${REPO_DIR}/build/omp-skills"
 CODEX_SYSTEM="${REPO_DIR}/build/lean/SYSTEM.md"
@@ -76,9 +77,9 @@ require_sources() {
     [ -f "$OMP_SYSTEM" ]   || { echo "missing: $OMP_SYSTEM (run bin/aimain build)" >&2; missing=1; }
     [ -d "$FARM_DIR" ]     || { echo "missing: $FARM_DIR (run bin/aimain build)" >&2; missing=1; }
     for name in omp-review omp-verify omp-orca-role; do
-        [ -f "${REPO_DIR}/bin/${name}" ] || { echo "missing: bin/${name}" >&2; missing=1; }
+        [ -f "${ADAPTER_DIR}/bin/${name}" ] || { echo "missing: adapters/omp/bin/${name}" >&2; missing=1; }
     done
-    [ -f "${REPO_DIR}/config/omp-roles.json" ] || { echo "missing: config/omp-roles.json" >&2; missing=1; }
+    [ -f "${ADAPTER_DIR}/roles.json" ] || { echo "missing: adapters/omp/roles.json" >&2; missing=1; }
     if [ "$CODEX_MODE" -eq 1 ] && [ ! -f "$CODEX_SYSTEM" ]; then
         echo "missing: $CODEX_SYSTEM (run bin/aimain build)" >&2; missing=1
     fi
@@ -318,13 +319,18 @@ deploy_codex() {
 
 # --------------------------------------------------------------------------
 install_role_launchers() {
-    local name source target
+    local name source legacy_source target
     mkdir -p "$LAUNCHER_DIR"
     for name in omp-review omp-verify omp-orca-role; do
-        source="${REPO_DIR}/bin/${name}"
+        source="${ADAPTER_DIR}/bin/${name}"
+        legacy_source="${REPO_DIR}/bin/${name}"
         target="${LAUNCHER_DIR}/${name}"
         if [ -L "$target" ]; then
-            [ "$(readlink "$target")" = "$source" ] || fail "foreign launcher symlink preserved: $target"
+            if [ "$(readlink "$target")" = "$legacy_source" ]; then
+                ln -sfn "$source" "$target"  # exact-recognition migration of the pre-adapters launcher path
+            else
+                [ "$(readlink "$target")" = "$source" ] || fail "foreign launcher symlink preserved: $target"
+            fi
         elif [ -e "$target" ]; then
             fail "user-owned launcher preserved: $target"
         else
@@ -376,7 +382,7 @@ trap 'rm -f "${generated:-}"' EXIT
 mkdir -p "$AGENT_DIR"
 
 log ""
-log "${BLUE}⚙ OMP entry (config/OMP.md.template -> AGENTS.md)...${NC}"
+log "${BLUE}⚙ OMP entry (adapters/omp/entry.md.template -> AGENTS.md)...${NC}"
 generated="$(mktemp)"
 expand_placeholders < "$OMP_TEMPLATE" > "$generated"
 deploy_entry "$generated" "${AGENT_DIR}/AGENTS.md" "OMP entry"

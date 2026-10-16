@@ -12,7 +12,7 @@ import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 
-AI_MAIN = Path(__file__).resolve().parent.parent
+AI_MAIN = Path(__file__).resolve().parents[2]
 DEFAULT_SOURCE = Path.home() / ".omp" / "agent" / "managed-skills"
 DEFAULT_ROOT = AI_MAIN / "state" / "omp-managed-skills"
 

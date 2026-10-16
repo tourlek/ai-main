@@ -1,6 +1,6 @@
 # OMP runtime
 
-OMP is the primary harness; Codex is an optional consumer of the same safety baseline. Follow the active harness's tool contracts and approval boundaries. Skills supply task workflows, not permission to bypass those contracts.
+OMP is one supported harness; Codex and others consume the same safety baseline. Follow the active harness's tool contracts and approval boundaries. Skills supply task workflows, not permission to bypass those contracts.
 
 - Use native structured tools for reads, searches, edits, code intelligence, and delegation when available. Use shell commands for running programs; prefix compatible commands with `rtk`, not interactive commands or commands whose semantics change.
 - Resolve the target from the current checkout and the user's named repo. Consult `{{AI_MAIN}}/knowledge/` only when local instructions cannot resolve repo identity or task-relevant cross-repo facts; read only the relevant entry.

@@ -2,7 +2,7 @@
 #
 # omp-verify — scoped OMP verify role launcher (GLM).
 # Thin shim: resolves symlinks back to the repository, then delegates to
-# bin/omp-role.ts. Role facts live in config/omp-roles.json — see
+# bin/omp-role.ts. Role facts live in adapters/omp/roles.json — see
 # `omp-verify --help` and `omp-verify --describe`.
 
 set -euo pipefail
@@ -16,7 +16,7 @@ while [ -L "$SOURCE" ]; do
         *) SOURCE="$DIR/$SOURCE" ;;
     esac
 done
-REPO_ROOT="$(cd -P "$(dirname "$SOURCE")/.." && pwd)"
+REPO_ROOT="$(cd -P "$(dirname "$SOURCE")/.." && pwd)"  # adapter root (adapters/omp)
 
 BUN_BIN="$(command -v bun || true)"
 if [ -z "$BUN_BIN" ]; then

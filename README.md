@@ -6,7 +6,7 @@ OMP is the primary harness, with an optional Codex adapter and Orca integration 
 
 ## 🌟 Key Features
 
-1. **Safety sources, harness-specific loading** — `config/style.md` and `config/workflow.md` remain canonical. OMP loads the full workflow with compact style/memory and `config/omp.md`; optional Codex receives the lean shared baseline.
+1. **Safety sources, harness-specific loading** — `config/style.md` and `config/workflow.md` remain canonical. OMP loads the full workflow with compact style/memory and `adapters/omp/runtime.md`; optional Codex receives the lean shared baseline.
 1b. **Per-repo knowledge, any folder** — `knowledge/<repo>.md` deploys to each registered workspace root as `AGENTS.md` (+ `CLAUDE.md`/`GEMINI.md` symlinks), so every tool loads repo-specific facts only inside that repo. Attach any folder with `./bin/aimain link <path>` — repo or not, in the registry or ad-hoc. Knowledge is picked from `--knowledge`, else the git remote name (so a `.claude-worktrees/` worktree resolves to its real repo), else the folder name, else `knowledge/_generic.md`. Generated root files and Cursor's managed `.cursor/rules/ai-main-shared.mdc` are excluded in the target's `.git/info/exclude`. Deployment preserves tracked/handwritten files and foreign or dangling symlinks in both normal and sync mode; nested repo-owned instructions are untouched.
 1c. **Curated memory in Obsidian** — `~/Tualek/AI Memory/Home.md` is the shared entry point for long-term preferences, corrections, and cross-project decisions. Repo docs retain code contracts; `memory/` retains promoted rules and tool-specific histories, not a second curated journal.
 1d. **Self-learning** — authorized captures go to the vault's `AI Inbox`, then through evidence review and curation. Executable shared rules stay in `RULES.md` and `config/workflow.md`; a memory note does not automatically become policy.
@@ -14,7 +14,7 @@ Memory recall is triggered by prior-work questions, remembered preferences/decis
 1e. **Local sync without Git writes** — `scripts/sync.sh` pulls only from a clean tree, never autostashes, and redeploys OMP. It never commits or pushes; existing startup/scheduled hooks therefore cannot redeploy legacy harnesses through the default path.
 1f. **Central worklog** — the `worklog` skill / `/worklog` command appends one-line entries to `logs/YYYY-MM.md`, synced across machines.
 2. **Git-Portable Design** — Templates use `{{HOME}}` placeholders that the installer rewrites to the active user's `$HOME`. No hard-coded paths in version control.
-3. **Curated OMP skills** — `config/omp-skills.json` selects automatic skills. Other discovered skills remain manual `/skill:name` commands through generated pointers; canonical files are not changed.
+3. **Curated OMP skills** — `adapters/omp/skills.json` selects automatic skills. Other discovered skills remain manual `/skill:name` commands through generated pointers; canonical files are not changed.
 4. **External Skill Packs** — Curated/verified third-party skill repos are pulled in as git submodules under `external/`, version-pinned by commit (currently [thananon/9arm-skills](https://github.com/thananon/9arm-skills) and [vercel-labs/agent-skills](https://github.com/vercel-labs/agent-skills)).
 5. **OMP-first deployment** — `./install.sh` deploys only OMP; `--codex` adds Codex. Default deployment does not install dependencies, update submodules, mutate work repos, or reconfigure legacy harnesses.
 6. **Legacy integrations preserved** — `./install.sh --legacy` explicitly selects the previous all-harness path; existing tool homes and historical data are not deleted by OMP deployment.
@@ -39,7 +39,7 @@ ships in every profile, `<!--lean-->` in lean and full, and an untagged line onl
 | `full` | 4,000 tok | Full-context harness profile | shared safety + methods + optional background |
 | `lean` | 1,800 tok | Optional Codex and compact legacy profiles | same safety + concise working methods |
 | `min` | 1,200 tok | Minimal-context profiles | same safety, scope, approval, and completion gates |
-| `omp` | 3,000 tok | Primary OMP runtime | full workflow + compact style/memory + `config/omp.md`, without the global workspace inventory |
+| `omp` | 3,000 tok | OMP runtime (composite) | full workflow + compact style/memory + `adapters/omp/runtime.md`, without the global workspace inventory |
 
 Ceilings are estimates, not targets or model capability claims. The min/lean ceilings retain the added folder-scope and permission gates rather than dropping safety for a smaller model.
 
@@ -47,14 +47,14 @@ OMP profile overruns fail the build before deployment. The legacy shared-tier co
 
 On the checked machine, `omp toks` measured the former full shared profile at 2,781 `o200k_base` tokens. The initial lean OMP profile was 1,614; full workflow plus Checklist/OKR pointer was 2,074, and dedicated-role routing brings the current body to 2,133 (648 fewer than the former full profile, about 23%). These are shared instruction bodies only, not OMP's entire prompt or billed usage after caching. The catalog now has 17 automatic skills and 80 manual skills; start a new main OMP session after deployment.
 
-The user's [Working Checklist and OKRs](docs/working-checklist-okr.md) preserves task breakdown/Senior alignment, data flow/edge cases, test/debug-aware estimation, intentional AI coding, scope control, Skill Matrix feedback, and Estimate vs Actual. `config/omp.md` routes planning, estimation, alignment, and retrospective to this document. The on-time delivery target is greater than 80%; no baseline or measured achievement is claimed.
+The user's [Working Checklist and OKRs](docs/working-checklist-okr.md) preserves task breakdown/Senior alignment, data flow/edge cases, test/debug-aware estimation, intentional AI coding, scope control, Skill Matrix feedback, and Estimate vs Actual. `adapters/omp/runtime.md` routes planning, estimation, alignment, and retrospective to this document. The on-time delivery target is greater than 80%; no baseline or measured achievement is claimed.
 
 ### OMP managed-skill backups
 
 ```bash
-python3 scripts/backup-omp-managed-skills.py --note "before a skill change"
-python3 scripts/backup-omp-managed-skills.py --verify
-python3 scripts/backup-omp-managed-skills.py --list
+python3 adapters/omp/backup-managed-skills.py --note "before a skill change"
+python3 adapters/omp/backup-managed-skills.py --verify
+python3 adapters/omp/backup-managed-skills.py --list
 ```
 
 Snapshots live under `state/omp-managed-skills/<content-digest>/`, with original file paths under `files/` and an integrity manifest. They are immutable and deduplicated; changed runtime content creates another snapshot, never overwrites an old one. The script never writes runtime files, invokes Git, or adds backups to skill discovery. Commit snapshots only with explicit authorization; restoration is a separate manual, explicitly approved action. The initial cutover snapshot contains all five current managed skills.
@@ -231,7 +231,7 @@ ai-main/
 
 ## 🧠 Installed Skills
 
-OMP loads `build/omp-skills/`: names in `config/omp-skills.json` expose descriptions for automatic invocation; the remaining discovered skills are manual pointers available through `/skill:name`. Native OMP managed skills remain runtime-owned and independently discovered. The cross-harness links and Pi catalog described below belong to explicit legacy deployment.
+OMP loads `build/omp-skills/`: names in `adapters/omp/skills.json` expose descriptions for automatic invocation; the remaining discovered skills are manual pointers available through `/skill:name`. Native OMP managed skills remain runtime-owned and independently discovered. The cross-harness links and Pi catalog described below belong to explicit legacy deployment.
 
 ### Owned (this repo, `skills/`)
 
@@ -339,7 +339,7 @@ $EDITOR skills/<my-skill>/SKILL.md        # YAML frontmatter: name, description
 ./install.sh
 ```
 
-New skills are manual-only by default. Add a name to `config/omp-skills.json` only when OMP should expose its description automatically, then rebuild/deploy. Use `/skill:<name>` for the remaining catalog.
+New skills are manual-only by default. Add a name to `adapters/omp/skills.json` only when OMP should expose its description automatically, then rebuild/deploy. Use `/skill:<name>` for the remaining catalog.
 
 ### A new shared rule file
 
@@ -347,7 +347,7 @@ New skills are manual-only by default. Add a name to `config/omp-skills.json` on
 $EDITOR config/<my-rule>.md
 ```
 
-Edit the existing canonical safety/style sources for shared rules or `config/omp.md` for OMP runtime details. Extend the profile compiler only when a separate source has a real loading boundary.
+Edit the existing canonical safety/style sources for shared rules or `adapters/omp/runtime.md` for OMP runtime details. Extend the profile compiler only when a separate source has a real loading boundary.
 
 ### A new slash command
 
@@ -364,7 +364,7 @@ This is legacy Claude/Cursor command deployment. For OMP, use a skill's `/skill:
 git submodule add <repo-url> external/<pack-name>
 ```
 
-Add its pinned source root to `scripts/build-omp-skills.py` discovery; keep new names manual until explicitly added to the startup allowlist.
+Add its pinned source root to `adapters/omp/build-skills.py` discovery; keep new names manual until explicitly added to the startup allowlist.
 
 ---
 

@@ -25,7 +25,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Scoped OMP-first dispatch (default). Everything below is the LEGACY
 # all-harness installer (Gemini/Claude/Cursor/Codex/Pi/...) and is opt-in only:
 #   ./install.sh --legacy
-# Default and `--sync` invocations run scripts/deploy-omp.sh instead, which
+# Default and `--sync` invocations run adapters/omp/deploy.sh instead, which
 # touches only OMP-owned destinations.
 _LEGACY_DISPATCH=0
 for _dispatch_arg in "$@"; do
@@ -33,10 +33,10 @@ for _dispatch_arg in "$@"; do
 done
 if [ "$_LEGACY_DISPATCH" -eq 0 ]; then
     case "${1:-}" in
-        --help|-h) exec "${SCRIPT_DIR}/scripts/deploy-omp.sh" "$@" ;;
+        --help|-h) exec "${SCRIPT_DIR}/adapters/omp/deploy.sh" "$@" ;;
     esac
     "${SCRIPT_DIR}/bin/aimain" build
-    exec "${SCRIPT_DIR}/scripts/deploy-omp.sh" "$@"
+    exec "${SCRIPT_DIR}/adapters/omp/deploy.sh" "$@"
 fi
 
 BACKUP_DIR="${ACTUAL_HOME}/.ai-backup-$(date +%Y%m%d_%H%M%S)"

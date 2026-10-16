@@ -10,7 +10,7 @@ The normal OMP session remains the implementer/source owner. Requested code revi
 - `omp-verify`: GLM (`zai/glm-5.3-flash`), high thinking, validation-only role.
 - `omp-orca-role`: opens, dispatches, collects and releases Orca role workers.
 
-`config/omp-roles.json` is the role/model/tool source; role prompts live in `config/omp-roles/`. Both preserve cwd, start new sessions and leave the normal OMP default/auth/config untouched. Use `omp-review --describe` or `omp-verify --describe` to inspect configuration without a model call. Arbitrary model/tool/prompt overrides and resume flags are rejected so a launcher cannot silently stop being its role.
+`adapters/omp/roles.json` is the role/model/tool source; role prompts live in `adapters/omp/roles/`. Both preserve cwd, start new sessions and leave the normal OMP default/auth/config untouched. Use `omp-review --describe` or `omp-verify --describe` to inspect configuration without a model call. Arbitrary model/tool/prompt overrides and resume flags are rejected so a launcher cannot silently stop being its role.
 
 Standalone launchers open interactive OMP roles. They are not automatically supervised: without a live Orca Dispatch preamble, they must not emit lifecycle messages or reuse old task IDs.
 

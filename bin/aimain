@@ -349,7 +349,7 @@ cmd_build() {
         fi
         echo "" >> "${BUILD_DIR}/omp/SYSTEM.md"
     done
-    expand_placeholders < "${AI_MAIN}/config/omp.md" >> "${BUILD_DIR}/omp/SYSTEM.md"
+    expand_placeholders < "${AI_MAIN}/adapters/omp/runtime.md" >> "${BUILD_DIR}/omp/SYSTEM.md"
     tokens="$(est_tokens "${BUILD_DIR}/omp/SYSTEM.md")"
     budget="$(tier_budget omp)"
     [ "$tokens" -le "$budget" ] || { warn "OMP profile ~${tokens} tokens exceeds ${budget}"; return 1; }
@@ -357,10 +357,10 @@ cmd_build() {
     if [ "$legacy" -eq 1 ]; then
         python3 "${AI_MAIN}/scripts/build-pi-skills.py"
     else
-        python3 "${AI_MAIN}/scripts/build-omp-skills.py"
+        python3 "${AI_MAIN}/adapters/omp/build-skills.py"
     fi
     # Content hashes identify dirty-source builds without pretending HEAD is the deployed content.
-    python3 - "$AI_MAIN" "${PROFILE_SOURCES[@]}" config/omp.md config/OMP.md.template <<'PY'
+    python3 - "$AI_MAIN" "${PROFILE_SOURCES[@]}" adapters/omp/runtime.md adapters/omp/entry.md.template <<'PY'
 import hashlib, json, pathlib, sys
 root = pathlib.Path(sys.argv[1])
 def digest(path):

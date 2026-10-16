@@ -47,7 +47,7 @@
 - Use `code-review`, `gitlab-mr-description`, and `gitlab-mr-comment-reply` for their respective tasks. Missing specs limit compliance claims, not correctness checks.
 - Use `self-learning` for deduplicated durable corrections and `worklog` for requested/enabled logging; respect write restrictions. <!--lean-->
 - Handle focused work directly; delegate substantial independent slices with scope/evidence. One writer per checkout. Reviews name MR/commit ranges; release proof stays separate. <!--lean-->
-- When Orca is available, route substantial code/heavy work as a full handoff to a fresh Orca worktree: `orca worktree create --name <task> --no-parent --agent omp --prompt "<brief>"` (worker = OMP/oh-my-pi; skill `orca-cli`; supervised multi-step via skill `orchestration`). Same-workspace review/verify stays on `omp-orca-roles`. <!--min-->
+- When Orca is available, route substantial code/heavy work as a full handoff to a fresh Orca worktree via the version-matched `orca-cli` guide; the active harness names the worker agent and the same-workspace review/verify mechanism (supervised multi-step via skill `orchestration`). <!--min-->
 
 ## Tools and style
 

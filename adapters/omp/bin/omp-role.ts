@@ -1,10 +1,10 @@
 #!/usr/bin/env bun
 /**
- * omp-role — shared core for the bin/omp-review and bin/omp-verify launchers.
+ * omp-role — shared core for the adapters/omp/bin/omp-review and omp-verify launchers.
  *
  * Launches a fresh, role-scoped OMP session in the caller's cwd:
  *   - model / thinking / tools / approval mode / prompt all come from
- *     config/omp-roles.json (single source of truth)
+ *     adapters/omp/roles.json (single source of truth)
  *   - --describe and --help exit without touching OMP (no model call)
  *   - role-, tool-, model-, prompt- or session-affecting flags are rejected
  *
@@ -12,20 +12,20 @@
  * (prompt) tier even under --approval-mode write, so the launcher generates a
  * role-local --config overlay whose bash.patterns preserve the user's effective
  * patterns first (their deny/prompt policies keep precedence), then add:
- *   - the role's read-only Git inspection family (config/omp-roles.json)
+ *   - the role's read-only Git inspection family (adapters/omp/roles.json)
  *   - the Orca coordination verbs `orchestration check` / `orchestration send`
  *     for the resolved orca executable (lifecycle verbs stay unapproved)
  *   - exact-string allows from repeatable `--check COMMAND` (verify role only)
  * Approved role actions run unattended; unmatched Bash is denied, never prompted.
  *
- * Never hardcode role facts here — edit config/omp-roles.json instead.
+ * Never hardcode role facts here — edit adapters/omp/roles.json instead.
  */
 
 import { mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { isAbsolute, join, resolve } from "node:path";
 
-const USAGE = `omp-review / omp-verify — scoped OMP role launchers (core: bin/omp-role.ts)
+const USAGE = `omp-review / omp-verify — scoped OMP role launchers (core: adapters/omp/bin/omp-role.ts)
 
 USAGE
   omp-review [options] [message ...]
@@ -47,7 +47,7 @@ Messages
   Any non-option argument becomes an initial message; OMP @file references work.
   To pass a message that starts with '-', put it after --.
 
-Fixed by config/omp-roles.json (edit there, not here)
+Fixed by adapters/omp/roles.json (edit there, not here)
   model, thinking level, enabled tools (read/find/grep/glob/lsp/bash only),
   --approval-mode from the role preset, --no-prewalk, the appended role file,
   and the baseline read-only Git bash-approval family. Every session is fresh:
@@ -106,22 +106,22 @@ function fail(message: string, code = 1): never {
 }
 
 function loadRolesFile(repoRoot: string): RolesFile {
-  const path = join(repoRoot, "config", "omp-roles.json");
+  const path = join(repoRoot, "roles.json");
   let parsed: RolesFile;
   try {
     parsed = JSON.parse(readFileSync(path, "utf8")) as RolesFile;
   } catch (error) {
-    fail(`cannot read config/omp-roles.json: ${error instanceof Error ? error.message : error}`);
+    fail(`cannot read adapters/omp/roles.json: ${error instanceof Error ? error.message : error}`);
   }
   if (!parsed || typeof parsed !== "object" || !parsed.roles || typeof parsed.roles !== "object") {
-    fail(`config/omp-roles.json is malformed: "roles" object missing`);
+    fail(`adapters/omp/roles.json is malformed: "roles" object missing`);
   }
   return parsed;
 }
 
 function roleConfig(file: RolesFile, role: string): RoleConfig {
   const cfg = file.roles[role];
-  if (!cfg) fail(`unknown role "${role}" in config/omp-roles.json`, 2);
+  if (!cfg) fail(`unknown role "${role}" in adapters/omp/roles.json`, 2);
   for (const field of ["model", "thinking", "approvalMode", "promptPath"] as const) {
     if (typeof cfg[field] !== "string" || !(cfg[field] as string).trim()) {
       fail(`role "${role}": "${field}" must be a non-empty string`, 2);
@@ -317,7 +317,7 @@ async function main(): Promise<never> {
       fail(
         `rejected flag: ${arg}\n` +
           `  role, model, tools, prompt, approval mode and fresh-session behavior are fixed by\n` +
-          `  config/omp-roles.json and cannot be overridden.\n` +
+          `  adapters/omp/roles.json and cannot be overridden.\n` +
           `  Allowed: --describe --help -p/--print --mode <text|json|rpc> --no-session --no-title\n` +
           `           --check COMMAND (verify only) -- <messages>`,
         2,
@@ -360,7 +360,7 @@ async function main(): Promise<never> {
   // patterns keep first-match precedence), then role baseline, orca verbs,
   // then exact --check allows.
   if (file.bashAllow !== undefined && !Array.isArray(file.bashAllow)) {
-    fail(`config/omp-roles.json: "bashAllow" must be an array when present`, 2);
+    fail(`adapters/omp/roles.json: "bashAllow" must be an array when present`, 2);
   }
   const patterns: BashPattern[] = [
     ...(file.bashAllow ?? []).flatMap(rule => [

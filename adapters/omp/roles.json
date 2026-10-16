@@ -27,7 +27,7 @@
       "tools": ["read", "find", "grep", "glob", "lsp", "bash"],
       "approvalMode": "yolo",
       "noPrewalk": true,
-      "promptPath": "config/omp-roles/review.md",
+      "promptPath": "roles/review.md",
       "summary": "Fresh scoped code review; evidence-backed findings with severity/file/line; outcomes clean/findings/blocked; no builds, no source edits."
     },
     "verify": {
@@ -37,7 +37,7 @@
       "tools": ["read", "find", "grep", "glob", "lsp", "bash"],
       "approvalMode": "yolo",
       "noPrewalk": true,
-      "promptPath": "config/omp-roles/verify.md",
+      "promptPath": "roles/verify.md",
       "summary": "Evidence-first verification; only inspected, safe package checks in a restricted env; commands+results reported; missing proof is Blocked, never Passed."
     }
   }

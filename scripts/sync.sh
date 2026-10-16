@@ -73,7 +73,7 @@ fi
 if [ "$LEGACY" -eq 1 ]; then
     "${REPO_DIR}/install.sh" --legacy --sync
 else
-    "${REPO_DIR}/scripts/deploy-omp.sh" --sync --quiet
+    "${REPO_DIR}/adapters/omp/deploy.sh" --sync --quiet
 fi
 DEPLOY_STATUS=$?
 if [ "$DEPLOY_STATUS" -ne 0 ]; then

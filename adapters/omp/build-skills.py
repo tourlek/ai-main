@@ -18,9 +18,9 @@ import sys
 from collections.abc import Iterator
 from pathlib import Path
 
-AI_MAIN = Path(__file__).resolve().parent.parent
+AI_MAIN = Path(__file__).resolve().parents[2]
 HOME = Path.home()
-CONFIG = AI_MAIN / "config" / "omp-skills.json"
+CONFIG = AI_MAIN / "adapters" / "omp" / "skills.json"
 OUTPUT = AI_MAIN / "build" / "omp-skills"
 MANIFEST = AI_MAIN / "build" / "omp-skills-manifest.json"
 EXCLUDED_PARTS = {"deprecated", "in-progress", "personal", "node_modules"}
