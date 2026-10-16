@@ -11,9 +11,9 @@ import shutil
 import sys
 from pathlib import Path
 
-AI_MAIN = Path(__file__).resolve().parent.parent
+AI_MAIN = Path(__file__).resolve().parents[2]
 HOME = Path.home()
-CONFIG = AI_MAIN / "config" / "pi-skills.json"
+CONFIG = AI_MAIN / "adapters" / "pi" / "skills.json"
 OUTPUT = AI_MAIN / "build" / "pi-skills"
 MANIFEST = AI_MAIN / "build" / "pi-skills-manifest.json"
 EXCLUDED_PARTS = {"deprecated", "in-progress", "personal", "node_modules"}

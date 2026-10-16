@@ -2,7 +2,7 @@
 #
 # Behavioural eval: run a real model through six tasks with objective pass/fail checks.
 #
-#   ./eval/models/run.sh --label deepseek --cmd "claude --bare --settings ~/.config/claude-deepseek/settings.json" [--profile lean|min|none]
+#   ./eval/models/run.sh --label deepseek --cmd "claude --bare --settings ~/.config/claude-deepseek/settings.json" [--profile full|none]
 #
 # Cases are built by fixtures.sh. Four of them are traps taken from this user's own
 # incidents — the answer that looks obvious is the wrong one.
@@ -13,7 +13,7 @@ set -uo pipefail
 AI_MAIN="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 HERE="${AI_MAIN}/eval/models"
 WORK="${TMPDIR:-/tmp}/aimain-modeleval"
-LABEL="model"; PROFILE="lean"; CMD=""; ONLY=""
+LABEL="model"; PROFILE="full"; CMD=""; ONLY=""
 
 while [ $# -gt 0 ]; do
     case "$1" in

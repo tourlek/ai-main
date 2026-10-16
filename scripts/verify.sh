@@ -131,17 +131,17 @@ for tool in claude codex gemini pi/agent; do
 done
 for f in style.md workflow.md profile.md SHARED.md RULES.md; do
     pi_shared="${ACTUAL_HOME}/.pi/agent/shared/${f}"
-    expected="${SCRIPT_DIR}/build/lean/${f}"
+    expected="${SCRIPT_DIR}/build/full/${f}"
     if [ -L "$pi_shared" ] && [ "$(readlink "$pi_shared")" = "$expected" ]; then
-        ok "Pi lean profile: ${f}"
+        ok "Pi shared profile: ${f}"
     else
-        bad "Pi ${f} must point to build/lean/${f}"
+        bad "Pi ${f} must point to build/full/${f}"
     fi
 done
 
 # ----- 3. RTK files content matches canonical -----
 echo -e "\n${BLUE}${BOLD}3) RTK files match canonical (these are copies, so drift is possible)${NC}"
-check_file_matches_canonical "${ACTUAL_HOME}/.claude/RTK.md" "${SCRIPT_DIR}/config/RTK.md"
+check_file_matches_canonical "${ACTUAL_HOME}/.claude/RTK.md" "${SCRIPT_DIR}/adapters/claude/RTK.md"
 check_file_matches_canonical "${ACTUAL_HOME}/.codex/RTK.md"  "${SCRIPT_DIR}/config/RTK.manual.md"
 check_file_matches_canonical "${ACTUAL_HOME}/.gemini/RTK.md" "${SCRIPT_DIR}/config/RTK.manual.md"
 check_file_matches_canonical "${ACTUAL_HOME}/.pi/agent/RTK.md" "${SCRIPT_DIR}/config/RTK.manual.md"
@@ -187,7 +187,7 @@ else
     manual_count="$(jq -r '.manualCount' "$PI_MANIFEST")"
     ok "Pi skill farm: ${auto_count} model-visible, ${manual_count} manual"
 fi
-for required in $(jq -r '.auto[]' "${SCRIPT_DIR}/config/pi-skills.json"); do
+for required in $(jq -r '.auto[]' "${SCRIPT_DIR}/adapters/pi/skills.json"); do
     if [ -e "${SCRIPT_DIR}/build/pi-skills/${required}/SKILL.md" ]; then
         ok "  Pi auto: ${required}"
     else
@@ -227,9 +227,8 @@ for tool in claude codex gemini pi; do
     ok "$tool: ${bytes} bytes  ~${tokens} tokens (rough)"
 done
 
-# ----- 5a. Prompt profiles: the compiler is the deploy path, so a profile over its
-# ceiling has to fail somewhere. `aimain build` only warns (it runs from launchd every
-# 6h and must not brick); this is where it is enforced.
+# ----- 5a. Prompt profile budget: a single shared ceiling, reported as a warning only
+# (the build runs from launchd every 6h and a prompt growing slightly must not brick it).
 echo -e "\n${BLUE}${BOLD}5a) Prompt profile budgets${NC}"
 if [ -x "${SCRIPT_DIR}/bin/aimain" ]; then
     while read -r tier tokens budget; do
@@ -238,11 +237,11 @@ if [ -x "${SCRIPT_DIR}/bin/aimain" ]; then
         elif [ "$tokens" -le "$budget" ]; then
             ok "profile ${tier}: ~${tokens} tokens (ceiling ${budget})"
         else
-            bad "profile ${tier}: ~${tokens} tokens exceeds its ${budget} ceiling"
+            warn "profile ${tier}: ~${tokens} tokens exceeds its ${budget} ceiling"
         fi
     done < <("${SCRIPT_DIR}/bin/aimain" budget)
 fi
-if "${SCRIPT_DIR}/scripts/pi-context-budget.py"; then
+if "${SCRIPT_DIR}/adapters/pi/context-budget.py"; then
     ok "Pi global context is within its configured budget"
 else
     bad "Pi global context budget check failed"

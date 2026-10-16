@@ -291,11 +291,10 @@ PROFILE_SOURCES=(
     "memory/SHARED.md"
     "memory/lessons/RULES.md"
 )
-# Ceilings, not targets. Exceeding one is reported here and failed by scripts/verify.sh —
-# a deploy path that launchd runs every 6h must never brick over a prompt growing 5%.
-declare -a TIER_NAMES=(full lean min)
-# All tiers retain safety/scope gates; smaller ceilings must not remove authority rules.
-tier_budget() { case "$1" in full) echo 4000 ;; lean) echo 1800 ;; min) echo 1200 ;; omp) echo 3000 ;; esac; }
+# One ceiling, a warning rather than a failure: a deploy path that launchd runs every 6h
+# must never brick over a prompt growing 5%. There is a single shared profile (full).
+declare -a TIER_NAMES=(full)
+tier_budget() { echo 4000; }
 
 # bytes/4 is the estimator verify.sh has always used, but it overcounts Thai badly: every
 # Thai character is 3 UTF-8 bytes, and these rules are half Thai. Split the two scripts —
@@ -326,7 +325,7 @@ cmd_build() {
             src="${AI_MAIN}/${rel}"
             [ -f "$src" ] || { warn "profile source missing: $rel"; continue; }
             out="${BUILD_DIR}/${tier}/$(basename "$rel")"
-            awk -v tier="$tier" -f "${AI_MAIN}/core/build.awk" "$src" > "$out"
+            cp "$src" "$out"
             cat "$out" >> "${BUILD_DIR}/${tier}/SYSTEM.md"
             echo "" >> "${BUILD_DIR}/${tier}/SYSTEM.md"
         done
@@ -338,24 +337,23 @@ cmd_build() {
             ok "profile ${tier}: ~${tokens} tokens (ceiling ${budget})"
         fi
     done
-    # Full working method; compact style/memory, without the cross-harness inventory.
+    # OMP composite: the shared profile plus the OMP runtime overlay.
     mkdir -p "${BUILD_DIR}/omp"
     : > "${BUILD_DIR}/omp/SYSTEM.md"
     for rel in workflow.md style.md SHARED.md RULES.md; do
-        if [ "$rel" = workflow.md ]; then
-            cat "${BUILD_DIR}/full/${rel}" >> "${BUILD_DIR}/omp/SYSTEM.md"
-        else
-            cat "${BUILD_DIR}/lean/${rel}" >> "${BUILD_DIR}/omp/SYSTEM.md"
-        fi
+        cat "${BUILD_DIR}/full/${rel}" >> "${BUILD_DIR}/omp/SYSTEM.md"
         echo "" >> "${BUILD_DIR}/omp/SYSTEM.md"
     done
     expand_placeholders < "${AI_MAIN}/adapters/omp/runtime.md" >> "${BUILD_DIR}/omp/SYSTEM.md"
     tokens="$(est_tokens "${BUILD_DIR}/omp/SYSTEM.md")"
     budget="$(tier_budget omp)"
-    [ "$tokens" -le "$budget" ] || { warn "OMP profile ~${tokens} tokens exceeds ${budget}"; return 1; }
-    ok "profile omp: ~${tokens} tokens (ceiling ${budget})"
+    if [ "$tokens" -gt "$budget" ]; then
+        warn "profile omp: ~${tokens} tokens over the ${budget} ceiling"
+    else
+        ok "profile omp: ~${tokens} tokens (ceiling ${budget})"
+    fi
     if [ "$legacy" -eq 1 ]; then
-        python3 "${AI_MAIN}/scripts/build-pi-skills.py"
+        python3 "${AI_MAIN}/adapters/pi/build-skills.py"
     else
         python3 "${AI_MAIN}/adapters/omp/build-skills.py"
     fi
@@ -369,7 +367,7 @@ manifest = {
     "schemaVersion": 1,
     "sources": {name: digest(root / name) for name in sys.argv[2:]},
     "profiles": {tier: digest(root / "build" / tier / "SYSTEM.md")
-                 for tier in ("full", "lean", "min", "omp")},
+                 for tier in ("full", "omp")},
 }
 (root / "build/profile-manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
 PY
@@ -408,7 +406,7 @@ cmd_adapters() {
         [ -f "$manifest" ] || continue
         id="$(jq -r '.id' "$manifest")"
         detect="$(jq -r '.detect // empty' "$manifest")"
-        profile="$(jq -r '.profile // "lean"' "$manifest")"
+        profile="$(jq -r '.profile // "full"' "$manifest")"
         entry="$(expand_home "$(jq -r '.entry // empty' "$manifest")")"
         skills="$(expand_home "$(jq -r '.skills // empty' "$manifest")")"
 

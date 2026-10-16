@@ -8,9 +8,9 @@ import re
 import sys
 from pathlib import Path
 
-AI_MAIN = Path(__file__).resolve().parent.parent
+AI_MAIN = Path(__file__).resolve().parents[2]
 HOME = Path.home()
-CONFIG = AI_MAIN / "config" / "pi-skills.json"
+CONFIG = AI_MAIN / "adapters" / "pi" / "skills.json"
 MANIFEST = AI_MAIN / "build" / "pi-skills-manifest.json"
 APPEND_SYSTEM = HOME / ".pi" / "agent" / "APPEND_SYSTEM.md"
 

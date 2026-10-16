@@ -36,7 +36,7 @@ Use the target workspace/repo instructions for domain knowledge. ai-main manages
 ## Tool environment
 
 - macOS, zsh, Homebrew available at `/opt/homebrew/`.
-- `rtk` (Rust Token Killer) installed via brew — shell commands get auto-rewritten via Claude Code hook; manual `rtk <cmd>` prefix for Codex / Gemini. <!--lean-->
+- `rtk` (Rust Token Killer) installed via brew — shell commands get auto-rewritten via Claude Code hook; manual `rtk <cmd>` prefix for Codex / Gemini.
 - AI configs centralized in `~/ai-main/`, with owned entries and skills deployed only to each harness's verified integration path. Per [Antigravity CLI migration](https://antigravity.google/docs/cli/gcli-migration/), installed `agy` enforces global `~/.gemini/GEMINI.md` and workspace `GEMINI.md`/`AGENTS.md`; the native IDE also documents global `~/.gemini/GEMINI.md` rules at [IDE rules](https://antigravity.google/docs/ide/rules/).
 - `~/.claude/projects/`, `~/.codex/sessions/` carry past transcripts for analysis when relevant.
 

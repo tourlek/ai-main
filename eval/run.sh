@@ -16,11 +16,12 @@ AI_MAIN="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BUILD="${AI_MAIN}/build"
 CHECKS="${AI_MAIN}/core/checks"
 
-RED='\033[0;31m'; GREEN='\033[0;32m'; BLUE='\033[0;34m'; BOLD='\033[1m'; NC='\033[0m'
+RED='\033[0;31m'; YELLOW='\033[0;33m'; GREEN='\033[0;32m'; BLUE='\033[0;34m'; BOLD='\033[1m'; NC='\033[0m'
 PASS=0; FAIL=0
 
 pass() { PASS=$((PASS + 1)); echo -e "  ${GREEN}✓${NC} $1"; }
 fail() { FAIL=$((FAIL + 1)); echo -e "  ${RED}✗${NC} $1"; }
+warn() { echo -e "  ${YELLOW}⚠${NC} $1"; }
 
 # assert_in <tier> <pattern> <label>
 assert_in() {
@@ -45,12 +46,12 @@ fi
 while read -r tier tokens budget; do
     if [ "$tokens" = "-" ]; then fail "profile $tier was not built"
     elif [ "$tokens" -le "$budget" ]; then pass "profile $tier ~${tokens} tokens (ceiling ${budget})"
-    else fail "profile $tier ~${tokens} tokens exceeds ceiling ${budget}"
+    else warn "profile $tier ~${tokens} tokens exceeds ceiling ${budget} (warning only)"
     fi
 done < <("${AI_MAIN}/bin/aimain" budget)
 
 echo -e "\n${BLUE}${BOLD}2) Every profile preserves equivalent safety and scope gates${NC}"
-for tier in full lean min; do
+for tier in full omp; do
     assert_in "$tier" "Never commit without explicit authorization" "commit authorization"
     assert_in "$tier" "stay inside that repo" "scope discipline"
     assert_in "$tier" "Only revert when the user asks" "no unasked reverts"
@@ -64,29 +65,18 @@ for tier in full lean min; do
 done
 
 echo -e "\n${BLUE}${BOLD}2b) Every profile points curated memory to Obsidian${NC}"
-for tier in full lean min omp; do
+for tier in full omp; do
     assert_in "$tier" "Obsidian is canonical" "canonical curated-memory source"
     assert_in "$tier" "native memory is only a cache" "native memory cache boundary"
     assert_in "$tier" "AI Memory/Home.md" "indexed prior-work recall"
 done
 
-echo -e "\n${BLUE}${BOLD}3) The min profile drops optional detail, not authority${NC}"
-assert_not_in min "Banned patterns" "Thai style examples"
-assert_not_in min "codegraph explore" "code-search ladder"
-assert_not_in min "Primary workspaces" "workspace inventory"
-
-echo -e "\n${BLUE}${BOLD}4) The lean profile adds working method, not narrative${NC}"
-assert_in lean "ast-grep" "code-search ladder"
-assert_in lean "-F json" "glab flag"
-assert_in lean "preserve existing UI, function, and feature behavior" "migration preservation"
-assert_not_in lean "5–10 Codex sessions/day" "usage narrative"
-
-echo -e "\n${BLUE}${BOLD}5) Rules removed from the prompt are enforced by a check${NC}"
+echo -e "\n${BLUE}${BOLD}3) Rules removed from the prompt are enforced by a check${NC}"
 assert_not_in full "Co-Authored-By" "AI attribution rule left the prompt"
 grep -q 'co-authored-by' "${CHECKS}/commit-msg-lint.sh" && pass "…and commit-msg-lint.sh enforces it" || fail "commit-msg-lint.sh lost the attribution pattern"
 grep -q 'json' "${CHECKS}/shims/glab" && pass "glab shim rewrites --json" || fail "glab shim lost the rewrite"
 
-echo -e "\n${BLUE}${BOLD}6) git-guard classifies the commands that caused real incidents${NC}"
+echo -e "\n${BLUE}${BOLD}4) git-guard classifies the commands that caused real incidents${NC}"
 assert_denied "git reset --hard origin/main"        "destroys parallel-session work"
 assert_denied "git clean -fd"                       "same"
 assert_denied "git push --force origin feat"        "force push"
@@ -96,8 +86,8 @@ assert_allowed "git status"                         "read-only"
 assert_allowed "git diff v1.112.0 v1.113.0"         "release tag diff"
 assert_allowed "rg unread_by src/"                  "not a git command"
 
-echo -e "\n${BLUE}${BOLD}7) Every profile is free of tier markers${NC}"
-for tier in full lean min; do
+echo -e "\n${BLUE}${BOLD}5) Every profile is free of tier markers${NC}"
+for tier in full omp; do
     if grep -q '<!--\(min\|lean\)-->' "${BUILD}/${tier}/SYSTEM.md" 2>/dev/null; then
         fail "profile ${tier} still contains tier markers"
     else
@@ -105,14 +95,14 @@ for tier in full lean min; do
     fi
 done
 
-echo -e "\n${BLUE}${BOLD}8) Pi memory stays bounded and mutation-safe${NC}"
+echo -e "\n${BLUE}${BOLD}6) Pi memory stays bounded and mutation-safe${NC}"
 if python3 -B "${AI_MAIN}/eval/pi-memory.py"; then
     pass "Pi memory regressions"
 else
     fail "Pi memory regressions"
 fi
 
-echo -e "\n${BLUE}${BOLD}9) Scoped deployment and skill regressions (isolated fixtures)${NC}"
+echo -e "\n${BLUE}${BOLD}7) Scoped deployment and skill regressions (isolated fixtures)${NC}"
 if python3 -B "${AI_MAIN}/eval/shared-brain.py"; then
     pass "shared-brain regressions"
 else

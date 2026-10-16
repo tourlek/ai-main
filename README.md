@@ -6,7 +6,7 @@ OMP is the primary harness, with an optional Codex adapter and Orca integration 
 
 ## 🌟 Key Features
 
-1. **Safety sources, harness-specific loading** — `config/style.md` and `config/workflow.md` remain canonical. OMP loads the full workflow with compact style/memory and `adapters/omp/runtime.md`; optional Codex receives the lean shared baseline.
+1. **Safety sources, harness-specific loading** — `config/style.md` and `config/workflow.md` remain canonical. Every harness receives the same shared profile; OMP adds `adapters/omp/runtime.md` on top.
 1b. **Per-repo knowledge, any folder** — `knowledge/<repo>.md` deploys to each registered workspace root as `AGENTS.md` (+ `CLAUDE.md`/`GEMINI.md` symlinks), so every tool loads repo-specific facts only inside that repo. Attach any folder with `./bin/aimain link <path>` — repo or not, in the registry or ad-hoc. Knowledge is picked from `--knowledge`, else the git remote name (so a `.claude-worktrees/` worktree resolves to its real repo), else the folder name, else `knowledge/_generic.md`. Generated root files and Cursor's managed `.cursor/rules/ai-main-shared.mdc` are excluded in the target's `.git/info/exclude`. Deployment preserves tracked/handwritten files and foreign or dangling symlinks in both normal and sync mode; nested repo-owned instructions are untouched.
 1c. **Curated memory in Obsidian** — `~/Tualek/AI Memory/Home.md` is the shared entry point for long-term preferences, corrections, and cross-project decisions. Repo docs retain code contracts; `memory/` retains promoted rules and tool-specific histories, not a second curated journal.
 1d. **Self-learning** — authorized captures go to the vault's `AI Inbox`, then through evidence review and curation. Executable shared rules stay in `RULES.md` and `config/workflow.md`; a memory note does not automatically become policy.
@@ -28,24 +28,18 @@ Role work already authorized by the user runs without local approval popups. App
 
 ---
 
-## 🎚️ Prompt profiles (any model, not just the frontier ones)
+## 🎚️ Prompt profile
 
-The rule sources under `config/` and `memory/` carry tier markers. A line tagged `<!--min-->`
-ships in every profile, `<!--lean-->` in lean and full, and an untagged line only in full.
-`./bin/aimain build` compiles the shared tiers and the OMP profile into `build/` (gitignored), and builds the OMP skill farm. `aimain build --legacy` selects the Pi skill farm instead; neither command deploys to tool homes.
+There is one shared profile. `./bin/aimain build` concatenates the rule sources under `config/` and `memory/` into `build/full/SYSTEM.md` and composes the OMP profile (`build/omp/SYSTEM.md`) from the shared profile plus `adapters/omp/runtime.md` (both gitignored), then builds the OMP skill farm. `aimain build --legacy` selects the Pi skill farm instead; neither command deploys to tool homes.
 
 | Profile | Ceiling | For | Built from |
 | --- | --- | --- | --- |
-| `full` | 4,000 tok | Full-context harness profile | shared safety + methods + optional background |
-| `lean` | 1,800 tok | Optional Codex and compact legacy profiles | same safety + concise working methods |
-| `min` | 1,200 tok | Minimal-context profiles | same safety, scope, approval, and completion gates |
-| `omp` | 3,000 tok | OMP runtime (composite) | full workflow + compact style/memory + `adapters/omp/runtime.md`, without the global workspace inventory |
+| `full` | 4,000 tok | Every harness | shared safety + methods + background |
+| `omp` | 4,000 tok | OMP runtime (composite) | `full` + `adapters/omp/runtime.md` |
 
-Ceilings are estimates, not targets or model capability claims. The min/lean ceilings retain the added folder-scope and permission gates rather than dropping safety for a smaller model.
+The ceiling is an estimate, not a target or a model capability claim. Exceeding it is reported as a warning by `aimain build`, `scripts/verify.sh` and `eval/run.sh`; it never fails them. Static checks do not prove live model compliance.
 
-OMP profile overruns fail the build before deployment. The legacy shared-tier compiler still warns on overruns; `scripts/verify.sh` enforces their ceilings. Static checks do not prove live model compliance.
-
-On the checked machine, `omp toks` measured the former full shared profile at 2,781 `o200k_base` tokens. The initial lean OMP profile was 1,614; full workflow plus Checklist/OKR pointer was 2,074, and dedicated-role routing brings the current body to 2,133 (648 fewer than the former full profile, about 23%). These are shared instruction bodies only, not OMP's entire prompt or billed usage after caching. The catalog now has 17 automatic skills and 80 manual skills; start a new main OMP session after deployment.
+The former `lean` and `min` tiers (and their `<!--lean-->` / `<!--min-->` line markers) were removed; `build/full` is byte-identical to the previous full profile.
 
 The user's [Working Checklist and OKRs](docs/working-checklist-okr.md) preserves task breakdown/Senior alignment, data flow/edge cases, test/debug-aware estimation, intentional AI coding, scope control, Skill Matrix feedback, and Estimate vs Actual. `adapters/omp/runtime.md` routes planning, estimation, alignment, and retrospective to this document. The on-time delivery target is greater than 80%; no baseline or measured achievement is claimed.
 
@@ -182,7 +176,6 @@ ai-main/
 ├── adapters/                     # one JSON per extra tool (opencode, qwen, ...)
 ├── build/                        # GENERATED prompt profiles and OMP/Pi skill farms — gitignored
 ├── core/
-│   ├── build.awk                 # tier compiler
 │   ├── checks/                   # git hooks + PATH shims that replaced prompt rules
 │   └── hooks/                    # Claude Code hook wrappers
 ├── eval/run.sh                   # prompt regression suite
@@ -191,8 +184,8 @@ ai-main/
 │   ├── CLAUDE.md.template        # → ~/.claude/CLAUDE.md   (entry — @-imports shared/*)
 │   ├── GEMINI.md.template        # → ~/.gemini/GEMINI.md   (entry — @-imports shared/*)
 │   ├── AGENTS.md.template        # → ~/.codex/AGENTS.md    (entry — @-imports shared/*)
-│   ├── PI.md.template            # → ~/.pi/agent/APPEND_SYSTEM.md (lean entry)
-│   ├── pi-skills.json            # Pi model-visible allowlist + total context budget
+│   ├── PI.md.template            # → ~/.pi/agent/APPEND_SYSTEM.md (shared entry)
+│   ├── (moved: adapters/pi/skills.json)   # Pi model-visible allowlist + total context budget
 │   ├── mcp.json.template         # → ~/.config/mcp/mcp.json (shared MCP base)
 │   ├── RTK.md                    # → ~/.claude/RTK.md      (hook-aware variant)
 │   ├── RTK.manual.md             # → ~/.codex/RTK.md, ~/.gemini/RTK.md (manual prefix)
@@ -213,13 +206,13 @@ ai-main/
 │   └── pi-launcher               # `pi` curated launcher + `pi-raw` escape hatch
 ├── scripts/
 │   ├── sync.sh                   # clean-tree pull + OMP redeploy; no commit/push
-│   ├── build-pi-skills.py        # builds model-visible + manual Pi skill farm
-│   ├── pi-context-budget.py      # enforces Pi's 4,000-token ai-main budget
+│   ├── (moved: adapters/pi/build-skills.py) # builds model-visible + manual Pi skill farm
+│   ├── (moved: adapters/pi/context-budget.py) # enforces Pi's 4,000-token ai-main budget
 │   └── verify.sh                 # deep verification
 ├── skills/
 │   └── gitlab-mr-description/    # canonical shared skill (+ self-learning, worklog, ...)
 ├── commands/                     # slash commands → ~/.claude/commands, ~/.cursor/commands
-├── redirects/                    # in-tree SKILL.md redirects for Claude & Gemini
+├── (moved: adapters/{claude,gemini}/redirects/)  # in-tree SKILL.md redirects
 │   ├── claude/
 │   └── gemini/
 └── external/
@@ -296,7 +289,7 @@ OMP loads `build/omp-skills/`: names in `adapters/omp/skills.json` expose descri
 | 5 | Symlink `~/.ai-skills → skills/` |
 | 6 | Generate Claude, Gemini, Codex, and Pi entry files from templates |
 | 7 | Copy RTK rules (`RTK.md` for Claude, `RTK.manual.md` for Codex, Gemini, and Pi) |
-| 7b | Link the full profile to Claude/Codex/Gemini and the lean profile to Pi |
+| 7b | Link the shared profile to Claude/Codex/Gemini/Pi |
 | 8 | Redirect-link `gitlab-mr-description` for Claude & Gemini |
 | 9 | Direct-symlink `gitlab-mr-description` for Cursor & Codex |
 | 9b | **Direct-symlink every other owned skill** in `ai-main/skills/*` into all four tools |

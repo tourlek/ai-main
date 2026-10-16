@@ -26,14 +26,13 @@ class PolicyTests(unittest.TestCase):
             'finish the approved steps without asking again',
             'Confirm the target branch and worktree', 'Report only what you actually ran',
         )
-        for tier in ('min', 'lean', 'full'):
-            text = ''.join(subprocess.check_output(
-                ['awk', '-v', f'tier={tier}', '-f', str(ROOT / 'core/build.awk'), str(ROOT / p)],
-                text=True) for p in ('config/workflow.md', 'memory/SHARED.md', 'memory/lessons/RULES.md'))
-            for rule in required:
-                with self.subTest(tier=tier, rule=rule):
-                    self.assertIn(rule, text)
-            self.assertNotIn('<!--min-->', text)
+        text = ''.join((ROOT / p).read_text() for p in (
+            'config/workflow.md', 'memory/SHARED.md', 'memory/lessons/RULES.md'))
+        for rule in required:
+            with self.subTest(rule=rule):
+                self.assertIn(rule, text)
+        self.assertNotIn('<!--min-->', text)
+        self.assertNotIn('<!--lean-->', text)
 
 
     def test_antigravity_native_paths_and_gemini_labels_are_not_conflated(self):
@@ -49,7 +48,7 @@ class PolicyTests(unittest.TestCase):
         self.assertIn('agy plugin install "$ANTIGRAVITY_PLUGIN"', installer)
 
     def test_local_overrides_win_discovery(self):
-        spec = importlib.util.spec_from_file_location('skill_builder', ROOT / 'scripts/build-pi-skills.py')
+        spec = importlib.util.spec_from_file_location('skill_builder', ROOT / 'adapters/pi/build-skills.py')
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
         # Only repository sources participate; do not inspect the real user's home.
@@ -58,7 +57,8 @@ class PolicyTests(unittest.TestCase):
             skills, _ = module.discover()
         for name in ('debug-mantra', 'diagnosing-bugs', 'code-review', 'scrutinize',
                      'qwenchance', 'qwen-agent', 'tdd', 'post-mortem', 'management-talk'):
-            self.assertEqual(skills[name], ROOT / 'skills' / name / 'SKILL.md')
+            # Entries may be symlinks into pinned upstream packs; compare resolved files.
+            self.assertEqual(skills[name].resolve(), (ROOT / 'skills' / name / 'SKILL.md').resolve())
 
 
 class DeploymentTests(unittest.TestCase):
@@ -205,7 +205,7 @@ class DeploymentTests(unittest.TestCase):
         self.assertEqual(rule.read_text(), 'Team-owned Cursor rule\n')
 
     def test_installer_sync_preserves_local_skills_and_retires_managed_override(self):
-        for name in ('bin', 'config', 'core', 'scripts', 'skills', 'knowledge', 'redirects', 'commands', 'adapters'):
+        for name in ('bin', 'config', 'core', 'scripts', 'skills', 'knowledge', 'commands', 'adapters'):
             shutil.copytree(ROOT / name, self.repo / name, dirs_exist_ok=True)
         shutil.copy2(ROOT / 'install.sh', self.repo / 'install.sh')
         (self.repo / 'memory/lessons').mkdir(parents=True)
@@ -247,7 +247,7 @@ class DeploymentTests(unittest.TestCase):
         self.assertFalse((home / '.config/git/ignore').exists())
 
     def test_antigravity_plugin_sync_propagates_updates_and_preserves_local_overrides(self):
-        for name in ('bin', 'config', 'core', 'scripts', 'skills', 'knowledge', 'redirects', 'commands', 'adapters'):
+        for name in ('bin', 'config', 'core', 'scripts', 'skills', 'knowledge', 'commands', 'adapters'):
             shutil.copytree(ROOT / name, self.repo / name, dirs_exist_ok=True)
         shutil.copy2(ROOT / 'install.sh', self.repo / 'install.sh')
         (self.repo / 'memory/lessons').mkdir(parents=True)

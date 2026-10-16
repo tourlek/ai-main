@@ -208,20 +208,16 @@ copy_file() {
     cp -f "$src" "$dst"
 }
 
-copy_file "${SCRIPT_DIR}/config/RTK.md"        "${ACTUAL_HOME}/.claude/RTK.md"
+copy_file "${SCRIPT_DIR}/adapters/claude/RTK.md" "${ACTUAL_HOME}/.claude/RTK.md"
 copy_file "${SCRIPT_DIR}/config/RTK.manual.md" "${ACTUAL_HOME}/.codex/RTK.md"
 copy_file "${SCRIPT_DIR}/config/RTK.manual.md" "${ACTUAL_HOME}/.gemini/RTK.md"
 copy_file "${SCRIPT_DIR}/config/RTK.manual.md" "${ACTUAL_HOME}/.pi/agent/RTK.md"
 
-# 6b. Compile the tiered prompt profiles, then link the FULL tier into each tool.
-#
-# The sources under config/ and memory/ carry <!--min--> / <!--lean--> tier markers; the
-# compiler strips them, so build/full is byte-identical to the pre-tiering files while
-# build/lean and build/min exist for cheaper models. Tools always read from build/, never
-# from the annotated sources.
-echo -e "\n${BLUE}🧱 Compiling prompt profiles (full / lean / min)...${NC}"
+# 6b. Compile the shared prompt profile, then link it into each tool.
+# Tools always read from build/, never from the sources.
+echo -e "\n${BLUE}🧱 Compiling prompt profile (full)...${NC}"
 if [ -x "${SCRIPT_DIR}/bin/aimain" ]; then
-    # Legacy path: Pi farm + full/lean/min profiles (aimain default builds the OMP farm).
+    # Legacy path: Pi farm + shared profile (aimain default builds the OMP farm).
     "${SCRIPT_DIR}/bin/aimain" build --legacy || echo -e "  ${RED}✗ profile build failed — tools keep the previously built profiles${NC}"
 fi
 
@@ -233,10 +229,8 @@ for shared_file in style.md workflow.md profile.md SHARED.md RULES.md; do
         ln -sfn "$src" "${tool_shared_dir}/${shared_file}"
     done
 
-    pi_src="${SCRIPT_DIR}/build/lean/${shared_file}"
-    [ -f "$pi_src" ] || { echo -e "  ${YELLOW}⚠ build/lean/${shared_file} missing — skipped for Pi${NC}"; continue; }
-    ln -sfn "$pi_src" "${ACTUAL_HOME}/.pi/agent/shared/${shared_file}"
-    echo -e "  ${GREEN}✓ ${shared_file} → claude/codex/gemini full; pi lean${NC}"
+    ln -sfn "$src" "${ACTUAL_HOME}/.pi/agent/shared/${shared_file}"
+    echo -e "  ${GREEN}✓ ${shared_file} → claude/codex/gemini/pi${NC}"
 done
 
 echo -e "  ${GREEN}✓ Cursor session defaults${NC}"
@@ -303,10 +297,10 @@ echo -e "  ${GREEN}✓ Claude project memories linked${NC}"
 
 # 6d. Compile per-tool entry files (after RTK/shared/memory are in place)
 echo -e "\n${BLUE}⚙️ Compiling personalized configurations from templates...${NC}"
-compile_template "${SCRIPT_DIR}/config/CLAUDE.md.template" "${ACTUAL_HOME}/.claude/CLAUDE.md"
-compile_template "${SCRIPT_DIR}/config/AGENTS.md.template" "${ACTUAL_HOME}/.codex/AGENTS.md"
-compile_template "${SCRIPT_DIR}/config/GEMINI.md.template" "${ACTUAL_HOME}/.gemini/GEMINI.md"
-compile_template "${SCRIPT_DIR}/config/PI.md.template" "${ACTUAL_HOME}/.pi/agent/APPEND_SYSTEM.md"
+compile_template "${SCRIPT_DIR}/adapters/claude/CLAUDE.md.template" "${ACTUAL_HOME}/.claude/CLAUDE.md"
+compile_template "${SCRIPT_DIR}/adapters/codex/AGENTS.md.template" "${ACTUAL_HOME}/.codex/AGENTS.md"
+compile_template "${SCRIPT_DIR}/adapters/gemini/GEMINI.md.template" "${ACTUAL_HOME}/.gemini/GEMINI.md"
+compile_template "${SCRIPT_DIR}/adapters/pi/PI.md.template" "${ACTUAL_HOME}/.pi/agent/APPEND_SYSTEM.md"
 
 # 6e. Deploy the shared MCP base. Pi-specific overrides remain in ~/.pi/agent/mcp.json.
 echo -e "\n${BLUE}🔌 Deploying shared MCP configuration...${NC}"
@@ -322,8 +316,8 @@ fi
 echo -e "\n${BLUE}🔄 Creating redirect pointer files for Claude & Gemini skills...${NC}"
 mkdir -p "${ACTUAL_HOME}/.gemini/skills/gitlab-mr-description"
 mkdir -p "${ACTUAL_HOME}/.claude/skills/gitlab-mr-description"
-generate_from_template "${SCRIPT_DIR}/redirects/gemini/gitlab-mr-description/SKILL.md.template" "${ACTUAL_HOME}/.gemini/skills/gitlab-mr-description/SKILL.md"
-generate_from_template "${SCRIPT_DIR}/redirects/claude/gitlab-mr-description/SKILL.md.template" "${ACTUAL_HOME}/.claude/skills/gitlab-mr-description/SKILL.md"
+generate_from_template "${SCRIPT_DIR}/adapters/gemini/redirects/gitlab-mr-description/SKILL.md.template" "${ACTUAL_HOME}/.gemini/skills/gitlab-mr-description/SKILL.md"
+generate_from_template "${SCRIPT_DIR}/adapters/claude/redirects/gitlab-mr-description/SKILL.md.template" "${ACTUAL_HOME}/.claude/skills/gitlab-mr-description/SKILL.md"
 
 # 8. Direct symlinks for IDE & Codex (they follow symlinks fine)
 echo -e "\n${BLUE}🎯 Symlinking gitlab-mr-description directly for Cursor & Codex...${NC}"
@@ -429,7 +423,7 @@ ln -sfn "${SCRIPT_DIR}/bin/pi-launcher" "${ACTUAL_HOME}/.pi/agent/bin/pi"
 ln -sfn "${SCRIPT_DIR}/bin/pi-launcher" "${ACTUAL_HOME}/.pi/agent/bin/pi-raw"
 ln -sfn "${SCRIPT_DIR}/bin/pi-memory" "${ACTUAL_HOME}/.pi/agent/bin/pi-memory"
 echo -e "  ${GREEN}✓ Pi persistent memory CLI${NC}"
-echo -e "  ${GREEN}✓ pi → lean context + curated skills${NC}"
+echo -e "  ${GREEN}✓ pi → shared context + curated skills${NC}"
 echo -e "  ${GREEN}✓ pi-raw → default Pi discovery${NC}"
 
 if [ -d "${SCRIPT_DIR}/config/pi-agents" ]; then

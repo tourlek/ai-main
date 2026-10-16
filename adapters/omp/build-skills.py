@@ -126,10 +126,16 @@ def main() -> int:
     auto = set(config["auto"])
     skills, collisions, invalid = discover()
 
+    optional = set(config.get("optional", []))
     missing = sorted(auto - skills.keys())
+    skipped = [name for name in missing if name in optional]
+    missing = [name for name in missing if name not in optional]
     if missing:
         print(f"missing configured OMP auto skills: {', '.join(missing)}", file=sys.stderr)
         return 1
+    if skipped:
+        print(f"note: optional OMP auto skills not found here (provided by the runtime): {', '.join(skipped)}", file=sys.stderr)
+        auto -= set(skipped)
 
     shutil.rmtree(OUTPUT, ignore_errors=True)
     OUTPUT.mkdir(parents=True)
@@ -140,7 +146,7 @@ def main() -> int:
         if mode == "auto":
             source_dir = source.parent
             # Repo-internal sources link relatively so the farm survives moving
-            # the checkout; home-level sources link absolutely, as build-pi-skills does.
+            # the checkout; home-level sources link absolutely, as the Pi builder does.
             link = os.path.relpath(source_dir, target.parent) if source_dir.is_relative_to(AI_MAIN) else str(source_dir)
             target.symlink_to(link, target_is_directory=True)
         else:

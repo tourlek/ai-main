@@ -10,7 +10,7 @@ One JSON file per tool beyond the built-in targets:
 | --- | --- |
 | `id` | Short tool identifier |
 | `detect` | `dir:<path>` or `bin:<name>`; skip deployment when unavailable |
-| `profile` | `full`, `lean`, or `min`; all retain the same safety gates |
+| `profile` | `full` (the only shared profile) |
 | `entry` | Compiled shared entry file |
 | `skills` | Optional directory for owned skill links |
 
@@ -41,9 +41,9 @@ Older installations may already have global AGENTS.md/CLAUDE.md/GEMINI.md ignore
 
 Pi native is the `@earendil-works/pi-coding-agent` executable, not the ai-main `pi` launcher. Its installed documentation attests global `~/.pi/agent/APPEND_SYSTEM.md`, ancestor `AGENTS.md`/`CLAUDE.md` discovery, and progressive skill discovery; the launcher only selects the curated skill farm and must not be treated as Pi's rule loader.
 
-OMP's current entry is generated from `adapters/omp/entry.md.template` and imports `build/omp/SYSTEM.md`. That profile loads the full `config/workflow.md` method plus compact style/memory and `adapters/omp/runtime.md`, not the full cross-harness inventory. Planning, estimation, Senior alignment, and retrospective read `docs/working-checklist-okr.md` through an explicit pointer. Default `install.sh` builds local outputs and deploys only OMP; `--codex` adds the lean Codex adapter, while `--legacy` explicitly selects the preserved all-harness path. OMP deployment preserves unmanaged entries and symlinks, migrates only the exact former ai-main import entry, and keeps unrelated runtime settings.
+OMP's current entry is generated from `adapters/omp/entry.md.template` and imports `build/omp/SYSTEM.md`. That profile loads the full `config/workflow.md` method plus the shared style/memory and `adapters/omp/runtime.md`, not the full cross-harness inventory. Planning, estimation, Senior alignment, and retrospective read `docs/working-checklist-okr.md` through an explicit pointer. Default `install.sh` builds local outputs and deploys only OMP; `--codex` adds the Codex adapter, while `--legacy` explicitly selects the preserved all-harness path. OMP deployment preserves unmanaged entries and symlinks, migrates only the exact former ai-main import entry, and keeps unrelated runtime settings.
 
-OMP loads the generated `build/omp-skills/` catalog selected by `adapters/omp/skills.json`; `config/pi-skills.json` remains Pi-specific. User-wide native/`.agents` skill discovery is disabled to avoid bypassing the catalog; project-local and OMP-managed skills remain independent. The earlier 18 exact `ignoredSkills` exclusions were retired so those skills remain manual `/skill:<name>` commands. On 2026-10-01, OMP 18.4.4 discovery showed 16 automatic skills (11 authored + 5 managed) and 80 manual skills; an ephemeral RPC CLI registered all 96 commands without warnings.
+OMP loads the generated `build/omp-skills/` catalog selected by `adapters/omp/skills.json`; `adapters/pi/skills.json` remains Pi-specific. User-wide native/`.agents` skill discovery is disabled to avoid bypassing the catalog; project-local and OMP-managed skills remain independent. The earlier 18 exact `ignoredSkills` exclusions were retired so those skills remain manual `/skill:<name>` commands. On 2026-10-01, OMP 18.4.4 discovery showed 16 automatic skills (11 authored + 5 managed) and 80 manual skills; an ephemeral RPC CLI registered all 96 commands without warnings.
 
 The initial OMP-first read-only canary (OMP 18.4.4, `zai/glm-5.3-flash`, low thinking, no session persistence) listed the exact 16-skill catalog, required separate commit/push authorization, and rejected sharing `.codegraph` through `.ai`, without calling tools. Initial source: HEAD `e9fa1af` plus dirty local changes; initial profile SHA-256 `630aaefb507ba9fd4596d4363cc269690f1f8962950465e9b963a9f2fa42cfa8`. The optional Codex adapter was exercised only in isolated homes; no Codex GUI session was launched or live Codex configuration changed.
 
