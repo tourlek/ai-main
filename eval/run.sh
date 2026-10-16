@@ -102,6 +102,13 @@ else
     fail "shared-brain regressions"
 fi
 
+echo -e "\n${BLUE}${BOLD}7) Harness selection: no default harness, scoped adapters (isolated HOME)${NC}"
+if python3 -B "${AI_MAIN}/eval/harness-dispatch.py"; then
+    pass "harness dispatch regressions"
+else
+    fail "harness dispatch regressions"
+fi
+
 echo ""
 if [ "$FAIL" -eq 0 ]; then
     echo -e "${GREEN}${BOLD}✅ ${PASS} assertions passed${NC}"

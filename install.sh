@@ -22,22 +22,66 @@ echo -e "${CYAN}${BOLD}======================================================${N
 ACTUAL_HOME="${HOME:-/Users/$(whoami)}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Scoped OMP-first dispatch (default). Everything below is the LEGACY
-# all-harness installer (Gemini/Claude/Cursor/Codex/...) and is opt-in only:
-#   ./install.sh --legacy
-# Default and `--sync` invocations run adapters/omp/deploy.sh instead, which
-# touches only OMP-owned destinations.
-_LEGACY_DISPATCH=0
-for _dispatch_arg in "$@"; do
-    [ "$_dispatch_arg" = "--legacy" ] && _LEGACY_DISPATCH=1
-done
-if [ "$_LEGACY_DISPATCH" -eq 0 ]; then
-    case "${1:-}" in
-        --help|-h) exec "${SCRIPT_DIR}/adapters/omp/deploy.sh" "$@" ;;
+# Harness selection. There is no default harness: with nothing selected this only builds
+# local outputs under build/ and lists the choices.
+#
+#   ./install.sh --harness <id>[,<id>...] [--sync] [--quiet]
+#
+#   omp     adapters/omp/deploy.sh     OMP entry, skill farm and role launchers
+#   codex   adapters/codex/deploy.sh   Codex entry + owned skills
+#   extra   aimain adapters deploy     JSON-described tools (opencode, qwen, zcode)
+#   legacy  the all-harness installer below: Claude/Gemini/Cursor entries, hooks, launchd (one-time setup)
+#
+# Aliases kept for older callers: --codex = --harness omp,codex ; --legacy = --harness legacy.
+_HARNESS_IDS="omp codex extra legacy"
+_usage() {
+    sed -n '/^# Harness selection/,/^# Aliases kept/p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+}
+_SELECTED=()
+_PASS=()
+_args=("$@")
+_i=0
+while [ "$_i" -lt "${#_args[@]}" ]; do
+    _a="${_args[$_i]}"
+    case "$_a" in
+        --harness)
+            _i=$((_i + 1))
+            [ "$_i" -lt "${#_args[@]}" ] || { echo "install.sh: --harness needs a value" >&2; exit 2; }
+            IFS=, read -ra _ids <<< "${_args[$_i]}"; _SELECTED+=("${_ids[@]}") ;;
+        --harness=*) IFS=, read -ra _ids <<< "${_a#--harness=}"; _SELECTED+=("${_ids[@]}") ;;
+        --codex)  _SELECTED+=(omp codex) ;;
+        --legacy) _SELECTED+=(legacy) ;;
+        --sync|--quiet) _PASS+=("$_a") ;;
+        --help|-h) _usage; exit 0 ;;
+        *) echo "install.sh: unknown option: $_a (try --help)" >&2; exit 2 ;;
     esac
+    _i=$((_i + 1))
+done
+_want() { local h; for h in ${_SELECTED[@]+"${_SELECTED[@]}"}; do [ "$h" = "$1" ] && return 0; done; return 1; }
+for _h in ${_SELECTED[@]+"${_SELECTED[@]}"}; do
+    case " $_HARNESS_IDS " in *" $_h "*) ;; *) echo "install.sh: unknown harness: $_h (one of: $_HARNESS_IDS)" >&2; exit 2 ;; esac
+done
+
+if [ "${#_SELECTED[@]}" -eq 0 ]; then
     "${SCRIPT_DIR}/bin/aimain" build
-    exec "${SCRIPT_DIR}/adapters/omp/deploy.sh" "$@"
+    echo -e "${YELLOW}No harness selected: built local outputs only; nothing was written outside this repo.${NC}"
+    echo "Choose with --harness <${_HARNESS_IDS// /|}>[,...]  (see ./install.sh --help)."
+    exit 0
 fi
+if ! { _want legacy && [ "${#_SELECTED[@]}" -eq 1 ]; }; then
+    "${SCRIPT_DIR}/bin/aimain" build
+fi
+if _want omp; then
+    _omp_args=(${_PASS[@]+"${_PASS[@]}"})
+    ! _want codex || _omp_args+=(--codex)
+    "${SCRIPT_DIR}/adapters/omp/deploy.sh" ${_omp_args[@]+"${_omp_args[@]}"}
+elif _want codex; then
+    "${SCRIPT_DIR}/adapters/codex/deploy.sh" ${_PASS[@]+"${_PASS[@]}"}
+fi
+if _want extra; then
+    "${SCRIPT_DIR}/bin/aimain" adapters deploy
+fi
+_want legacy || exit 0
 
 BACKUP_DIR="${ACTUAL_HOME}/.ai-backup-$(date +%Y%m%d_%H%M%S)"
 

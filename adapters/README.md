@@ -2,6 +2,19 @@
 
 Shared policy describes intent, scope, approvals, evidence, and completion. A harness adapter describes available tools, entry-file loading, skill discovery, isolation, and continuation. A model name alone establishes none of those capabilities.
 
+## Adapter layout and selection
+
+Everything specific to one harness lives in `adapters/<id>/`; `adapters/lib/deploy-common.sh` holds the shared ownership helpers. The shared core (`config/`, `skills/`, `knowledge/`, `memory/`) stays harness-neutral and is compiled into `build/full/SYSTEM.md`.
+
+| Adapter | Contents | Deployed by |
+| --- | --- | --- |
+| `omp/` | entry template, runtime overlay, skill allowlist and builder, roles, launchers, OMP-only skills | `install.sh --harness omp` (`omp/deploy.sh`) |
+| `codex/` | `AGENTS.md.template`, `deploy.sh` | `install.sh --harness codex` |
+| `claude/`, `gemini/` | entry templates, RTK and redirect skill templates | `install.sh --harness legacy` |
+| `*.json` | manifests for extra tools (below) | `install.sh --harness extra` (`aimain adapters deploy`) |
+
+A new harness gets its own directory with a `deploy.sh` that sources `deploy-common.sh`, writes only marker-managed files (or exact-recognition migrations), preserves everything else and fails instead of overwriting. Machines choose harnesses with `--harness` or `config/harnesses.local`; nothing is deployed by default. Details: [docs/deploy.md](../docs/deploy.md).
+
 ## Deployment manifests
 
 One JSON file per tool beyond the built-in targets:

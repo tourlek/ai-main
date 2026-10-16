@@ -7,7 +7,7 @@ description: Use for requested code review or validation in dedicated fresh OMP 
 
 For the main OMP coordinator only. A worker already running as Review/Verify follows its assigned role and live dispatch preamble; it does not open another worker.
 
-Read `../../docs/omp-orca-roles.md` for the installed controller's start/wait/status/release interface. Resolve that reference against this canonical skill directory. Load Orca's version-matched `orca-cli` and `orchestration` guides before controlling terminals or dispatch lifecycle; use the same selected executable throughout.
+Read `../../orca-roles.md` for the installed controller's start/wait/status/release interface. Resolve that reference against this canonical skill directory. Load Orca's version-matched `orca-cli` and `orchestration` guides before controlling terminals or dispatch lifecycle; use the same selected executable throughout.
 
 ## Route the request
 

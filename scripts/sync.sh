@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-# Pull only from a clean checkout, rebuild local outputs, then deploy OMP.
-# No commits or pushes. Legacy redeployment requires explicit --legacy.
+# Pull only from a clean checkout, rebuild local outputs, then redeploy the harnesses
+# selected in config/harnesses.local. No commits or pushes; no default harness.
 # Usage: sync.sh [--pull-only] [--quiet] [--legacy]
 
 set -uo pipefail
@@ -62,23 +62,34 @@ if git remote get-url origin >/dev/null 2>&1; then
     fi
 fi
 
-# Fail before deployment when the selected build is incomplete.
-BUILD_ARGS=(build)
-[ "$LEGACY" -eq 0 ] || BUILD_ARGS+=(--legacy)
-if ! "${REPO_DIR}/bin/aimain" "${BUILD_ARGS[@]}" >/dev/null; then
+# Which harnesses to redeploy: config/harnesses.local (gitignored, one machine's choice),
+# whitespace/comma separated ids, '#' comments allowed. There is no default harness; with
+# no selection this only rebuilds local outputs. --legacy additionally selects "legacy".
+SELECTION_FILE="${REPO_DIR}/config/harnesses.local"
+HARNESSES=()
+if [ -f "$SELECTION_FILE" ]; then
+    while read -r id; do
+        [ -n "$id" ] && HARNESSES+=("$id")
+    done < <(sed 's/#.*//' "$SELECTION_FILE" | tr ', \t' '\n\n\n\n')
+fi
+[ "$LEGACY" -eq 0 ] || HARNESSES+=(legacy)
+
+# Fail before deployment when the build is incomplete.
+if ! "${REPO_DIR}/bin/aimain" build >/dev/null; then
     echo "sync.sh: build failed; deployment skipped" >&2
     exit 1
 fi
 
-if [ "$LEGACY" -eq 1 ]; then
-    "${REPO_DIR}/install.sh" --legacy --sync
-else
-    "${REPO_DIR}/adapters/omp/deploy.sh" --sync --quiet
+if [ "${#HARNESSES[@]}" -eq 0 ]; then
+    log "✓ built local outputs; no harness selected (see config/harnesses.local.example), nothing deployed"
+    exit 0
 fi
+
+HARNESS_LIST="$(IFS=,; echo "${HARNESSES[*]}")"
+"${REPO_DIR}/install.sh" --harness "$HARNESS_LIST" --sync --quiet
 DEPLOY_STATUS=$?
 if [ "$DEPLOY_STATUS" -ne 0 ]; then
     echo "sync.sh: redeploy failed" >&2
     exit "$DEPLOY_STATUS"
 fi
-log "✓ local-only OMP sync complete; no commits or pushes"
-
+log "✓ local-only sync complete (${HARNESS_LIST}); no commits or pushes"

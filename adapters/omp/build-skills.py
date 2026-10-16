@@ -40,6 +40,7 @@ def frontmatter_value(text: str, key: str) -> str | None:
 def discovery_roots() -> list[Path]:
     return [
         AI_MAIN / "skills",
+        AI_MAIN / "adapters" / "omp" / "skills",
         AI_MAIN / "external" / "9arm-skills" / "skills",
         AI_MAIN / "external" / "agent-skills" / "skills",
         AI_MAIN / "external" / "mattpocock-skills" / "skills",

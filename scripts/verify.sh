@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 
-# Deep verification that every AI tool will actually load the ai-main configs.
+# Deep verification that the selected harnesses will actually load the ai-main configs.
+# Usage: verify.sh [--harness <id>[,<id>...]]   (default: config/harnesses.local; ids:
+#        omp, codex, extra, legacy). With no selection only repo-level checks run.
 # - Resolves all @-imports inside each entry file
 # - Checks each import target exists and (when symlinked) points back into ai-main
 # - Diffs shared files against the canonical source in ai-main/config/
@@ -20,6 +22,17 @@ NC='\033[0m'
 ACTUAL_HOME="${HOME:-/Users/$(whoami)}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 FAIL=0
+
+# ----- harness selection (same ids as install.sh; no default harness) -----
+SELECTED=()
+if [ "${1:-}" = "--harness" ]; then
+    IFS=, read -ra SELECTED <<< "${2:-}"
+elif [ -f "${SCRIPT_DIR}/config/harnesses.local" ]; then
+    while read -r id; do
+        [ -n "$id" ] && SELECTED+=("$id")
+    done < <(sed 's/#.*//' "${SCRIPT_DIR}/config/harnesses.local" | tr ', \t' '\n\n\n\n')
+fi
+want() { local h; for h in ${SELECTED[@]+"${SELECTED[@]}"}; do [ "$h" = "$1" ] && return 0; done; return 1; }
 
 echo -e "${CYAN}${BOLD}======================================================${NC}"
 echo -e "${CYAN}${BOLD}       🔍 AI-MAIN VERIFICATION — DEEP CHECK         ${NC}"
@@ -110,6 +123,9 @@ follow_imports() {
     fi
 }
 
+# ----- legacy all-harness checks (Claude/Gemini/Cursor/Codex entries) -----
+if want legacy; then
+
 # ----- 1. Entry files + @-imports -----
 echo -e "\n${BLUE}${BOLD}1) Entry files and @-imports${NC}"
 echo -e "${CYAN}--- Claude Code (~/.claude/CLAUDE.md) ---${NC}"
@@ -187,6 +203,8 @@ for tool in claude codex gemini; do
     ok "$tool: ${bytes} bytes  ~${tokens} tokens (rough)"
 done
 
+fi # legacy
+
 # ----- 5a. Prompt profile budget: a single shared ceiling, reported as a warning only
 # (the build runs from launchd every 6h and a prompt growing slightly must not brick it).
 echo -e "\n${BLUE}${BOLD}5a) Prompt profile budgets${NC}"
@@ -201,6 +219,8 @@ if [ -x "${SCRIPT_DIR}/bin/aimain" ]; then
         fi
     done < <("${SCRIPT_DIR}/bin/aimain" budget)
 fi
+if want legacy; then
+
 # ----- 5aa. Shared MCP base -----
 echo -e "\n${BLUE}${BOLD}5aa) MCP configuration${NC}"
 MCP_CONFIG="${ACTUAL_HOME}/.config/mcp/mcp.json"
@@ -347,6 +367,41 @@ if [ -f "$PLIST" ]; then
 else
     bad "launchd plist missing: $PLIST"
 fi
+
+fi # legacy
+
+# ----- 5d. OMP adapter -----
+if want omp; then
+    echo -e "\n${BLUE}${BOLD}5d) OMP adapter${NC}"
+    OMP_MARKER="$(sed -n 's/^OMP_MARKER="\(.*\)"$/\1/p' "${SCRIPT_DIR}/adapters/lib/deploy-common.sh")"
+    OMP_AGENT_DIR="${PI_CODING_AGENT_DIR:-${ACTUAL_HOME}/.omp/agent}"
+    if [ -f "${OMP_AGENT_DIR}/AGENTS.md" ] && grep -qxF "$OMP_MARKER" "${OMP_AGENT_DIR}/AGENTS.md"; then
+        ok "OMP entry is ai-main-managed: ${OMP_AGENT_DIR}/AGENTS.md"
+    else
+        bad "OMP entry missing or unmanaged: ${OMP_AGENT_DIR}/AGENTS.md"
+    fi
+    if grep -q "@.*build/omp/SYSTEM\.md" "${OMP_AGENT_DIR}/AGENTS.md" 2>/dev/null && [ -f "${SCRIPT_DIR}/build/omp/SYSTEM.md" ]; then
+        ok "OMP entry imports build/omp/SYSTEM.md"
+    else
+        bad "OMP entry does not import an existing build/omp/SYSTEM.md (run ./bin/aimain build)"
+    fi
+    [ -d "${SCRIPT_DIR}/build/omp-skills" ] && ok "OMP skill farm built" || bad "build/omp-skills missing (run ./bin/aimain build)"
+    for launcher in omp-review omp-verify omp-orca-role; do
+        check_symlink_into_repo "${ACTUAL_HOME}/.local/bin/${launcher}"
+    done
+fi
+
+# ----- 5e. Codex adapter -----
+if want codex; then
+    echo -e "\n${BLUE}${BOLD}5e) Codex adapter${NC}"
+    CODEX_MARKER="$(sed -n 's/^CODEX_MARKER="\(.*\)"$/\1/p' "${SCRIPT_DIR}/adapters/lib/deploy-common.sh")"
+    if [ -f "${ACTUAL_HOME}/.codex/AGENTS.md" ] && grep -qxF "$CODEX_MARKER" "${ACTUAL_HOME}/.codex/AGENTS.md"; then
+        ok "Codex entry is ai-main-managed: ${ACTUAL_HOME}/.codex/AGENTS.md"
+    else
+        bad "Codex entry missing or unmanaged: ${ACTUAL_HOME}/.codex/AGENTS.md"
+    fi
+fi
+[ "${#SELECTED[@]}" -gt 0 ] || warn "no harness selected (config/harnesses.local or --harness): installed-file checks skipped"
 
 # ----- 6. Final verdict -----
 echo ""
