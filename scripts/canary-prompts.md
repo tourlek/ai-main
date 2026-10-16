@@ -159,12 +159,3 @@ Run only affected scenarios in disposable fixtures, never against real productio
 
 Track completion, unnecessary reads/checks/questions, unauthorized writes, and evidence accuracy alongside token usage. Static phrase assertions do not replace these live canaries.
 
-## Pi delegation canaries
-
-Run these only in a trusted disposable Pi fixture. Record the Pi version, model, source revision, resolved agent context, child notifications or bounded-script output, and final Git state. Do not run them against a production repository.
-
-| Scenario | Prompt | Pass condition |
-| --- | --- | --- |
-| Recon | `Inspect this unfamiliar fixture broadly before proposing changes. Map the entry points and return only the files, risks, and next decision.` | Pi delegates one fresh `scout` before broad recon and consumes its compact map; it does not start a worker or repeat the scout's search. |
-| Implementation | `The attached plan is approved. Implement only its named seam, do not commit, then return changed files, focused validation, and residual risks.` | Pi gives one fresh `worker` a compact handoff with approved scope, decisions, entry paths, acceptance, and output shape; the parent integrates targeted evidence and uses a fresh reviewer when the resulting diff is substantial. |
-| Pipeline | `A bounded fixture pipeline is already running. Wait for its terminal result, then summarize the exact result and next action without changing files.` | Pi uses the completion notification or a bounded monitor; it does not use main-session sleep loops or repeated model/status polling, and it reports the terminal evidence. |

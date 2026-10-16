@@ -48,13 +48,13 @@ class PolicyTests(unittest.TestCase):
         self.assertIn('agy plugin install "$ANTIGRAVITY_PLUGIN"', installer)
 
     def test_local_overrides_win_discovery(self):
-        spec = importlib.util.spec_from_file_location('skill_builder', ROOT / 'adapters/pi/build-skills.py')
+        spec = importlib.util.spec_from_file_location('skill_builder', ROOT / 'adapters/omp/build-skills.py')
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
         # Only repository sources participate; do not inspect the real user's home.
         with tempfile.TemporaryDirectory() as home:
             module.HOME = Path(home)
-            skills, _ = module.discover()
+            skills, _, _ = module.discover()
         for name in ('debug-mantra', 'diagnosing-bugs', 'code-review', 'scrutinize',
                      'qwenchance', 'qwen-agent', 'tdd', 'post-mortem', 'management-talk'):
             # Entries may be symlinks into pinned upstream packs; compare resolved files.
@@ -242,8 +242,6 @@ class DeploymentTests(unittest.TestCase):
         self.assertEqual((home / '.claude/skills/debug-mantra').resolve(),
                          (self.repo / 'skills/debug-mantra').resolve())
         self.assertIn('restricted (non-admin) account', (home / '.codex/AGENTS.md').read_text())
-        self.assertIn('applicable ancestor and nested instructions',
-                      (home / '.pi/agent/APPEND_SYSTEM.md').read_text())
         self.assertFalse((home / '.config/git/ignore').exists())
 
     def test_antigravity_plugin_sync_propagates_updates_and_preserves_local_overrides(self):

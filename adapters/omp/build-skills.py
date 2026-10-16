@@ -146,7 +146,7 @@ def main() -> int:
         if mode == "auto":
             source_dir = source.parent
             # Repo-internal sources link relatively so the farm survives moving
-            # the checkout; home-level sources link absolutely, as the Pi builder does.
+            # the checkout; home-level sources link absolutely.
             link = os.path.relpath(source_dir, target.parent) if source_dir.is_relative_to(AI_MAIN) else str(source_dir)
             target.symlink_to(link, target_is_directory=True)
         else:

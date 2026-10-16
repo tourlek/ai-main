@@ -24,7 +24,7 @@ Use the configured Obsidian MCP server when available:
 4. When OHO vault context is needed, start at `OHO/Home.md`, then follow only the relevant link; ordinary local code work does not require a vault read.
 5. Before editing an existing note, read it and pass its latest etag to the edit operation when supported.
 
-Use MCP discovery when exact tool names are not visible. In Pi, search or describe the `obsidian` server through the MCP proxy before the first call.
+Use MCP discovery when exact tool names are not visible.
 
 ## Write policy
 

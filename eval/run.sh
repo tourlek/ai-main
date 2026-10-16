@@ -95,14 +95,7 @@ for tier in full omp; do
     fi
 done
 
-echo -e "\n${BLUE}${BOLD}6) Pi memory stays bounded and mutation-safe${NC}"
-if python3 -B "${AI_MAIN}/eval/pi-memory.py"; then
-    pass "Pi memory regressions"
-else
-    fail "Pi memory regressions"
-fi
-
-echo -e "\n${BLUE}${BOLD}7) Scoped deployment and skill regressions (isolated fixtures)${NC}"
+echo -e "\n${BLUE}${BOLD}6) Scoped deployment and skill regressions (isolated fixtures)${NC}"
 if python3 -B "${AI_MAIN}/eval/shared-brain.py"; then
     pass "shared-brain regressions"
 else

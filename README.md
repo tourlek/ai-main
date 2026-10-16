@@ -30,7 +30,7 @@ Role work already authorized by the user runs without local approval popups. App
 
 ## 🎚️ Prompt profile
 
-There is one shared profile. `./bin/aimain build` concatenates the rule sources under `config/` and `memory/` into `build/full/SYSTEM.md` and composes the OMP profile (`build/omp/SYSTEM.md`) from the shared profile plus `adapters/omp/runtime.md` (both gitignored), then builds the OMP skill farm. `aimain build --legacy` selects the Pi skill farm instead; neither command deploys to tool homes.
+There is one shared profile. `./bin/aimain build` concatenates the rule sources under `config/` and `memory/` into `build/full/SYSTEM.md` and composes the OMP profile (`build/omp/SYSTEM.md`) from the shared profile plus `adapters/omp/runtime.md` (both gitignored), then builds the OMP skill farm. `aimain build --legacy` is an accepted no-op; the build never deploys to tool homes.
 
 | Profile | Ceiling | For | Built from |
 | --- | --- | --- | --- |
@@ -80,10 +80,10 @@ entries now live in Obsidian's `AI Memory/Lessons.md`; `memory/lessons/LESSONS.m
 ## 🧪 Prompt and memory regression suite
 
 ```bash
-bash eval/run.sh  # profile/skill assertions, Pi memory behavior, isolated deployment fixtures; no model calls
+bash eval/run.sh  # profile/skill assertions, isolated deployment fixtures; no model calls
 ```
 
-Asserts profile safety rules, Pi memory bounds and mutation behavior, deployment protections, and git-guard coverage. Live harness/model compliance is a separate check using `scripts/canary-prompts.md`.
+Asserts profile safety rules, deployment protections, and git-guard coverage. Live harness/model compliance is a separate check using `scripts/canary-prompts.md`.
 
 ## 🧠 Shared brain in a multi-repo workspace
 
@@ -143,17 +143,6 @@ codegraph sync /absolute/worktree          # pre-flight freshness for CLI-only u
 
 The installed CodeGraph guide ties automatic watching to an active MCP session; `init` alone does not establish that OMP has a watcher. Keep native search/LSP available when no index exists. An isolated two-checkout smoke with shared `.ai` links returned only `alphaBranch` from the first index and only `betaBranch` from the second; no live Orca worktree was indexed or reconfigured.
 
-## 🥧 Pi Persistent Memory
-
-`memory/pi/MEMORY.md` stores up to 700 characters of durable Pi context. The
-curated `pi` launcher's startup sync compiles it into
-`~/.pi/agent/APPEND_SYSTEM.md`. Each successful CLI mutation atomically refreshes
-only the marked memory block there. This is legacy Pi integration, separate from OMP's native memory and entry file.
-
-Keep this separate from `config/profile.md`, shared rules, and
-`knowledge/<repo>.md`. Delegated Pi agents read the same notes, but only the
-parent session writes them. Sync never commits or pushes; keep credentials and sensitive personal data out of snapshots and keep ai-main private.
-
 ## 🛠️ Quick Installation (New Device)
 
 ```bash
@@ -172,9 +161,8 @@ Initialize missing pinned packs explicitly with `git submodule update --init --r
 ai-main/
 ├── install.sh                    # idempotent installer + verifier
 ├── bin/aimain                    # CLI: link/unlink/list/deploy/doctor/build/adapters/hooks/shims
-├── bin/pi-memory                 # bounded Pi persistent-memory CLI
 ├── adapters/                     # one JSON per extra tool (opencode, qwen, ...)
-├── build/                        # GENERATED prompt profiles and OMP/Pi skill farms — gitignored
+├── build/                        # GENERATED prompt profiles and OMP skill farm — gitignored
 ├── core/
 │   ├── checks/                   # git hooks + PATH shims that replaced prompt rules
 │   └── hooks/                    # Claude Code hook wrappers
@@ -184,8 +172,6 @@ ai-main/
 │   ├── CLAUDE.md.template        # → ~/.claude/CLAUDE.md   (entry — @-imports shared/*)
 │   ├── GEMINI.md.template        # → ~/.gemini/GEMINI.md   (entry — @-imports shared/*)
 │   ├── AGENTS.md.template        # → ~/.codex/AGENTS.md    (entry — @-imports shared/*)
-│   ├── PI.md.template            # → ~/.pi/agent/APPEND_SYSTEM.md (shared entry)
-│   ├── (moved: adapters/pi/skills.json)   # Pi model-visible allowlist + total context budget
 │   ├── mcp.json.template         # → ~/.config/mcp/mcp.json (shared MCP base)
 │   ├── RTK.md                    # → ~/.claude/RTK.md      (hook-aware variant)
 │   ├── RTK.manual.md             # → ~/.codex/RTK.md, ~/.gemini/RTK.md (manual prefix)
@@ -200,14 +186,9 @@ ai-main/
 │   ├── lessons/LESSONS.md        # pointer to the canonical Obsidian correction journal
 │   ├── claude/<project-slug>/    # ⇄ ~/.claude/projects/<slug>/memory
 │   ├── codex/                    # ⇄ ~/.codex/memories
-│   └── pi/MEMORY.md              # Pi-only durable context (loaded each session)
 ├── logs/                         # central worklog, YYYY-MM.md; commits remain explicit
-├── bin/
-│   └── pi-launcher               # `pi` curated launcher + `pi-raw` escape hatch
 ├── scripts/
 │   ├── sync.sh                   # clean-tree pull + OMP redeploy; no commit/push
-│   ├── (moved: adapters/pi/build-skills.py) # builds model-visible + manual Pi skill farm
-│   ├── (moved: adapters/pi/context-budget.py) # enforces Pi's 4,000-token ai-main budget
 │   └── verify.sh                 # deep verification
 ├── skills/
 │   └── gitlab-mr-description/    # canonical shared skill (+ self-learning, worklog, ...)
@@ -224,7 +205,7 @@ ai-main/
 
 ## 🧠 Installed Skills
 
-OMP loads `build/omp-skills/`: names in `adapters/omp/skills.json` expose descriptions for automatic invocation; the remaining discovered skills are manual pointers available through `/skill:name`. Native OMP managed skills remain runtime-owned and independently discovered. The cross-harness links and Pi catalog described below belong to explicit legacy deployment.
+OMP loads `build/omp-skills/`: names in `adapters/omp/skills.json` expose descriptions for automatic invocation; the remaining discovered skills are manual pointers available through `/skill:name`. Native OMP managed skills remain runtime-owned and independently discovered. The cross-harness links described below belong to explicit legacy deployment.
 
 ### Owned (this repo, `skills/`)
 
@@ -287,16 +268,16 @@ OMP loads `build/omp-skills/`: names in `adapters/omp/skills.json` expose descri
 | 3 | `git submodule update --init --recursive --remote` |
 | 4 | Back up existing configs to `~/.ai-backup-<ts>/` |
 | 5 | Symlink `~/.ai-skills → skills/` |
-| 6 | Generate Claude, Gemini, Codex, and Pi entry files from templates |
-| 7 | Copy RTK rules (`RTK.md` for Claude, `RTK.manual.md` for Codex, Gemini, and Pi) |
-| 7b | Link the shared profile to Claude/Codex/Gemini/Pi |
+| 6 | Generate Claude, Gemini, and Codex entry files from templates |
+| 7 | Copy RTK rules (`RTK.md` for Claude, `RTK.manual.md` for Codex and Gemini) |
+| 7b | Link the shared profile to Claude/Codex/Gemini |
 | 8 | Redirect-link `gitlab-mr-description` for Claude & Gemini |
 | 9 | Direct-symlink `gitlab-mr-description` for Cursor & Codex |
 | 9b | **Direct-symlink every other owned skill** in `ai-main/skills/*` into all four tools |
-| 10 | Symlink owned skills and Pi memory CLI; build Pi's curated/manual skill farm and direct launchers |
+| 10 | Symlink owned skills |
 | 10b | Deploy `config/mcp.json.template` to the shared MCP base at `~/.config/mcp/mcp.json` |
 | 11 | Symlink files from `commands/` into `~/.claude/commands/` & `~/.cursor/commands/` |
-| 12 | Link canonical memory (`~/.ai-memory → memory/`, `~/.codex/memories → memory/codex/`, Claude project memories, and Pi's `memory/pi/MEMORY.md`) |
+| 12 | Link canonical memory (`~/.ai-memory → memory/`, `~/.codex/memories → memory/codex/` and Claude project memories) |
 | 13 | Deploy per-repo knowledge: compile `knowledge/<repo>.md` → `<workspace>/AGENTS.md` + `CLAUDE.md`/`GEMINI.md` symlinks (preserves tracked and unmanaged files, including foreign/dangling symlinks) |
 | 14 | Preserve user/global ignores; generated workspace files use local Git excludes |
 | 15 | Wire historical startup/scheduled hooks; `scripts/sync.sh` now performs OMP-only local deployment without committing or pushing |

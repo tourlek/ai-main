@@ -3,7 +3,7 @@
 # Scoped OMP-first deployment for ai-main.
 #
 # Default: OMP-owned destinations (~/.omp/agent) and its role launchers (~/.local/bin).
-# Never touches legacy tool homes (Claude, Gemini, Cursor, Pi, external packs) — use
+# Never touches legacy tool homes (Claude, Gemini, Cursor, external packs) — use
 # `install.sh --legacy` for the old all-harness installer.
 #
 # Usage: adapters/omp/deploy.sh [--codex] [--sync] [--quiet] [--legacy] [--help]

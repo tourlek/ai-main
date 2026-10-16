@@ -311,10 +311,9 @@ est_tokens() { # <file>
 
 cmd_build() {
     local tier src out tokens budget rel
-    local legacy=0
     case "${1:-}" in
         "") ;;
-        --legacy) [ "$#" -eq 1 ] || die "usage: aimain build [--legacy]"; legacy=1 ;;
+        --legacy) [ "$#" -eq 1 ] || die "usage: aimain build [--legacy]" ;;  # accepted no-op: kept for older callers
         *) die "usage: aimain build [--legacy]" ;;
     esac
     mkdir -p "$BUILD_DIR"
@@ -352,11 +351,7 @@ cmd_build() {
     else
         ok "profile omp: ~${tokens} tokens (ceiling ${budget})"
     fi
-    if [ "$legacy" -eq 1 ]; then
-        python3 "${AI_MAIN}/adapters/pi/build-skills.py"
-    else
-        python3 "${AI_MAIN}/adapters/omp/build-skills.py"
-    fi
+    python3 "${AI_MAIN}/adapters/omp/build-skills.py"
     # Content hashes identify dirty-source builds without pretending HEAD is the deployed content.
     python3 - "$AI_MAIN" "${PROFILE_SOURCES[@]}" adapters/omp/runtime.md adapters/omp/entry.md.template <<'PY'
 import hashlib, json, pathlib, sys
