@@ -1,0 +1,4 @@
+- insert:
+    - id: guard-bridge
+      name: '@local/dsh-guard-bridge'
+      config: { guardPath: ~/.claude/hooks/guard.sh, timeoutMs: 5000 }

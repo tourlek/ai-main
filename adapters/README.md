@@ -8,10 +8,14 @@ Everything specific to one harness lives in `adapters/<id>/`; `adapters/lib/depl
 
 | Adapter | Contents | Deployed by |
 | --- | --- | --- |
+| `dsh/` | slim `AGENTS.md`, `cordis.patch.yml` (subagent + guard rows), `build.sh` (→ `build/dsh/`), `propose.sh`, `deploy.sh`, `APPLY.md`, plugins `dsh-ai-main-rules` and `dsh-guard-bridge` | `install.sh --harness dsh` (quit DSH first) |
 | `omp/` | entry template, runtime overlay, skill allowlist and builder, roles, launchers, OMP-only skills | `install.sh --harness omp` (`omp/deploy.sh`) |
 | `codex/` | `AGENTS.md.template`, `deploy.sh` | `install.sh --harness codex` |
-| `claude/`, `gemini/` | entry templates, RTK and redirect skill templates | `install.sh --harness legacy` |
+| `claude/` | entry template, RTK, `agents/` (reviewer, scout), `hooks/` (herdr, jev-route), `settings.permissions.allow.json` + `merge-permissions.sh` (jq union into `settings.json` `permissions.allow`, backup first); skills and `core/hooks/guard.sh` are symlinked by install.sh step 7b | `install.sh --harness legacy` |
+| `gemini/` | entry template, RTK, redirect skill template | `install.sh --harness legacy` |
 | `*.json` | manifests for extra tools (below) | `install.sh --harness extra` (`aimain adapters deploy`) |
+
+**DSH first (2026-10-21).** DeepSeek Harness is the main harness; Claude Code runs as DSH subagents (`cc-review`, `cc-explore`) and for very hard tasks. Hermes and Cursor are out of scope: the user moved to DSH only. The Cursor bits that remain in `install.sh --harness legacy` are kept but not maintained.
 
 A new harness gets its own directory with a `deploy.sh` that sources `deploy-common.sh`, writes only marker-managed files (or exact-recognition migrations), preserves everything else and fails instead of overwriting. Machines choose harnesses with `--harness` or `config/harnesses.local`; nothing is deployed by default. Details: [docs/deploy.md](../docs/deploy.md).
 

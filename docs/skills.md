@@ -10,7 +10,8 @@ OMP loads `build/omp-skills/`: names in `adapters/omp/skills.json` expose descri
 | `gitlab-mr-comment-reply` | Draft concise Thai/English replies to GitLab MR review comments, anchored to actual code, with reply category (accept / push-back / explain / defer). |
 | `git-commit-helper` | Inspect local diff, decide commit grouping, pick conventional prefix, write subject + body. Ported from Codex. |
 | `branch-perf-compare` | Standardize RAM/startup/bundle comparisons across git branches (e.g. `uat` vs `nuxt3` vs `perf/*`) and produce a paste-ready perf report. |
-| `self-learning` | Route authorized correction captures through the Obsidian memory workflow; propose unrequested writes in chat. |
+| `clickup-card` | Per-card workflow from a DSH coordinator: breakdown via `cc-review`, ClickUp writes with preview+confirm, one DSH session per worktree, review per `config/review.md`, MR/Slack drafts, eod. |
+| `self-learning` | Route authorized correction captures through the Obsidian memory workflow; manage RULES.md / `## Rules earned` lines from approved `lessons-proposed.md`; propose unrequested writes in chat. |
 | `worklog` | Append one-line work log entries to `logs/YYYY-MM.md`; read back when asked "what did I work on". |
 
 ## From [`thananon/9arm-skills`](https://github.com/thananon/9arm-skills) — `external/9arm-skills/`

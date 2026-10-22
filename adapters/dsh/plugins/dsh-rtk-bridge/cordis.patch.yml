@@ -1,0 +1,4 @@
+- insert:
+    - id: rtk-bridge
+      name: '@local/dsh-rtk-bridge'
+      config: { rtkPath: rtk, timeoutMs: 1500 }

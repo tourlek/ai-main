@@ -24,3 +24,7 @@ Five canonical roles mapped to ClickUp activity comments. See `docs/agents/triag
 ### Domain docs
 
 Single-context layout. See `docs/agents/domain.md`.
+
+## Rules earned
+
+- [*] When adding a source file, make it `.ts` even if the folder is `.js` (e.g. `src/hooks/`), and state the extension in brief Allowed files — `update-contact-block-status.js` was created as `.js` against the repo rule (src: OHO-7084, 2026-10-19; hits:1)

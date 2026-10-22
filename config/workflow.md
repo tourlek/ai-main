@@ -34,6 +34,7 @@
 ## Validation and evidence
 
 - Report only what you actually ran; distinguish inspected code, hypotheses, measured results, and unverified claims. Keep credentials and sensitive payloads out of commands, logs, and reports.
+- Secrets: run commands that need them only as `bwsr -- '<cmd using $VAR>'`; `bwsr-keys` lists names. Never use `bw`, `bws secret`, or `security find-generic-password`; never echo, print, or write secret values. PROD needs `PROD ok` for the exact queries/collections previewed; a new query or collection needs a fresh ask.
 - Use the smallest existing checks exercising the changed behavior. Follow applicable repo/folder requirements; expand for shared contracts, build/config, permissions, or evidence of wider impact. Surface conflicting requirements instead of silently skipping them.
 - Before removing request parameters, inspect authorization consumers; if they are outside repo scope, request expansion first. Validate data-scoping, visibility, or permission changes with a restricted (non-admin) account; an admin run is insufficient and missing access leaves validation blocked.
 - Verify terminal state in the datastore or release track before claiming delivery; an HTTP 200 or successful build alone is not delivery evidence.
@@ -55,4 +56,5 @@
 - Use RTK by default for shell commands: prefix commands with `rtk`; when debugging requires complete logs and RTK truncates or hides relevant output, run that command raw and resume RTK afterward. Run `rtk gain` after substantial terminal work.
 - Exact search: `rg`. Structural search: `ast-grep`. Relationships: `codegraph explore`/MCP when its index is available and current, otherwise targeted search and caller reads.
 - Concise prose with evidence by default. Caveman and interview modes activate only on explicit request; `normal mode` disables response modes.
+- Ponytail plugin stays at `full` everywhere; never send `stop ponytail`, and `normal mode` does not turn it off. It never overrides house rules, validation, error handling, security, or accessibility.
 - Scheduled jobs: high-frequency polling (< 30m, watchdogs) MUST use a non-LLM script scheduler that is silent on empty output (zero LLM tokens); reserve LLM-driven scheduled runs for low-frequency synthesis (daily/weekly).

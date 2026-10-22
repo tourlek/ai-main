@@ -27,13 +27,14 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 #
 #   ./install.sh --harness <id>[,<id>...] [--sync] [--quiet]
 #
+#   dsh     adapters/dsh/deploy.sh     DSH: ~/.dsh/AGENTS.md, ~/.agents/AGENTS.md, @local plugins (quit DSH first)
 #   omp     adapters/omp/deploy.sh     OMP entry, skill farm and role launchers
 #   codex   adapters/codex/deploy.sh   Codex entry + owned skills
 #   extra   aimain adapters deploy     JSON-described tools (opencode, qwen, zcode)
 #   legacy  the all-harness installer below: Claude/Gemini/Cursor entries, hooks, launchd (one-time setup)
 #
 # Aliases kept for older callers: --codex = --harness omp,codex ; --legacy = --harness legacy.
-_HARNESS_IDS="omp codex extra legacy"
+_HARNESS_IDS="dsh omp codex extra legacy"
 _usage() {
     sed -n '/^# Harness selection/,/^# Aliases kept/p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
 }
@@ -80,6 +81,9 @@ elif _want codex; then
 fi
 if _want extra; then
     "${SCRIPT_DIR}/bin/aimain" adapters deploy
+fi
+if _want dsh; then
+    "${SCRIPT_DIR}/adapters/dsh/deploy.sh"
 fi
 _want legacy || exit 0
 
@@ -339,12 +343,35 @@ else
     echo -e "  ${GREEN}✓ ${SHARED_MCP_CONFIG}${NC}"
 fi
 
-# 7. Redirect skills for tools that need an in-tree SKILL.md (Claude, Gemini)
-echo -e "\n${BLUE}🔄 Creating redirect pointer files for Claude & Gemini skills...${NC}"
+# 7. Redirect skills for tools that need an in-tree SKILL.md (Gemini)
+echo -e "\n${BLUE}🔄 Creating redirect pointer files for Gemini skills...${NC}"
 mkdir -p "${ACTUAL_HOME}/.gemini/skills/gitlab-mr-description"
-mkdir -p "${ACTUAL_HOME}/.claude/skills/gitlab-mr-description"
 generate_from_template "${SCRIPT_DIR}/adapters/gemini/redirects/gitlab-mr-description/SKILL.md.template" "${ACTUAL_HOME}/.gemini/skills/gitlab-mr-description/SKILL.md"
-generate_from_template "${SCRIPT_DIR}/adapters/claude/redirects/gitlab-mr-description/SKILL.md.template" "${ACTUAL_HOME}/.claude/skills/gitlab-mr-description/SKILL.md"
+
+# 7b. Claude assets owned by ai-main: back the live file up (never delete), then symlink.
+# settings.json keeps pointing at the same ~/.claude paths, so no hook config changes.
+adopt_link() {
+    local src="$1" target="$2"
+    if [ -L "$target" ] && [ "$(readlink "$target")" = "$src" ]; then return 0; fi
+    backup_if_exists "$target"
+    mkdir -p "$(dirname "$target")"
+    ln -s "$src" "$target"
+    echo -e "  ${GREEN}✓ ${target/#$ACTUAL_HOME/~} -> ${src/#$SCRIPT_DIR/ai-main}${NC}"
+}
+echo -e "\n${BLUE}🔗 Linking Claude hooks, agents and adopted skills...${NC}"
+adopt_link "${SCRIPT_DIR}/core/hooks/guard.sh" "${ACTUAL_HOME}/.claude/hooks/guard.sh"
+for f in herdr-agent-state.sh jev-route.py; do
+    adopt_link "${SCRIPT_DIR}/adapters/claude/hooks/${f}" "${ACTUAL_HOME}/.claude/hooks/${f}"
+done
+for f in "${SCRIPT_DIR}"/adapters/claude/agents/*.md; do
+    adopt_link "$f" "${ACTUAL_HOME}/.claude/agents/$(basename "$f")"
+done
+for name in clickup-card gitlab-mr-description; do
+    adopt_link "${SCRIPT_DIR}/skills/${name}" "${ACTUAL_HOME}/.claude/skills/${name}"
+    adopt_link "${SCRIPT_DIR}/skills/${name}" "${ACTUAL_HOME}/.agents/skills/${name}"
+done
+# ClickUp read tools for clickup-card: jq union into permissions.allow (backup first; no-op when present).
+"${SCRIPT_DIR}/adapters/claude/merge-permissions.sh" "${ACTUAL_HOME}/.claude/settings.json" "$BACKUP_DIR"
 
 # 8. Direct symlinks for IDE & Codex (they follow symlinks fine)
 echo -e "\n${BLUE}🎯 Symlinking gitlab-mr-description directly for Cursor & Codex...${NC}"
@@ -352,14 +379,12 @@ ln -sfn "${SCRIPT_DIR}/skills/gitlab-mr-description" "${ACTUAL_HOME}/.cursor/ski
 echo -e "  ${GREEN}✓ ~/.cursor/skills/gitlab-mr-description${NC}"
 ln -sfn "${SCRIPT_DIR}/skills/gitlab-mr-description" "${ACTUAL_HOME}/.codex/skills/gitlab-mr-description"
 echo -e "  ${GREEN}✓ ~/.codex/skills/gitlab-mr-description${NC}"
-ln -sfn "${SCRIPT_DIR}/skills/gitlab-mr-description" "${ACTUAL_HOME}/.agents/skills/gitlab-mr-description"
-echo -e "  ${GREEN}✓ ~/.agents/skills/gitlab-mr-description (Zcode / generic agents)${NC}"
 
 # 8b. Direct-symlink every other owned skill in ai-main/skills/ to all four tools
 echo -e "\n${BLUE}🧩 Linking other owned skills (ai-main/skills/*) to all AI tools...${NC}"
 for skill_dir in "${SCRIPT_DIR}"/skills/*/; do
     name="$(basename "${skill_dir%/}")"
-    # gitlab-mr-description is handled above via the redirect pattern
+    # handled above (Gemini redirect; Claude/agents via adopt_link)
     if [ "$name" = "gitlab-mr-description" ]; then
         continue
     fi

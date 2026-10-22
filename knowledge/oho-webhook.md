@@ -15,3 +15,6 @@ Node.js webhook ingestion service.
 This pipeline acks 200 even when processing fails, so HTTP success is not a result. Measure
 terminal state in the datastore before and after, and replay 1-2 events and verify that state
 before firing a whole batch — a "success 1,429/1,429" CLI report once meant 26 recovered.
+
+## Rules earned
+

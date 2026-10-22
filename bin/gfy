@@ -1,0 +1,25 @@
+#!/bin/bash
+# bin/gfy — the only sanctioned way to run graphify (ai-main).
+# Pins the venv, clears the ambient env, disables every LLM/network path, and
+# rejects subcommands/flags that could reach a model or the network.
+# graphifyy 0.9.93 from the sha256-verified sdist; see .scratch/graphify2-report.md.
+set -euo pipefail
+VENV=/Users/tualek/ai-main/external/graphify-0.9.93/.venv
+[ "$#" -ge 1 ] || { echo "usage: gfy {extract|update|cluster-only|query|path|explain} ..." >&2; exit 2; }
+cmd=$1; shift
+case "$cmd" in
+  extract|update|cluster-only|query|path|explain) ;;
+  *) echo "gfy: '$cmd' is not allowed (no add/prs/label/watch/hook/install/clone/provider/global/export)" >&2; exit 2 ;;
+esac
+for a in "$@"; do
+  case "$a" in
+    --backend*|--model*|--dedup-llm*|--google-workspace*|--global*)
+      echo "gfy: '$a' is not allowed (would enable an LLM or network)" >&2; exit 2 ;;
+  esac
+done
+if [ "$cmd" = extract ]; then
+  case " $* " in *" --code-only "*) ;; *) set -- "$@" --code-only ;; esac
+fi
+exec /usr/bin/env -i PATH=/usr/bin:/bin:/opt/homebrew/bin HOME="$HOME" LANG=en_US.UTF-8 \
+  GRAPHIFY_BACKEND=none GRAPHIFY_NO_AUTO_REFRESH=1 GRAPHIFY_NO_BACKUP=1 GRAPHIFY_QUERY_LOG_DISABLE=1 GRAPHIFY_VIZ_NODE_LIMIT=0 \
+  "$VENV/bin/graphify" "$cmd" "$@"

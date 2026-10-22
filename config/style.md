@@ -7,6 +7,7 @@
 - `1 ประเด็น = 1 ประโยค`. If a sentence can be removed without losing meaning, remove it.
 - Write like a coworker explaining work to another coworker — not like an AI assistant, blog article, or marketing copy.
 - Banned patterns: `ไม่ใช่ A แต่เป็น B`, `สิ่งที่น่าสนใจคือ`, `ในมุมหนึ่ง`, `ในท้ายที่สุด`, `กล่าวคือ`, decorative transitions in general.
+- Keep technical terms in English — `test`, `run`, `case`, `card`, `fix`, `deploy`, `path` — instead of transliterating them into Thai script (เทสต์, รัน, เคส, การ์ด). Thai glue around English nouns is correct; transliterated nouns are not.
 - Example sentences to imitate: `รุ่นนี้ลดการหลอนได้มากขึ้น`, `รุ่นนี้ตอบสั้นและตรงกว่าเดิม`, `ระบบจำบริบทเก่าได้ดีขึ้น`. Plain, factual, no rhetorical lift.
 
 ## English

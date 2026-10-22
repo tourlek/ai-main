@@ -20,3 +20,6 @@ For app work, read `CONTEXT.md` and the relevant entry in `docs/index.md` when p
 - UI bugs that survive a scoped-style fix → inspect shared/global styles and selector precedence next.
 - GTM has separate UAT and prod containers — verify which container before touching tracking.
 - For analytics explicitly added only as this task's experiment, remove that instrumentation before an authorized commit; preserve unrelated tracking and other sessions' work.
+
+## Rules earned
+

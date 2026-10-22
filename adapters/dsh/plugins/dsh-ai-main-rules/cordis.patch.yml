@@ -1,0 +1,4 @@
+- insert:
+    - id: ai-main-rules
+      name: '@local/dsh-ai-main-rules'
+      config: { aiMain: ~/ai-main, order: 100, maxBytes: 2048 }

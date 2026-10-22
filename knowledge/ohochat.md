@@ -36,3 +36,6 @@ Use the canonical local status vocabulary. See `OHO/Source Docs/agents/triage-la
 ### Domain docs
 
 For domain terminology unresolved by the target repo, consult `OHO/Source Docs/agents/domain.md` in Obsidian; ordinary local changes do not require a vault visit.
+
+## Rules earned
+

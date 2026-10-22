@@ -1,0 +1,23 @@
+{
+  "name": "@local/dsh-guard-bridge",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Run ai-main core/hooks/guard.sh before DSH bash and ClickUp tool calls",
+  "engines": {
+    "dsh": ">=0.2.1-rc.2 <0.3.0"
+  },
+  "exports": {
+    ".": "./index.js"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "files": [
+    "index.js",
+    "cordis.patch.yml",
+    "README.md"
+  ]
+}

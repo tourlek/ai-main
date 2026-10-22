@@ -1,6 +1,6 @@
 # ai-main
 
-A harness-neutral source of truth for shared AI policy, skills, per-repo knowledge and memory. Each tool (OMP, Codex, Claude, Gemini, Cursor, and JSON-described extras) is an **adapter** that turns this core into its own entry files, skill catalog and launchers. No harness is the default: you opt in per machine.
+A harness-neutral source of truth for shared AI policy, skills, per-repo knowledge and memory. DeepSeek Harness (DSH) is the main harness, and Claude Code runs as its subagents. Each tool (DSH, OMP, Codex, Claude, Gemini, and JSON-described extras) is an **adapter** that turns this core into its own entry files, skill catalog and launchers. No harness is the default: you opt in per machine.
 
 ## What lives here
 
@@ -11,7 +11,7 @@ A harness-neutral source of truth for shared AI policy, skills, per-repo knowled
 | `skills/` + `external/` | Owned skills and pinned third-party packs |
 | `memory/`, `logs/` | Promoted rules, tool histories and the central worklog |
 | `core/` | Git hooks, PATH shims and guards that replaced prompt rules |
-| `adapters/` | Everything harness-specific: `omp/`, `codex/`, `claude/`, `gemini/`, JSON extras, shared `lib/` |
+| `adapters/` | Everything harness-specific: `dsh/`, `omp/`, `codex/`, `claude/`, `gemini/`, JSON extras, shared `lib/` |
 | `eval/`, `scripts/` | Regression suite, sync/verify scripts, canary prompts |
 | `build/` | **Generated** profiles and skill farm (gitignored, never edit) |
 
@@ -21,11 +21,12 @@ A harness-neutral source of truth for shared AI policy, skills, per-repo knowled
 git clone --recurse-submodules <your-fork-of-ai-main> ~/ai-main
 cd ~/ai-main
 ./install.sh                          # builds local outputs only; writes nothing outside the repo
+adapters/dsh/propose.sh               # DSH: write *.proposed files only; apply per adapters/dsh/APPLY.md
 ./install.sh --harness omp,codex      # deploy the harnesses you actually use
 cp config/harnesses.local.example config/harnesses.local   # remember the choice for sync/verify
 ```
 
-Harness ids: `omp`, `codex`, `extra` (opencode/qwen/zcode), `legacy` (Claude/Gemini/Cursor all-harness installer). See [docs/deploy.md](docs/deploy.md).
+Harness ids: `dsh` (DeepSeek Harness; quit it first), `omp`, `codex`, `extra` (opencode/qwen/zcode), `legacy` (Claude/Gemini/Cursor all-harness installer). See [docs/deploy.md](docs/deploy.md).
 
 ## Daily commands
 
@@ -60,3 +61,8 @@ bash eval/run.sh                      # local regression suite; no model calls
 | [adapters/README.md](adapters/README.md) | Adapter contract, scoped loading, workspace ownership |
 | [adapters/omp/README.md](adapters/omp/README.md) | OMP adapter, review/verify terminals, skill backups |
 | [docs/working-checklist-okr.md](docs/working-checklist-okr.md) | Working checklist and OKRs |
+
+## Troubleshooting
+
+- เปลี่ยนแปลงไม่ปรากฏใน harness ที่ใช้งานอยู่: รัน `./scripts/sync.sh` แล้วตามด้วย `./scripts/verify.sh` เพื่อตรวจไฟล์ที่ deploy จริง ย้อนกลับได้ตาม [docs/deploy.md](docs/deploy.md)
+- deploy `dsh` ไม่ผ่านหรือไฟล์ `*.proposed` ไม่ถูกนำไปใช้: ปิด DSH ก่อน แล้วทำตาม [adapters/dsh/APPLY.md](adapters/dsh/APPLY.md) ไม่ควร apply ด้วยมือโดยไม่ตรวจ diff

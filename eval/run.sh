@@ -66,8 +66,8 @@ done
 
 echo -e "\n${BLUE}${BOLD}2b) Every profile points curated memory to Obsidian${NC}"
 for tier in full omp; do
-    assert_in "$tier" "Obsidian is canonical" "canonical curated-memory source"
-    assert_in "$tier" "native memory is only a cache" "native memory cache boundary"
+    assert_in "$tier" "Project rules and corrections live in native auto memory" "native auto memory is the rules source"
+    assert_in "$tier" "for prior-work recall" "Obsidian prior-work recall pointer"
     assert_in "$tier" "AI Memory/Home.md" "indexed prior-work recall"
 done
 

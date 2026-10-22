@@ -1,0 +1,57 @@
+# ai-main-owned rows for ~/.dsh/profiles/desktop/cordis.patch.yml (source of truth).
+# propose.sh appends each row whose id the live patch lacks; rows already there are left as they are.
+# Format: one `    - id:` row per entry, so propose.sh can split rows without a YAML parser.
+# No row for @local/dsh-ai-main-rules or @local/dsh-session-title-tool: each inserts its own row via its plugin bundle patch.
+- insert:
+    - id: cc-review
+      name: '@deepseek-ai/dsh-subagent-claude-code'
+      config: { providerName: cc-review, model: claude-opus-5-5, permissionMode: plan, env: { CLAUDE_CODE_EFFORT_LEVEL: medium } }
+    - id: tool-cc-review
+      name: '@deepseek-ai/dsh-tool-subagent'
+      config: { provider: cc-review, toolName: subagent_claude_review, maxDepth: provider-managed }
+    - id: cc-review-high
+      name: '@deepseek-ai/dsh-subagent-claude-code'
+      config: { providerName: cc-review-high, model: claude-opus-5-5, permissionMode: plan, env: { CLAUDE_CODE_EFFORT_LEVEL: high } }
+    - id: tool-cc-review-high
+      name: '@deepseek-ai/dsh-tool-subagent'
+      config: { provider: cc-review-high, toolName: subagent_claude_review_high_on_request, maxDepth: provider-managed }
+    - id: cc-explore
+      name: '@deepseek-ai/dsh-subagent-claude-code'
+      config: { providerName: cc-explore, model: claude-haiku-5-5, permissionMode: plan }
+    - id: tool-cc-explore
+      name: '@deepseek-ai/dsh-tool-subagent'
+      config: { provider: cc-explore, toolName: subagent_claude_explore, maxDepth: provider-managed }
+    - id: guard-bridge
+      name: '@local/dsh-guard-bridge'
+      config: { guardPath: ~/.claude/hooks/guard.sh, timeoutMs: 5000 }
+    # ClickUp MCP, WRITE mode (Hub 2026-10-21). bwsr injects CLICKUP_API_KEY; launcher drops every other env var so prod secrets never reach the server. Writes enabled 2026-10-21 (user approved); guard.sh gates each write tool with the confirm word. Node exits on stdin EOF so bws-run children don't orphan. Revert: backup-20261021-clickup-mcp/desktop/cordis.patch.yml
+    - id: mcp-clickup
+      name: '@deepseek-ai/dsh-mcp-client'
+      config: { serverName: clickup, transport: stdio, command: /Users/tualek/.local/bin/bwsr, args: ['--', 'for v in $(env | sed -n "s/^\([A-Za-z_][A-Za-z0-9_]*\)=.*/\1/p"); do case "$v" in CLICKUP_API_KEY|HOME|TMPDIR|USER) ;; *) unset "$v" 2>/dev/null;; esac; done; export PATH=/opt/homebrew/bin:/usr/bin:/bin CLICKUP_TEAM_ID=90182460598 CLICKUP_MCP_MODE=write; exec /opt/homebrew/bin/node -e "process.stdin.on(''end'',()=>process.exit(0));require(''/Users/tualek/.dsh/profiles/desktop/node_modules/@hauptsache.net/clickup-mcp/dist/index.js'')"'], env: { PATH: '/Users/tualek/.local/bin:/opt/homebrew/bin:/usr/bin:/bin' }, toolCallTimeoutMs: 60000 }
+
+    # graphify MCP, READ-ONLY (Hub 2026-10-21). graphifyy 0.9.93 pinned venv; /usr/bin/env -i clears the ambient env so no provider key or claude CLI lookup reaches the server. 7 read tools over the local graph.json; the 3 PR tools shell out to gh and are guard-gated. Wrapper for builds: ~/ai-main/bin/gfy. Revert: ~/.dsh/backup-20261021-graphify/desktop/cordis.patch.yml + ai-main .scratch/backup-20261021-graphify/.
+    - id: mcp-graphify
+      name: '@deepseek-ai/dsh-mcp-client'
+      config: { serverName: graphify, transport: stdio, command: /usr/bin/env, args: ['-i', 'PATH=/usr/bin:/bin', 'HOME=/Users/tualek', 'LANG=en_US.UTF-8', 'GRAPHIFY_BACKEND=none', 'GRAPHIFY_NO_AUTO_REFRESH=1', 'GRAPHIFY_NO_BACKUP=1', 'GRAPHIFY_QUERY_LOG_DISABLE=1', 'GRAPHIFY_VIZ_NODE_LIMIT=0', '/Users/tualek/ai-main/external/graphify-0.9.93/.venv/bin/python', '-m', 'graphify.serve', '/Users/tualek/ohochat/oho-api/graphify-out/graph.json'], toolCallTimeoutMs: 30000 }
+
+# ---- OVERRIDES of shipped rows (2026-10-21, read-free / approval reduction) ----
+# NOT handled by propose.sh: its awk only captures `    - id:` rows (4-space indent) under insert, so top-level `- id:` entries at column 0 are skipped (checked against propose.sh). Append by hand, see APPLY.md.
+# Syntax verified against the live patch format: top-level id-targeted entries; an id-targeted patch REPLACES the whole matched config (no deep merge), so every field is restated.
+# Shipped permission presets restated here: read-only/ask, workspace-write/ask, danger-full-access/never.
+# To check in a new session after apply: whether defaultPreset wins over the DSH_SANDBOX_MODE-driven initial sandbox/approval rows.
+#
+# permission: workspace-write made gcloud (writes ~/.config/gcloud logs + credentials.db) escalate on every read call
+# (19 approval cards today). danger-full-access/never silently REJECTS guard-gated actions, so default to full-ask instead.
+- id: permission
+  name: "@deepseek-ai/dsh-permission-presets"
+  config:
+    defaultPreset: full-ask
+    presets:
+      read-only: { sandbox: read-only, approval: ask }
+      workspace-write: { sandbox: workspace-write, approval: ask }
+      full-ask: { name: "Full access + ask", description: "No sandbox escalations; guard still asks for commit/push/MR/ClickUp writes", sandbox: danger-full-access, approval: ask }
+      danger-full-access: { sandbox: danger-full-access, approval: never }
+# tool-subagent-claude-code: bundled row with no model/permission mode set; disable to avoid an unconstrained extra Claude choice.
+# (the renamed subagent_claude_review_high_on_request tool is in the insert list above)
+- id: tool-subagent-claude-code
+  disabled: true

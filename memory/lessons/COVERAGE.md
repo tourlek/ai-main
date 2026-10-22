@@ -10,10 +10,12 @@ The six journal entries present on 2026-10-06 were migrated to `~/Tualek/AI Memo
 | --- | --- |
 | No `Co-Authored-By` / AI attribution in commit messages | `core/checks/commit-msg-lint.sh` |
 | `glab` uses `-F json`, never `--json` | `core/checks/shims/glab` |
-| Never push to `master`/`main` of a work repo | `core/checks/pre-push-guard.sh` |
-| Never amend/rebase a commit other branches already contain | `core/checks/git-guard.sh` |
-| Git commands that default to "current branch" need an explicit branch argument | `core/checks/git-guard.sh` |
-| Never commit without authorization | `core/checks/git-guard.sh` (Claude PreToolUse) + a `min` rule for tools with no hook |
+| Never push to `master`/`main` of a work repo | `core/hooks/guard.sh` (PreToolUse/DSH) + `core/checks/pre-push-guard.sh` (git hook) |
+| Never amend/rebase a commit other branches already contain | `core/hooks/guard.sh` |
+| Git commands that default to "current branch" need an explicit branch argument | `core/hooks/guard.sh` |
+| Never commit without authorization | `core/hooks/guard.sh` (Claude PreToolUse, DSH bridge; CLI via `core/checks/git-guard.sh`) + the profile rule for tools with no hook |
+| Worktrees branch from `origin/master` | `core/hooks/guard.sh` |
+| ClickUp writes need preview + confirm | `core/hooks/guard.sh` |
 | Renaming a field that gates user-visible state needs a backfill | `core/checks/pre-commit-guard.sh` |
 
 ## Moved into repo knowledge (loaded only inside that repo)

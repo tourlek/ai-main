@@ -12,6 +12,7 @@ Initialize missing pinned packs with `git submodule update --init --recursive`; 
 
 | Harness id | Script | Writes |
 | --- | --- | --- |
+| `dsh` | `adapters/dsh/deploy.sh` | `~/.dsh/AGENTS.md`, `~/.agents/AGENTS.md`, and the two `@local` plugin links plus bundle entries in `~/.dsh/profiles/desktop/package.json`, then `pnpm install`; backups go to `~/.dsh/backup-<ts>/`, and it refuses while DSH is running |
 | `omp` | `adapters/omp/deploy.sh` | OMP entry and config merge under `~/.omp/agent`, role launchers in `~/.local/bin` |
 | `codex` | `adapters/codex/deploy.sh` | `~/.codex/AGENTS.md` (managed entry) and owned-skill links in `~/.codex/skills` |
 | `extra` | `aimain adapters deploy` | Entries for JSON-described tools (`adapters/*.json`: opencode, qwen, zcode) |
@@ -20,6 +21,10 @@ Initialize missing pinned packs with `git submodule update --init --recursive`; 
 Aliases kept for older callers: `--codex` = `--harness omp,codex`, `--legacy` = `--harness legacy`. `--sync` selects the fast redeploy mode used by `scripts/sync.sh`.
 
 Shared helpers and the ownership model (managed markers, exact-recognition migration, preserve anything else) live in `adapters/lib/deploy-common.sh`. Deployment preserves unmanaged entries and unrelated runtime settings, and fails instead of overwriting anything it does not recognize.
+
+## DSH (main harness)
+
+`aimain build` writes `build/dsh/AGENTS.md` (from `adapters/dsh/AGENTS.md`) and `build/dsh/agents-AGENTS.md` (RTK manual plus `build/full/SYSTEM.md`). `adapters/dsh/propose.sh` renders the files DSH would get into `~/.dsh/backup-20261021-consolidate/*.proposed` and changes nothing live: `package.json` (both `@local` plugin links to ai-main), `cordis.patch.yml` (live plus any missing row from `adapters/dsh/cordis.patch.yml`: `cc-review`, `cc-review-high`, `cc-explore`, `guard-bridge`), `AGENTS.md`, `agents-AGENTS.md`. `adapters/dsh/APPLY.md` has the manual apply, check and rollback steps. DSH is normally open, so leave `dsh` out of `config/harnesses.local` until you mean to quit DSH for a sync.
 
 ## Choosing harnesses per machine
 
@@ -43,7 +48,7 @@ cp config/harnesses.local.example config/harnesses.local   # e.g. "omp codex"
 | 6 | Generate Claude, Gemini, and Codex entry files from templates |
 | 7 | Copy RTK rules (`RTK.md` for Claude, `RTK.manual.md` for Codex and Gemini) |
 | 7b | Link the shared profile to Claude/Codex/Gemini |
-| 8 | Redirect-link `gitlab-mr-description` for Claude & Gemini |
+| 8 | Redirect-link `gitlab-mr-description` for Gemini; back up then symlink Claude assets owned by ai-main (`core/hooks/guard.sh`, `adapters/claude/hooks/*`, `adapters/claude/agents/*`, `clickup-card`, `gitlab-mr-description` into `~/.claude` and `~/.agents/skills`) |
 | 9 | Direct-symlink `gitlab-mr-description` for Cursor & Codex |
 | 9b | **Direct-symlink every other owned skill** in `ai-main/skills/*` into all four tools |
 | 10 | Symlink owned skills |

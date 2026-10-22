@@ -352,6 +352,7 @@ cmd_build() {
         ok "profile omp: ~${tokens} tokens (ceiling ${budget})"
     fi
     python3 "${AI_MAIN}/adapters/omp/build-skills.py"
+    bash "${AI_MAIN}/adapters/dsh/build.sh"
     # Content hashes identify dirty-source builds without pretending HEAD is the deployed content.
     python3 - "$AI_MAIN" "${PROFILE_SOURCES[@]}" adapters/omp/runtime.md adapters/omp/entry.md.template <<'PY'
 import hashlib, json, pathlib, sys

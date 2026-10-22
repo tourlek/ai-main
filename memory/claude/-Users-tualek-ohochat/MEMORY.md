@@ -15,3 +15,6 @@
 - [Worktree branch self-tracking](feedback_worktree_branch_self_tracking.md) — working branch จาก master ต้อง push -u ให้ track ตัวเอง ไม่ใช่ origin/master (repo เปิด autoSetupMerge)
 - [Worktree base = master](feedback_worktree_base_master.md) — สร้าง worktree ใหม่จาก origin/master เสมอ ไม่ถาม ไม่ใช้ develop/staging
 - [Slack dev-merge-request format](reference_slack_dev_mr_format.md) — header [repos]: title (OHO-x) / card: / link: / @Tong; ร่างให้ user เท่านั้น
+- [MR link only](feedback_mr_link_only.md) — สั่งเอา MR ไปใส่ที่ไหน แนบลิงก์เฉยๆ ไม่ต้องอธิบาย ไม่ต้องเสนอร่าง Slack
+- [MR description: use skill + house pattern](feedback_mr_description_skill.md) — เรียก gitlab-mr-description ก่อนเปิด/อัปเดต MR เขียนไทยตามหัวข้อบ้าน ดู MR เก่าของ user
+- [New files must be .ts](feedback_new_files_ts.md) — ไฟล์ใหม่ทุกไฟล์ (รวมที่สั่ง cursor) ต้องเป็น .ts; อะไรเช็คเองได้ (gcloud read-only, repo config) เช็คก่อนถาม user

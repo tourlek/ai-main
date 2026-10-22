@@ -20,6 +20,7 @@ Applies to every repo under `/Users/tualek/ohochat/`. Repo-specific files import
 ## Workspace layout
 
 - Worktrees: `.claude-worktrees/` exists in `oho-api` for parallel AI sessions.
+- When unsure which repo/path a service lives in, read `~/ohochat/REPO-MAP.md` first.
 
 ## Hard-won constraints (from production incidents)
 
@@ -28,3 +29,10 @@ Applies to every repo under `/Users/tualek/ohochat/`. Repo-specific files import
 - DB-heavy features roll out per-tenant (`business_id`), canarying one small tenant while watching p95 and slow-query logs. A flag flipped globally at night is how the cluster melted on 8 Jul 2026.
 - One flag gates exactly one feature, and "off" must behave like the feature never shipped — that includes every write path, not just reads.
 - Renaming or inverting a field that gates user-visible state (badges, counters) needs a backfill for existing documents; verify the old field's real volume in production before deleting the migration tooling.
+
+## Rules earned
+
+- [*] When creating a working branch from `origin/master`, make it track its own remote branch (`--no-track`, then `git push -u origin <branch>`) — `autoSetupMerge` otherwise tracks `origin/master` and default-target git commands hit master (src: OHO-1272, 2026-07-24; hits:2)
+- [*] When creating or updating an MR, invoke `gitlab-mr-description` and follow the Thai house pattern of the user's recent merged MRs; never write it from memory — an English free-form description had to be redone (src: OHO-7084 !1316, 2026-10-19; hits:1)
+- [*] When asked to attach an MR somewhere (ClickUp comment etc.), post the link only, with no extra text or Slack draft offer (src: OHO-1902, 2026-10-16; hits:1)
+- [*] When something can be checked read-only yourself (gcloud logging/monitoring for `oho-platform`, repo config, grep), check it before asking the user or the team (src: OHO-7084, 2026-10-19; hits:1)

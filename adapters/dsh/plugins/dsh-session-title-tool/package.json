@@ -1,0 +1,23 @@
+{
+  "name": "@local/dsh-session-title-tool",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Model-facing set_session_title tool that renames the calling DSH session",
+  "engines": {
+    "dsh": ">=0.2.1-rc.2 <0.3.0"
+  },
+  "exports": {
+    ".": "./index.js"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "files": [
+    "index.js",
+    "cordis.patch.yml",
+    "README.md"
+  ]
+}

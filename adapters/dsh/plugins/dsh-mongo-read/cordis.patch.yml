@@ -1,0 +1,4 @@
+- insert:
+    - id: mongo-read
+      name: '@local/dsh-mongo-read'
+      config: { bwsrPath: bwsr, timeoutMs: 30000 }

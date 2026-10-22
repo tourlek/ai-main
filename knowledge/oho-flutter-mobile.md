@@ -16,3 +16,6 @@ A green CI build is not a delivered patch. Shorebird promotes to a track — rea
 job trace for the track/promotion step and confirm in the delivery console (or the app's own
 telemetry) before attributing an incident to a build. Patches can also ship manually outside
 CI, so CI history alone neither convicts nor clears a release.
+
+## Rules earned
+
