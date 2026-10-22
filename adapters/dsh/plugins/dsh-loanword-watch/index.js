@@ -115,26 +115,51 @@ export function apply(ctx, config = {}) {
   const logPath = expand(config.logPath ?? '~/.dsh/loanword-hits.jsonl')
   const remind = config.reminder !== false
   const steer = config.steer !== false
-  const maxSteers = config.maxSteersPerSession ?? 3
+  const correct = config.correct !== false
+  const maxSteers = config.maxSteersPerSession ?? 10
   const steers = new WeakMap()
   const steeredTurns = new WeakMap()
+  const reported = new WeakMap()
 
   const log = (row) => {
     try {
       fs.appendFileSync(logPath, JSON.stringify({ time: Date.now(), ...row }) + '\n')
     } catch {} // logging never affects the session
   }
-  log({ action: 'loaded', reminder: remind, steer, maxSteers })
+  log({ action: 'loaded', reminder: remind, steer, correct, maxSteers })
   // One liveness row per hook per process: proves a hook fires without logging every turn.
   const seen = new Set()
   const once = (action) => { if (!seen.has(action)) { seen.add(action); log({ action }) } }
 
-  // Before every step, put the word list in front of the model: request-only, not persisted.
+  // A violation already reported in this turn is not repeated; only fresh messages count.
+  const freshViolation = (session, turn) => {
+    if (session === undefined || turn === undefined || !correct) return undefined
+    const found = turnViolations(session, turn, list)
+    if (found === undefined) return undefined
+    const seen = reported.get(session) ?? new Map()
+    const done = seen.get(turn) ?? new Set()
+    const fresh = found.seqs.filter((seq) => !done.has(seq))
+    if (fresh.length === 0) return undefined
+    for (const seq of fresh) done.add(seq)
+    seen.set(turn, done)
+    reported.set(session, seen)
+    log({ session: session.id, turn, seqs: fresh, ...found, action: 'remind' })
+    return found
+  }
+
+  // Before every step: a fresh violation becomes a correction notice in that step's batch,
+  // otherwise the short rule reminder goes in. Request-only, so nothing reaches the transcript.
   ctx.on('agent/pre-step', async (payload, next) => {
     const decision = await next()
     try {
       once('pre-step')
-      if (remind && decision?.kind === 'enter' && decision.messages.length > 0) {
+      if (decision?.kind !== 'enter' || decision.messages.length === 0) return decision
+      const found = freshViolation(payload?.agent?.session, payload?.turn)
+      if (found !== undefined) {
+        const id = `loanword-watch:fix:${payload.turn}:${found.seqs.join(',')}`
+        return { ...decision, messages: [...decision.messages, noticeMessage(correctionText(found), id)] }
+      }
+      if (remind) {
         return { ...decision, messages: [...decision.messages, noticeMessage(reminderText(), REMINDER_ID)] }
       }
     } catch (error) {

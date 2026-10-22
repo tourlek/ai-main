@@ -68,12 +68,22 @@ apply(ctx, { logPath })
 
 const preStep = handlers['agent/pre-step'][0]
 const batch = [{ id: 'u1', role: 'user', content: [{ type: 'text', text: 'do it' }] }]
-const out = await preStep({ agent, messages: batch, turn: 1, step: 1 }, async () => ({ kind: 'enter', messages: batch }))
+const cleanAgent = { session: { id: 'clean', ownEvents: () => [] }, steer: () => {} }
+const out = await preStep({ agent: cleanAgent, messages: batch, turn: 1, step: 1 }, async () => ({ kind: 'enter', messages: batch }))
 check('pre-step appends one reminder', out.kind === 'enter' && out.messages.length === 2 && out.messages[0] === batch[0])
 check('pre-step keeps the original batch intact', batch.length === 1)
 check('reminder carries the notice source', out.messages[1].source.form === 'notice')
-const rejected = await preStep({ agent, messages: batch, turn: 1, step: 1 }, async () => ({ kind: 'reject' }))
+const rejected = await preStep({ agent: cleanAgent, messages: batch, turn: 1, step: 1 }, async () => ({ kind: 'reject' }))
 check('pre-step leaves a reject untouched', rejected.kind === 'reject')
+
+// Mid-turn correction: the violating step is caught at the next pre-step, once.
+const fresh = await preStep({ agent, messages: batch, turn: 1, step: 2 }, async () => ({ kind: 'enter', messages: batch }))
+check('pre-step injects a correction for the turn', fresh.messages.length === 2 && fresh.messages[1].content[0].text.includes('loanword-watch'))
+check('pre-step correction names the offending step', fresh.messages[1].content[0].text.includes('เคส'))
+const again = await preStep({ agent, messages: batch, turn: 1, step: 3 }, async () => ({ kind: 'enter', messages: batch }))
+check('pre-step does not repeat the same correction', !again.messages[1].content[0].text.includes('เคส'))
+const cleanTurn = await preStep({ agent: { session: { id: 'x', ownEvents: () => [] }, steer: () => {} }, messages: batch, turn: 99, step: 1 }, async () => ({ kind: 'enter', messages: batch }))
+check('pre-step falls back to the reminder when clean', cleanTurn.messages.length === 2 && !cleanTurn.messages[1].content[0].text.includes('เคส'))
 
 const stop = handlers['agent/turn-stopping'][0]
 stop({ agent, turn: 1 })
