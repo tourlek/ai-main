@@ -28,7 +28,10 @@ export function loadWords(file = WORDLIST) {
 // \u0001 marks the padding a swap needs; it becomes a space only away from line edges.
 export function sanitizeText(text, list) {
   if (typeof text !== 'string' || text === '') return text
-  let out = list.cjk === undefined ? text : text.replace(list.cjk, '')
+  // Deleting CJK silently dropped content; a readable marker keeps the sentence honest.
+  let out = list.cjk === undefined
+    ? text
+    : text.replace(list.cjk, (run) => `[อักษร CJK ${[...run].length} ตัว]`)
   const kept = []
   if (list.allow) out = out.replace(list.allow, (match) => `\u0000${kept.push(match) - 1}\u0000`)
   for (const key of list.keys ?? []) {

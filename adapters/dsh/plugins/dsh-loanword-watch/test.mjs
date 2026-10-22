@@ -24,7 +24,8 @@ check('correction names CJK by codepoint', correctionText({ cjk: ['生'] }).incl
 check('cjkCodepoints dedupes', cjkCodepoints(['生生']).split(' ').length === 1)
 check('reminder covers CJK too', reminderText().includes('CJK'))
 check('sanitizeText swaps a loanword', sanitizeText('เปิดไฟล์นี้', list) === 'เปิด file นี้')
-check('sanitizeText drops CJK', !/[\u4e00-\u9fff]/.test(sanitizeText('ข้อความ 中 ปน', list)))
+check('sanitizeText replaces CJK with a readable marker', sanitizeText('ข้อความ 中 ปน', list) === 'ข้อความ [อักษร CJK 1 ตัว] ปน')
+check('the marker counts every character of the run', sanitizeText('中文', list) === '[อักษร CJK 2 ตัว]')
 check('sanitizeText keeps allowed Thai words', sanitizeText('เรื่องรันทด', list) === 'เรื่องรันทด')
 check('sanitizeText prefers the longest key', sanitizeText('เทสต์ผ่าน', list) === 'test ผ่าน')
 check('sanitizeText leaves clean text alone', sanitizeText('ผม run test แล้ว', list) === 'ผม run test แล้ว')
@@ -127,6 +128,7 @@ const cjkSteered = []
 const cjkSession = { id: 's3', ownEvents: () => [{ type: 'assistant/message', seq: 9, data: { turn: 1, step: 1, message: { role: 'assistant', content: [{ type: 'text', text: '这是中文' }] } } }] }
 handlers['agent/turn-stopping'][0]({ agent: { session: cjkSession, steer: (m) => cjkSteered.push(m) }, turn: 1 })
 check('CJK-only reply is steered without echoing it', cjkSteered.length === 1 && !/[\u4e00-\u9fff]/.test(cjkSteered[0].content[0].text))
+check('ambiguous lock is not in the list', !list.raw.includes('ล็อก') && !list.raw.includes('คีย์'))
 
 // Caps and opt-outs.
 const capped = []
