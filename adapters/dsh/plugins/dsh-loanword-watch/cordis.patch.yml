@@ -1,4 +1,4 @@
 - insert:
     - id: loanword-watch
       name: '@local/dsh-loanword-watch'
-      config: { logPath: ~/.dsh/loanword-hits.jsonl }
+      config: { logPath: ~/.dsh/loanword-hits.jsonl, steer: false }

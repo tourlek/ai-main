@@ -114,7 +114,9 @@ export function apply(ctx, config = {}) {
   const list = loadWords(config.wordlist ? expand(config.wordlist) : WORDLIST)
   const logPath = expand(config.logPath ?? '~/.dsh/loanword-hits.jsonl')
   const remind = config.reminder !== false
-  const steer = config.steer !== false
+  // Off by default: a steer keeps the turn open, which adds another assistant message
+  // and collapses the whole turn behind a "read more" affordance in the GUI.
+  const steer = config.steer === true
   const correct = config.correct !== false
   const maxSteers = config.maxSteersPerSession ?? 10
   const steers = new WeakMap()
@@ -129,7 +131,7 @@ export function apply(ctx, config = {}) {
   log({ action: 'loaded', reminder: remind, steer, correct, maxSteers })
   // One liveness row per hook per process: proves a hook fires without logging every turn.
   const seen = new Set()
-  const once = (action) => { if (!seen.has(action)) { seen.add(action); log({ action }) } }
+  const once = (action, extra = {}) => { if (!seen.has(action)) { seen.add(action); log({ action, ...extra }) } }
 
   // A violation already reported in this turn is not repeated; only fresh messages count.
   const freshViolation = (session, turn) => {
@@ -152,8 +154,10 @@ export function apply(ctx, config = {}) {
   ctx.on('agent/pre-step', async (payload, next) => {
     const decision = await next()
     try {
-      once('pre-step')
-      if (decision?.kind !== 'enter' || decision.messages.length === 0) return decision
+      // Between steps the claimed batch is empty: the notice still belongs in that request.
+      once('pre-step', { batch: decision?.messages?.length ?? -1, step: payload?.step ?? -1 })
+      if (decision?.kind !== 'enter') return decision
+      if (decision.messages.length === 0 && (payload?.step ?? 1) <= 1) return decision
       const found = freshViolation(payload?.agent?.session, payload?.turn)
       if (found !== undefined) {
         const id = `loanword-watch:fix:${payload.turn}:${found.seqs.join(',')}`

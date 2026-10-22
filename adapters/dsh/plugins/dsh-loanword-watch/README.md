@@ -7,7 +7,7 @@ two hooks, both on public `dsh-agent` API:
 | hook | what it does |
 |---|---|
 | `agent/pre-step` | if the current turn already broke the rule, appends a correction notice naming the offending steps to that step's batch, so the model fixes it in the very next step; otherwise appends one short `runtime-context` reminder (190 chars). request-only, never persisted, so no transcript growth. a step is reported once, never repeated |
-| `agent/turn-stopping` | reads every `assistant/message` of the closing turn (a multi-step turn can violate in an earlier step, so the newest one alone is not enough); if any has loanwords or CJK, calls `agent.steer(...)` once per turn, which keeps the turn open so the reply can be corrected. capped at `maxSteersPerSession` (default 10) |
+| `agent/turn-stopping` | reads every `assistant/message` of the closing turn (a multi-step turn can violate in an earlier step, so the newest one alone is not enough); if any has loanwords or CJK, calls `agent.steer(...)` once per turn, which keeps the turn open so the reply can be corrected. capped at `maxSteersPerSession` (default 10). opt-in |
 | `session/event` | appends every hit to `~/.dsh/loanword-hits.jsonl` with `action: hit` plus `loanwords`/`cjk` arrays, for retro counts. `action: remind` records the mid-turn correction, `action: steer` the turn-close one |
 
 it cannot edit a reply that already reached the user: the harness has no such API. the steer path produces a correction message in the same turn.
@@ -15,7 +15,8 @@ it cannot edit a reply that already reached the user: the harness has no such AP
 config (row inserted from `cordis.patch.yml`):
 
 - `logPath` default `~/.dsh/loanword-hits.jsonl`
-- `reminder` / `steer` / `correct` — set `false` to disable that half (correction covers the mid-turn path only)
+- `reminder` / `correct` — on by default; set `false` to disable one path
+- `steer` — **off by default**. turning it on keeps a violating turn open for one more step, which adds a second assistant message and makes the GUI collapse the whole turn behind a read-more control. the mid-turn correction covers the common case without that cost
 - `maxSteersPerSession` default 10
 - `enabled: false` registers nothing
 

@@ -64,7 +64,7 @@ const session = {
   ],
 }
 const agent = { session, steer: (m) => steered.push(m) }
-apply(ctx, { logPath })
+apply(ctx, { logPath, steer: true })
 
 const preStep = handlers['agent/pre-step'][0]
 const batch = [{ id: 'u1', role: 'user', content: [{ type: 'text', text: 'do it' }] }]
@@ -84,6 +84,11 @@ const again = await preStep({ agent, messages: batch, turn: 1, step: 3 }, async 
 check('pre-step does not repeat the same correction', !again.messages[1].content[0].text.includes('เคส'))
 const cleanTurn = await preStep({ agent: { session: { id: 'x', ownEvents: () => [] }, steer: () => {} }, messages: batch, turn: 99, step: 1 }, async () => ({ kind: 'enter', messages: batch }))
 check('pre-step falls back to the reminder when clean', cleanTurn.messages.length === 2 && !cleanTurn.messages[1].content[0].text.includes('เคส'))
+// Between steps the claimed batch is empty, and the notice must still go in.
+const between = await preStep({ agent: cleanAgent, messages: [], turn: 2, step: 2 }, async () => ({ kind: 'enter', messages: [] }))
+check('pre-step still injects when the batch is empty', between.messages.length === 1 && between.messages[0].source.form === 'notice')
+const firstStep = await preStep({ agent: cleanAgent, messages: [], turn: 2, step: 1 }, async () => ({ kind: 'enter', messages: [] }))
+check('pre-step leaves an empty first step alone', firstStep.messages.length === 0)
 
 const stop = handlers['agent/turn-stopping'][0]
 stop({ agent, turn: 1 })
@@ -112,7 +117,7 @@ check('CJK-only reply is steered without echoing it', cjkSteered.length === 1 &&
 // Caps and opt-outs.
 const capped = []
 const capHandlers = {}
-apply({ on: (ev, fn) => { (capHandlers[ev] ??= []).push(fn) } }, { logPath, maxSteersPerSession: 1 })
+apply({ on: (ev, fn) => { (capHandlers[ev] ??= []).push(fn) } }, { logPath, steer: true, maxSteersPerSession: 1 })
 for (const turn of [1, 2, 3]) capHandlers['agent/turn-stopping'][0]({ agent: { session, steer: (m) => capped.push(m) }, turn })
 check('session cap limits steers', capped.length === 1)
 
@@ -122,6 +127,13 @@ check('enabled:false registers nothing', off.length === 0)
 const noSteer = []
 apply({ on: (ev) => noSteer.push(ev) }, { logPath, steer: false })
 check('steer:false still registers both listeners', noSteer.includes('agent/turn-stopping') && noSteer.includes('agent/pre-step'))
+
+// Default: no steering, so the plugin never extends a turn by itself.
+const defaultHandlers = {}
+const defaultSteered = []
+apply({ on: (ev, fn) => { (defaultHandlers[ev] ??= []).push(fn) } }, { logPath })
+defaultHandlers['agent/turn-stopping'][0]({ agent: { session, steer: (m) => defaultSteered.push(m) }, turn: 1 })
+check('steering is opt-in', defaultSteered.length === 0)
 
 fs.rmSync(dir, { recursive: true })
 console.log(failed ? `\n${failed} failed` : '\nall passed')
