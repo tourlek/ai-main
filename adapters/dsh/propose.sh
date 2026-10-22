@@ -17,11 +17,12 @@ mkdir -p "$OUT"
 # Live package.json plus the @local links and bundle entries; everything else unchanged.
 jq --indent 2 \
    --arg rules "link:${PLUGINS}/dsh-ai-main-rules" --arg guard "link:${PLUGINS}/dsh-guard-bridge" \
-   --arg rtk "link:${PLUGINS}/dsh-rtk-bridge" '
+   --arg rtk "link:${PLUGINS}/dsh-rtk-bridge" --arg lw "link:${PLUGINS}/dsh-loanword-watch" '
   .dependencies["@local/dsh-ai-main-rules"] = $rules
   | .dependencies["@local/dsh-guard-bridge"] = $guard
   | .dependencies["@local/dsh-rtk-bridge"] = $rtk
-  | .dsh.profile.bundles |= (. + ["@local/dsh-ai-main-rules", "@local/dsh-guard-bridge", "@local/dsh-rtk-bridge"] | reduce .[] as $b ([]; if index([$b]) then . else . + [$b] end))
+  | .dependencies["@local/dsh-loanword-watch"] = $lw
+  | .dsh.profile.bundles |= (. + ["@local/dsh-ai-main-rules", "@local/dsh-guard-bridge", "@local/dsh-rtk-bridge", "@local/dsh-loanword-watch"] | reduce .[] as $b ([]; if index([$b]) then . else . + [$b] end))
 ' "${PROFILE}/package.json" > "${OUT}/package.json.proposed"
 # Live cordis.patch.yml plus any adapters/dsh/cordis.patch.yml row whose id it lacks (present rows untouched).
 # shortcut: a present row with drifted config is not updated; diff the review step by eye, parse YAML if drift recurs.

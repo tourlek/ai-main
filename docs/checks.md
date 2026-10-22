@@ -9,6 +9,7 @@ Rules a model can forget were moved out of the prompt and into places a model ca
 | `core/checks/pre-commit-guard.sh` | git `pre-commit` | "renaming a state-gating field needs a backfill" |
 | `core/checks/shims/glab` | PATH shim | "`glab` uses `-F json`, not `--json`" |
 | `core/checks/session-hours.py` | `clickup-card` eod, manual | "count session time as the wall-clock union"; `--entries` rejects overlapping/invented time entries |
+| `core/checks/thai-loanwords.py` | retro, manual; `dsh-loanword-watch` also reminds at `agent/pre-step` and steers at `agent/turn-stopping` | "keep technical terms in English" plus "no CJK in replies"; counts 56 Thai transliterations and any CJK run in assistant text, exit 1 over `--max` |
 | `core/hooks/guard.sh` | Claude `PreToolUse` (`~/.claude/hooks/guard.sh`), DSH guard bridge | push to master/main or `--all`/`--mirror`, force push, worktree not based on `origin/master`, commit/push/`glab mr` without the user's word in the last 30 min, ClickUp writes without preview + confirm, amend-of-merged-commit, implicit branch targets, `reset --hard`, `clean -f`; react-parity run exception flag |
 | `core/checks/git-guard.sh` | CLI | thin wrapper over `core/hooks/guard.sh` (no transcript, so commit/push always deny) |
 

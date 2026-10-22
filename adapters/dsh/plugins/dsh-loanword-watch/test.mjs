@@ -1,0 +1,109 @@
+import fs from 'node:fs'
+import os from 'node:os'
+import path from 'node:path'
+import { apply, cjkCodepoints, correctionText, cjkIn, findCjk, findHits, lastAssistantEvent, loadWords, noticeMessage, reminderText, textOf, violations } from './index.js'
+
+let failed = 0
+const check = (label, ok) => { if (!ok) failed++; console.log(`${ok ? 'PASS' : 'FAIL'} ${label}`) }
+const list = loadWords()
+const msg = (text, type = 'text') => ({ type: 'assistant/message', seq: 1, time: 1, data: { turn: 1, message: { role: 'assistant', content: [{ type, text }] } } })
+
+check('flags รัน', findHits(msg('ผมรัน test ไม่ได้'), list).join() === 'รัน')
+check('flags การ์ด and เคส', findHits(msg('การ์ดนี้มีเคสเดียว'), list).length === 2)
+check('English terms pass', findHits(msg('ผม run test ไม่ได้ ดู card'), list).length === 0)
+check('inline code ignored', findHits(msg('ใช้ `รัน` ได้'), list).length === 0)
+check('code fence ignored', findHits(msg('```\nการ์ด\n```'), list).length === 0)
+check('allow list (รันทด)', findHits(msg('เรื่องรันทด'), list).length === 0)
+check('reasoning block ignored', findHits(msg('รัน', 'reasoning'), list).length === 0)
+check('other event type ignored', findHits({ ...msg('รัน'), type: 'user/message' }, list).length === 0)
+check('textOf joins text blocks only', textOf({ content: [{ type: 'text', text: 'a' }, { type: 'reasoning', text: 'b' }] }) === 'a')
+check('reminder states the rule without listing every word', reminderText().includes('English') && reminderText().length < 260)
+check('correction names loanwords', correctionText({ loanwords: ['เคส', 'การ์ด'] }).includes('เคส'))
+check('correction never echoes CJK', !/[\u4e00-\u9fff]/.test(correctionText({ cjk: ['这是中文'] })))
+check('correction names CJK by codepoint', correctionText({ cjk: ['生'] }).includes('U+751F'))
+check('cjkCodepoints dedupes', cjkCodepoints(['生生']).split(' ').length === 1)
+check('reminder covers CJK too', reminderText().includes('CJK'))
+check('notice is a user message with an id', noticeMessage('x').role === 'user' && typeof noticeMessage('x').id === 'string')
+
+check('detects Chinese ideographs', findCjk(msg('这是中文内容'), list).join('') === '这是中文内容')
+check('detects Japanese kana', findCjk(msg('これはテスト'), list).length >= 1)
+check('CJK in code is ignored', findCjk(msg('`中文` and ```\n中文\n```'), list).length === 0)
+check('CJK in reasoning is ignored', findCjk(msg('中文', 'reasoning'), list).length === 0)
+check('violations groups both kinds', (() => {
+  const v = violations(msg('เคส 中文'), list)
+  return v.loanwords.join() === 'เคส' && v.cjk.join('') === '中文'
+})())
+check('violations is undefined when clean', violations(msg('all english here'), list) === undefined)
+check('cjkIn tolerates non-strings', cjkIn(undefined, list).length === 0)
+
+const older = { type: 'assistant/message', seq: 3, data: { message: { role: 'assistant', content: [{ type: 'text', text: 'การ์ด' }] } } }
+const newer = { type: 'tool/call', seq: 4, data: {} }
+check('lastAssistantEvent finds the newest assistant message', lastAssistantEvent({ ownEvents: () => [older, newer] }) === older)
+check('lastAssistantEvent returns undefined when none', lastAssistantEvent({ ownEvents: () => [] }) === undefined)
+
+// Wiring: pre-step appends the reminder, turn-stopping steers once per turn.
+const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lw-'))
+const logPath = path.join(dir, 'hits.jsonl')
+const handlers = {}
+const ctx = { on: (ev, fn) => { (handlers[ev] ??= []).push(fn) } }
+const steered = []
+const session = {
+  id: 's1',
+  ownEvents: () => [
+    { type: 'user/message', seq: 1, data: { message: { role: 'user', content: [{ type: 'text', text: 'hi' }] } } },
+    { type: 'assistant/message', seq: 2, data: { message: { role: 'assistant', content: [{ type: 'text', text: 'เสร็จแล้ว เคสนี้' }] } } },
+  ],
+}
+const agent = { session, steer: (m) => steered.push(m) }
+apply(ctx, { logPath })
+
+const preStep = handlers['agent/pre-step'][0]
+const batch = [{ id: 'u1', role: 'user', content: [{ type: 'text', text: 'do it' }] }]
+const out = await preStep({ agent, messages: batch, turn: 1, step: 1 }, async () => ({ kind: 'enter', messages: batch }))
+check('pre-step appends one reminder', out.kind === 'enter' && out.messages.length === 2 && out.messages[0] === batch[0])
+check('pre-step keeps the original batch intact', batch.length === 1)
+check('reminder carries the notice source', out.messages[1].source.form === 'notice')
+const rejected = await preStep({ agent, messages: batch, turn: 1, step: 1 }, async () => ({ kind: 'reject' }))
+check('pre-step leaves a reject untouched', rejected.kind === 'reject')
+
+const stop = handlers['agent/turn-stopping'][0]
+stop({ agent, turn: 1 })
+check('turn-stopping steers once', steered.length === 1 && steered[0].source.form === 'notice')
+stop({ agent, turn: 1 })
+check('turn-stopping does not steer twice in one turn', steered.length === 1)
+stop({ agent, turn: 2 })
+check('turn-stopping steers again on a new turn', steered.length === 2)
+
+handlers['session/event'][0](session, session.ownEvents()[1])
+const rows = fs.readFileSync(logPath, 'utf8').trim().split('\n').map((l) => JSON.parse(l))
+check('logs hits and steers separately', rows.some((r) => r.action === 'hit') && rows.filter((r) => r.action === 'steer').length === 2)
+check('steer row records both kinds', rows.filter((r) => r.action === 'steer').every((r) => Array.isArray(r.loanwords) && Array.isArray(r.cjk)))
+
+const quiet = { id: 's2', ownEvents: () => [{ type: 'assistant/message', seq: 1, data: { message: { role: 'assistant', content: [{ type: 'text', text: 'all good' }] } } }] }
+const before = steered.length
+stop({ agent: { session: quiet, steer: (m) => steered.push(m) }, turn: 1 })
+check('clean reply is not steered', steered.length === before)
+
+// A reply with Chinese only still triggers the steer path.
+const cjkSteered = []
+const cjkSession = { id: 's3', ownEvents: () => [{ type: 'assistant/message', seq: 9, data: { message: { role: 'assistant', content: [{ type: 'text', text: '这是中文' }] } } }] }
+handlers['agent/turn-stopping'][0]({ agent: { session: cjkSession, steer: (m) => cjkSteered.push(m) }, turn: 1 })
+check('CJK-only reply is steered without echoing it', cjkSteered.length === 1 && !/[\u4e00-\u9fff]/.test(cjkSteered[0].content[0].text))
+
+// Caps and opt-outs.
+const capped = []
+const capHandlers = {}
+apply({ on: (ev, fn) => { (capHandlers[ev] ??= []).push(fn) } }, { logPath, maxSteersPerSession: 1 })
+for (const turn of [1, 2, 3]) capHandlers['agent/turn-stopping'][0]({ agent: { session, steer: (m) => capped.push(m) }, turn })
+check('session cap limits steers', capped.length === 1)
+
+const off = []
+apply({ on: (ev, fn) => off.push([ev, fn]) }, { enabled: false })
+check('enabled:false registers nothing', off.length === 0)
+const noSteer = []
+apply({ on: (ev) => noSteer.push(ev) }, { logPath, steer: false })
+check('steer:false still registers both listeners', noSteer.includes('agent/turn-stopping') && noSteer.includes('agent/pre-step'))
+
+fs.rmSync(dir, { recursive: true })
+console.log(failed ? `\n${failed} failed` : '\nall passed')
+process.exit(failed ? 1 : 0)
