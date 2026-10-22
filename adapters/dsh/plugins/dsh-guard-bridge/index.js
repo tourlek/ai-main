@@ -4,8 +4,9 @@ import path from 'node:path'
 
 export const name = 'dsh-guard-bridge'
 
-const HARD = /never allowed|must branch from origin\/master/
-const GATED = /needs the user's explicit|needs a preview/
+const HARD = /never allowed/
+// No transcript under DSH, so the guard never sees the user's 'allow-worktree' word: ask instead.
+const GATED = /needs the user's explicit|needs a preview|must branch from origin\/master/
 const CRITICAL = /\bgit\b[^\n]*\b(push|commit)\b|\bglab\s+mr\b/
 const NEXT = { kind: 'next' }
 
@@ -22,6 +23,12 @@ export function buildPayload(exec, cwd) {
   if (isBash) {
     const dir = resolveWorkdir(exec.arguments.workdir, cwd)
     return { tool_name: 'Bash', tool_input: { command: exec.arguments.command }, cwd: dir, hook_event_name: 'PreToolUse' }
+  }
+  if (exec.name === 'create_worktree') {
+    // DSH tool; checked as the equivalent git command so the guard's worktree-base rule applies.
+    // Only an exact origin/master base passes; name is left out so it cannot smuggle the substring in.
+    const base = exec.arguments?.from === 'origin/master' ? 'origin/master' : 'non-master-base'
+    return { tool_name: 'Bash', tool_input: { command: `git worktree add wt ${base}` }, cwd, hook_event_name: 'PreToolUse' }
   }
   if (exec.name?.startsWith('clickup_') || exec.name?.includes('__clickup_') || exec.name?.startsWith('mcp__graphify__')) {
     return { tool_name: exec.name, tool_input: exec.arguments, cwd, hook_event_name: 'PreToolUse' }
@@ -73,7 +80,8 @@ export function apply(ctx, config = {}) {
     const bash = exec.name === 'bash' && typeof exec.arguments?.command === 'string'
     const clickup = exec.name?.startsWith('clickup_') || exec.name?.includes('__clickup_')
     const graphify = exec.name?.startsWith('mcp__graphify__')
-    if (!bash && !clickup && !graphify) return next()
+    const worktree = exec.name === 'create_worktree'
+    if (!bash && !clickup && !graphify && !worktree) return next()
     try {
       const wd = ctx.get('workingDirectory')
       if (wd && exec.agent) cwd = (await wd.ensure(exec.agent, exec.signal)) || cwd

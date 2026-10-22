@@ -8,6 +8,7 @@ Rules a model can forget were moved out of the prompt and into places a model ca
 | `core/checks/pre-push-guard.sh` | git `pre-push` | "never push to master/main" |
 | `core/checks/pre-commit-guard.sh` | git `pre-commit` | "renaming a state-gating field needs a backfill" |
 | `core/checks/shims/glab` | PATH shim | "`glab` uses `-F json`, not `--json`" |
+| `core/checks/session-hours.py` | `clickup-card` eod, manual | "count session time as the wall-clock union"; `--entries` rejects overlapping/invented time entries |
 | `core/hooks/guard.sh` | Claude `PreToolUse` (`~/.claude/hooks/guard.sh`), DSH guard bridge | push to master/main or `--all`/`--mirror`, force push, worktree not based on `origin/master`, commit/push/`glab mr` without the user's word in the last 30 min, ClickUp writes without preview + confirm, amend-of-merged-commit, implicit branch targets, `reset --hard`, `clean -f`; react-parity run exception flag |
 | `core/checks/git-guard.sh` | CLI | thin wrapper over `core/hooks/guard.sh` (no transcript, so commit/push always deny) |
 

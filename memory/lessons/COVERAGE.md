@@ -17,6 +17,7 @@ The six journal entries present on 2026-10-06 were migrated to `~/Tualek/AI Memo
 | Worktrees branch from `origin/master` | `core/hooks/guard.sh` |
 | ClickUp writes need preview + confirm | `core/hooks/guard.sh` |
 | Renaming a field that gates user-visible state needs a backfill | `core/checks/pre-commit-guard.sh` |
+| Session work time = wall-clock union of active intervals; ClickUp time entries must not overlap or be invented | `core/checks/session-hours.py` (run by `clickup-card` eod) |
 
 ## Moved into repo knowledge (loaded only inside that repo)
 

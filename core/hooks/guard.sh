@@ -5,7 +5,8 @@
 # Silent exit 0 = no decision (normal permission flow).
 # Callers: Claude Code PreToolUse, the DSH guard bridge (no transcript), core/checks/git-guard.sh (CLI).
 # Reason phrases are a contract with adapters/dsh/plugins/dsh-guard-bridge:
-#   "never allowed" / "must branch from origin/master" -> deny; "needs the user's explicit" / "needs a preview" -> ask.
+#   "never allowed" -> deny; "needs the user's explicit" / "needs a preview" / "must branch from origin/master" -> ask
+#   (no transcript under DSH, so 'allow-worktree' is never seen; Claude Code still allows on that word).
 set -u
 input=$(cat)
 tool=$(jq -r '.tool_name // ""' <<<"$input")
