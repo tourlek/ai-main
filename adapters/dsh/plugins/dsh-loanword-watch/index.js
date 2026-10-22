@@ -19,7 +19,48 @@ export function loadWords(file = WORDLIST) {
   const cjk = ranges.length
     ? new RegExp(`[${ranges.map(([a, b]) => `\\u{${a}}-\\u{${b}}`).join('')}]+`, 'gu')
     : undefined
-  return { words, allow, cjk, raw: [...cfg.words] }
+  // Longest first so เทสต์ wins over เทส; the replacement map comes from the same file.
+  const keys = [...cfg.words].sort((a, b) => b.length - a.length)
+  return { words, allow, cjk, raw: [...cfg.words], keys, map: cfg.map ?? {} }
+}
+
+// Deterministic rewrite: drop CJK, swap each loanword for its English form.
+// \u0001 marks the padding a swap needs; it becomes a space only away from line edges.
+export function sanitizeText(text, list) {
+  if (typeof text !== 'string' || text === '') return text
+  let out = list.cjk === undefined ? text : text.replace(list.cjk, '')
+  const kept = []
+  if (list.allow) out = out.replace(list.allow, (match) => `\u0000${kept.push(match) - 1}\u0000`)
+  for (const key of list.keys ?? []) {
+    const english = list.map?.[key]
+    if (english === undefined || !out.includes(key)) continue
+    out = out.split(key).join(`\u0001${english}\u0001`)
+  }
+  out = out.replace(/\u0000(\d+)\u0000/g, (_, index) => kept[Number(index)])
+  out = out
+    .replace(/\u0001+/g, '\u0001')
+    .replace(/^\u0001/gm, '')
+    .replace(/\u0001$/gm, '')
+    .replace(/\u0001/g, ' ')
+    .replace(/[ \t]{2,}/g, ' ')
+    .replace(/ +([,.;:!?])/g, '$1')
+    .replace(/[ \t]+$/gm, '')
+  return out
+}
+
+// Same event, with every assistant text block rewritten. Identity is preserved.
+export function sanitizeEventData(data, list) {
+  const message = data?.message
+  if (message === undefined || !Array.isArray(message.content)) return data
+  let changed = false
+  const content = message.content.map((block) => {
+    if (block?.type !== 'text' || typeof block.text !== 'string') return block
+    const clean = sanitizeText(block.text, list)
+    if (clean === block.text) return block
+    changed = true
+    return { ...block, text: clean }
+  })
+  return changed ? { ...data, message: { ...message, content } } : data
 }
 
 export function textOf(message) {
@@ -117,7 +158,11 @@ export function apply(ctx, config = {}) {
   // Off by default: a steer keeps the turn open, which adds another assistant message
   // and collapses the whole turn behind a "read more" affordance in the GUI.
   const steer = config.steer === true
-  const correct = config.correct !== false
+  // Sanitize is the deterministic path: it rewrites the message before it is committed,
+  // so the reader never sees a loanword or a CJK character at all.
+  const sanitize = config.sanitize !== false
+  // The mid-turn notice only matters when sanitize is off; it costs tokens otherwise.
+  const correct = config.correct === true
   const maxSteers = config.maxSteersPerSession ?? 10
   const steers = new WeakMap()
   const steeredTurns = new WeakMap()
@@ -128,10 +173,33 @@ export function apply(ctx, config = {}) {
       fs.appendFileSync(logPath, JSON.stringify({ time: Date.now(), ...row }) + '\n')
     } catch {} // logging never affects the session
   }
-  log({ action: 'loaded', reminder: remind, steer, correct, maxSteers })
+  log({ action: 'loaded', reminder: remind, steer, correct, sanitize, maxSteers })
   // One liveness row per hook per process: proves a hook fires without logging every turn.
   const seen = new Set()
   const once = (action, extra = {}) => { if (!seen.has(action)) { seen.add(action); log({ action, ...extra }) } }
+
+  // Patch the session once so every committed assistant message is rewritten in place.
+  const patched = new WeakSet()
+  const patchSession = (session) => {
+    if (!sanitize || session === undefined || session === null || patched.has(session)) return
+    if (typeof session.append !== 'function') return
+    patched.add(session)
+    const append = session.append.bind(session)
+    const rewrite = (type, data, rest) => {
+      const clean = sanitizeEventData(data, list)
+      if (clean === data) return append(type, data, ...rest)
+      const event = append(type, clean, ...rest)
+      try {
+        log({ session: session.id, seq: event?.seq, action: 'sanitize', loanwords: findHits({ ...event, type: 'assistant/message' }, list), cjk: findCjk({ ...event, type: 'assistant/message' }, list) })
+      } catch {}
+      return event
+    }
+    Object.defineProperty(session, 'append', {
+      configurable: true,
+      writable: true,
+      value: (type, data, ...rest) => (type === 'assistant/message' ? rewrite(type, data, rest) : append(type, data, ...rest)),
+    })
+  }
 
   // A violation already reported in this turn is not repeated; only fresh messages count.
   const freshViolation = (session, turn) => {
@@ -156,6 +224,7 @@ export function apply(ctx, config = {}) {
     try {
       // Between steps the claimed batch is empty: the notice still belongs in that request.
       once('pre-step', { batch: decision?.messages?.length ?? -1, step: payload?.step ?? -1 })
+      patchSession(payload?.agent?.session)
       if (decision?.kind !== 'enter') return decision
       if (decision.messages.length === 0 && (payload?.step ?? 1) <= 1) return decision
       const found = freshViolation(payload?.agent?.session, payload?.turn)
@@ -178,6 +247,7 @@ export function apply(ctx, config = {}) {
       const session = agent?.session
       if (session === undefined) return
       once('turn-stopping')
+      patchSession(session)
       const found = turnViolations(session, turn, list)
       if (found === undefined || !steer) return
       const done = steeredTurns.get(session) ?? new Set()

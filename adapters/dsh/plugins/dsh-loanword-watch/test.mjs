@@ -1,7 +1,7 @@
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
-import { apply, cjkCodepoints, correctionText, cjkIn, findCjk, findHits, loadWords, noticeMessage, reminderText, textOf, turnViolations, violations } from './index.js'
+import { apply, cjkCodepoints, correctionText, cjkIn, findCjk, findHits, loadWords, noticeMessage, reminderText, sanitizeEventData, sanitizeText, textOf, turnViolations, violations } from './index.js'
 
 let failed = 0
 const check = (label, ok) => { if (!ok) failed++; console.log(`${ok ? 'PASS' : 'FAIL'} ${label}`) }
@@ -23,6 +23,20 @@ check('correction never echoes CJK', !/[\u4e00-\u9fff]/.test(correctionText({ cj
 check('correction names CJK by codepoint', correctionText({ cjk: ['生'] }).includes('U+751F'))
 check('cjkCodepoints dedupes', cjkCodepoints(['生生']).split(' ').length === 1)
 check('reminder covers CJK too', reminderText().includes('CJK'))
+check('sanitizeText swaps a loanword', sanitizeText('เปิดไฟล์นี้', list) === 'เปิด file นี้')
+check('sanitizeText drops CJK', !/[\u4e00-\u9fff]/.test(sanitizeText('ข้อความ 中 ปน', list)))
+check('sanitizeText keeps allowed Thai words', sanitizeText('เรื่องรันทด', list) === 'เรื่องรันทด')
+check('sanitizeText prefers the longest key', sanitizeText('เทสต์ผ่าน', list) === 'test ผ่าน')
+check('sanitizeText leaves clean text alone', sanitizeText('ผม run test แล้ว', list) === 'ผม run test แล้ว')
+check('sanitizeEventData rewrites text blocks only', (() => {
+  const data = { turn: 1, step: 1, message: { id: 'm1', role: 'assistant', source: { kind: 'model' }, content: [{ type: 'reasoning', text: 'เคส' }, { type: 'text', text: 'เคส' }] } }
+  const out = sanitizeEventData(data, list)
+  return out.message.content[0].text === 'เคส' && out.message.content[1].text === 'case' && out.message.id === 'm1' && out.turn === 1
+})())
+check('sanitizeEventData returns the same object when clean', (() => {
+  const data = { message: { content: [{ type: 'text', text: 'all english' }] } }
+  return sanitizeEventData(data, list) === data
+})())
 check('notice is a user message with an id', noticeMessage('x').role === 'user' && typeof noticeMessage('x').id === 'string')
 
 check('detects Chinese ideographs', findCjk(msg('这是中文内容'), list).join('') === '这是中文内容')
@@ -64,7 +78,7 @@ const session = {
   ],
 }
 const agent = { session, steer: (m) => steered.push(m) }
-apply(ctx, { logPath, steer: true })
+apply(ctx, { logPath, steer: true, correct: true })
 
 const preStep = handlers['agent/pre-step'][0]
 const batch = [{ id: 'u1', role: 'user', content: [{ type: 'text', text: 'do it' }] }]
@@ -117,7 +131,7 @@ check('CJK-only reply is steered without echoing it', cjkSteered.length === 1 &&
 // Caps and opt-outs.
 const capped = []
 const capHandlers = {}
-apply({ on: (ev, fn) => { (capHandlers[ev] ??= []).push(fn) } }, { logPath, steer: true, maxSteersPerSession: 1 })
+apply({ on: (ev, fn) => { (capHandlers[ev] ??= []).push(fn) } }, { logPath, steer: true, correct: true, maxSteersPerSession: 1 })
 for (const turn of [1, 2, 3]) capHandlers['agent/turn-stopping'][0]({ agent: { session, steer: (m) => capped.push(m) }, turn })
 check('session cap limits steers', capped.length === 1)
 
@@ -127,6 +141,18 @@ check('enabled:false registers nothing', off.length === 0)
 const noSteer = []
 apply({ on: (ev) => noSteer.push(ev) }, { logPath, steer: false })
 check('steer:false still registers both listeners', noSteer.includes('agent/turn-stopping') && noSteer.includes('agent/pre-step'))
+
+// The session patch rewrites a committed assistant message in place.
+const committed = []
+const patchedSession = { id: 'patched', append: (type, data) => { const e = { seq: committed.length + 1, type, data }; committed.push(e); return e }, ownEvents: () => [] }
+const patchCtx = {}
+apply({ on: (ev, fn) => { (patchCtx[ev] ??= []).push(fn) } }, { logPath })
+await patchCtx['agent/pre-step'][0]({ agent: { session: patchedSession }, messages: batch, turn: 1, step: 1 }, async () => ({ kind: 'enter', messages: batch }))
+patchedSession.append('assistant/message', { turn: 1, step: 1, message: { id: 'm9', role: 'assistant', content: [{ type: 'text', text: 'อ่านโค้ด แล้วเจอเคส' }] } })
+check('committed message is rewritten before it lands', committed[0].data.message.content[0].text === 'อ่าน code แล้วเจอ case')
+check('committed message keeps its identity', committed[0].data.message.id === 'm9')
+patchedSession.append('turn/start', { turn: 1 })
+check('other event types pass through untouched', committed[1].data.turn === 1)
 
 // Default: no steering, so the plugin never extends a turn by itself.
 const defaultHandlers = {}
