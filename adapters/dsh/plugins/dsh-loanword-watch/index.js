@@ -56,10 +56,24 @@ export function violations(event, list) {
   return loanwords.length || cjk.length ? { loanwords, cjk } : undefined
 }
 
-export function lastAssistantEvent(session) {
+// Every assistant message of the closing turn counts: checking only the newest one
+// missed violations written in an earlier step of a multi-step turn.
+export function turnViolations(session, turn, list) {
   const events = session?.ownEvents?.() ?? session?.snapshotEvents?.() ?? []
-  for (let i = events.length - 1; i >= 0; i -= 1) if (events[i]?.type === 'assistant/message') return events[i]
-  return undefined
+  const loanwords = []
+  const cjk = []
+  const seqs = []
+  for (let i = events.length - 1; i >= 0; i -= 1) {
+    const event = events[i]
+    if (event?.type !== 'assistant/message') continue
+    if (turn !== undefined && event.data?.turn !== turn) continue
+    const found = violations(event, list)
+    if (found === undefined) continue
+    loanwords.push(...found.loanwords)
+    cjk.push(...found.cjk)
+    seqs.unshift(event.seq)
+  }
+  return loanwords.length || cjk.length ? { loanwords, cjk, seqs } : undefined
 }
 
 // A request-only notice: same source shape as first-party runtime context messages.
@@ -135,17 +149,16 @@ export function apply(ctx, config = {}) {
       const session = agent?.session
       if (session === undefined) return
       once('turn-stopping')
-      const last = lastAssistantEvent(session)
-      const found = violations(last, list)
+      const found = turnViolations(session, turn, list)
       if (found === undefined || !steer) return
-      const seen = steeredTurns.get(session) ?? new Set()
+      const done = steeredTurns.get(session) ?? new Set()
       const used = steers.get(session) ?? 0
-      if (seen.has(turn) || used >= maxSteers) return
-      seen.add(turn)
-      steeredTurns.set(session, seen)
+      if (done.has(turn) || used >= maxSteers) return
+      done.add(turn)
+      steeredTurns.set(session, done)
       steers.set(session, used + 1)
       agent.steer(noticeMessage(correctionText(found)))
-      log({ session: session.id, turn, seq: last.seq, ...found, action: 'steer' })
+      log({ session: session.id, turn, ...found, action: 'steer' })
     } catch (error) {
       log({ action: 'error', phase: 'turn-stopping', error: String(error?.message ?? error) })
     }

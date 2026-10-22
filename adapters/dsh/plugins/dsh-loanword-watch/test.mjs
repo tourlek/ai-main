@@ -1,7 +1,7 @@
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
-import { apply, cjkCodepoints, correctionText, cjkIn, findCjk, findHits, lastAssistantEvent, loadWords, noticeMessage, reminderText, textOf, violations } from './index.js'
+import { apply, cjkCodepoints, correctionText, cjkIn, findCjk, findHits, loadWords, noticeMessage, reminderText, textOf, turnViolations, violations } from './index.js'
 
 let failed = 0
 const check = (label, ok) => { if (!ok) failed++; console.log(`${ok ? 'PASS' : 'FAIL'} ${label}`) }
@@ -36,10 +36,19 @@ check('violations groups both kinds', (() => {
 check('violations is undefined when clean', violations(msg('all english here'), list) === undefined)
 check('cjkIn tolerates non-strings', cjkIn(undefined, list).length === 0)
 
-const older = { type: 'assistant/message', seq: 3, data: { message: { role: 'assistant', content: [{ type: 'text', text: 'การ์ด' }] } } }
-const newer = { type: 'tool/call', seq: 4, data: {} }
-check('lastAssistantEvent finds the newest assistant message', lastAssistantEvent({ ownEvents: () => [older, newer] }) === older)
-check('lastAssistantEvent returns undefined when none', lastAssistantEvent({ ownEvents: () => [] }) === undefined)
+// A multi-step turn: the violation sits in the first step, the last message is clean.
+const turnEvents = [
+  { type: 'assistant/message', seq: 3, data: { turn: 7, step: 1, message: { role: 'assistant', content: [{ type: 'text', text: 'ตรวจ เคส นี้' }] } } },
+  { type: 'tool/call', seq: 4, data: {} },
+  { type: 'assistant/message', seq: 5, data: { turn: 7, step: 2, message: { role: 'assistant', content: [{ type: 'text', text: 'all english here' }] } } },
+  { type: 'assistant/message', seq: 6, data: { turn: 8, step: 1, message: { role: 'assistant', content: [{ type: 'text', text: 'ไฟล์ ใน turn อื่น' }] } } },
+]
+const turnSession = { ownEvents: () => turnEvents }
+const seven = turnViolations(turnSession, 7, list)
+check('turnViolations sees an earlier step of the same turn', seven !== undefined && seven.loanwords.join() === 'เคส' && seven.seqs.join() === '3')
+check('turnViolations ignores other turns', !turnViolations(turnSession, 8, list).loanwords.includes('เคส'))
+check('turnViolations aggregates every step', turnViolations(turnSession, undefined, list).loanwords.length === 2)
+check('turnViolations is undefined for a clean turn', turnViolations({ ownEvents: () => [turnEvents[2]] }, 7, list) === undefined)
 
 // Wiring: pre-step appends the reminder, turn-stopping steers once per turn.
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lw-'))
@@ -51,7 +60,7 @@ const session = {
   id: 's1',
   ownEvents: () => [
     { type: 'user/message', seq: 1, data: { message: { role: 'user', content: [{ type: 'text', text: 'hi' }] } } },
-    { type: 'assistant/message', seq: 2, data: { message: { role: 'assistant', content: [{ type: 'text', text: 'เสร็จแล้ว เคสนี้' }] } } },
+    ...[1, 2, 3].map((t) => ({ type: 'assistant/message', seq: 1 + t, data: { turn: t, step: 1, message: { role: 'assistant', content: [{ type: 'text', text: 'เสร็จแล้ว เคสนี้' }] } } })),
   ],
 }
 const agent = { session, steer: (m) => steered.push(m) }
@@ -79,14 +88,14 @@ const rows = fs.readFileSync(logPath, 'utf8').trim().split('\n').map((l) => JSON
 check('logs hits and steers separately', rows.some((r) => r.action === 'hit') && rows.filter((r) => r.action === 'steer').length === 2)
 check('steer row records both kinds', rows.filter((r) => r.action === 'steer').every((r) => Array.isArray(r.loanwords) && Array.isArray(r.cjk)))
 
-const quiet = { id: 's2', ownEvents: () => [{ type: 'assistant/message', seq: 1, data: { message: { role: 'assistant', content: [{ type: 'text', text: 'all good' }] } } }] }
+const quiet = { id: 's2', ownEvents: () => [{ type: 'assistant/message', seq: 1, data: { turn: 1, step: 1, message: { role: 'assistant', content: [{ type: 'text', text: 'all good' }] } } }] }
 const before = steered.length
 stop({ agent: { session: quiet, steer: (m) => steered.push(m) }, turn: 1 })
 check('clean reply is not steered', steered.length === before)
 
 // A reply with Chinese only still triggers the steer path.
 const cjkSteered = []
-const cjkSession = { id: 's3', ownEvents: () => [{ type: 'assistant/message', seq: 9, data: { message: { role: 'assistant', content: [{ type: 'text', text: '这是中文' }] } } }] }
+const cjkSession = { id: 's3', ownEvents: () => [{ type: 'assistant/message', seq: 9, data: { turn: 1, step: 1, message: { role: 'assistant', content: [{ type: 'text', text: '这是中文' }] } } }] }
 handlers['agent/turn-stopping'][0]({ agent: { session: cjkSession, steer: (m) => cjkSteered.push(m) }, turn: 1 })
 check('CJK-only reply is steered without echoing it', cjkSteered.length === 1 && !/[\u4e00-\u9fff]/.test(cjkSteered[0].content[0].text))
 

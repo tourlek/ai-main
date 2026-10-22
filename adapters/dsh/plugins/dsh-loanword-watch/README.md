@@ -7,7 +7,7 @@ two hooks, both on public `dsh-agent` API:
 | hook | what it does |
 |---|---|
 | `agent/pre-step` | appends one short `runtime-context` notice (190 chars) restating the rule to the entering batch. request-only, never persisted, so no transcript growth; the full word list stays in the detector |
-| `agent/turn-stopping` | reads the newest `assistant/message`; if it still has loanwords or CJK, calls `agent.steer(...)` once per turn, which keeps the turn open so the reply can be corrected. capped at `maxSteersPerSession` (default 3) |
+| `agent/turn-stopping` | reads every `assistant/message` of the closing turn (a multi-step turn can violate in an earlier step, so the newest one alone is not enough); if any has loanwords or CJK, calls `agent.steer(...)` once per turn, which keeps the turn open so the reply can be corrected. capped at `maxSteersPerSession` (default 3) |
 | `session/event` | appends every hit to `~/.dsh/loanword-hits.jsonl` with `action: hit` plus `loanwords`/`cjk` arrays, for retro counts |
 
 it cannot edit a reply that already reached the user: the harness has no such API. the steer path produces a correction message in the same turn.
