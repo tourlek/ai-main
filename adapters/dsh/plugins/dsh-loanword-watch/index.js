@@ -186,11 +186,13 @@ export function apply(ctx, config = {}) {
     patched.add(session)
     const append = session.append.bind(session)
     const rewrite = (type, data, rest) => {
+      // Read the violations from the original data: the committed event is already clean.
+      const found = violations({ type: 'assistant/message', data }, list)
       const clean = sanitizeEventData(data, list)
       if (clean === data) return append(type, data, ...rest)
       const event = append(type, clean, ...rest)
       try {
-        log({ session: session.id, seq: event?.seq, action: 'sanitize', loanwords: findHits({ ...event, type: 'assistant/message' }, list), cjk: findCjk({ ...event, type: 'assistant/message' }, list) })
+        log({ session: session.id, seq: event?.seq, action: 'sanitize', loanwords: found?.loanwords ?? [], cjk: found?.cjk ?? [] })
       } catch {}
       return event
     }

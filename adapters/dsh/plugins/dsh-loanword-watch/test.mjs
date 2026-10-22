@@ -151,6 +151,8 @@ await patchCtx['agent/pre-step'][0]({ agent: { session: patchedSession }, messag
 patchedSession.append('assistant/message', { turn: 1, step: 1, message: { id: 'm9', role: 'assistant', content: [{ type: 'text', text: 'อ่านโค้ด แล้วเจอเคส' }] } })
 check('committed message is rewritten before it lands', committed[0].data.message.content[0].text === 'อ่าน code แล้วเจอ case')
 check('committed message keeps its identity', committed[0].data.message.id === 'm9')
+const sanitizeRow = fs.readFileSync(logPath, 'utf8').trim().split('\n').map((l) => JSON.parse(l)).filter((r) => r.action === 'sanitize').pop()
+check('sanitize row records what was replaced', sanitizeRow?.loanwords?.join() === 'โค้ด,เคส' && Array.isArray(sanitizeRow?.cjk))
 patchedSession.append('turn/start', { turn: 1 })
 check('other event types pass through untouched', committed[1].data.turn === 1)
 
