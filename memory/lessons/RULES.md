@@ -9,6 +9,7 @@ Format: `- [*] When <trigger>, <do/don't> — <why> (src; hits:N)`. Cap ~2 KB. N
 - [*] When a cause, environment or rollout mechanism is named, stay inside it: don't fix other causes, touch other envs (UAT vs prod) or add unrequested feature flags; report them instead — out-of-scope work was discarded (src: webhook incident 2026-07, staging-1 debug 2026-09, Meta Business AI RC gate 2026-09, UAT endpoints 2026-09; hits:4)
 
 - [*] When reporting session work time, count the wall-clock union of active intervals (parallel subagents/waits once) and make the itemised breakdown sum to the booked number; compute it with core/checks/session-hours.py, never from memory (src: OHO-8778 2026-10-21, OHO-8672 2026-10-22; hits:2)
+- [*] When a reply mentions tracker cards or tasks, call them the user's ("card ของคุณ"); the assignee account is the user's even when you write through it — never "card ของผม" (src: ClickUp Sprint 21 scoping 2026-10-22; hits:1)
 - [*] When estimating a card in the clickup-card flow, estimate **AI-executor** effort (agent time + mock/fix loops + one review round), not human writing time — human-scoped estimates blow the 8h/day budget and the card dates (src: OHO-8672 2026-10-22; hits:1)
 
 General preservation, authorization, migration, and validation rules are maintained in `config/workflow.md`, not repeated here.
