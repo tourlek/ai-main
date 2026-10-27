@@ -48,7 +48,7 @@
 - Use `code-review`, `gitlab-mr-description`, and `gitlab-mr-comment-reply` for their respective tasks. Missing specs limit compliance claims, not correctness checks.
 - Use `self-learning` for deduplicated durable corrections and `worklog` for requested/enabled logging; respect write restrictions.
 - Handle focused work directly; delegate substantial independent slices with scope/evidence. One writer per checkout. Reviews name MR/commit ranges; release proof stays separate.
-- When Orca is available, route substantial code/heavy work as a full handoff to a fresh Orca worktree via the version-matched `orca-cli` guide; the active harness names the worker agent and the same-workspace review/verify mechanism (supervised multi-step via skill `orchestration`).
+- Route substantial card/code work through T3 Code: a dedicated worktree under `~/.t3/worktrees/<repo>/<branch-slug>` bound to one implement thread (`workspaceStrategy: {type: "existing_worktree"}`), one writer per checkout (Orca retired 2026-10-27). Before interactive work in a checkout, check `ps aux` that no background chain/script still drives it; kill that script first on handoff.
 
 ## Tools and style
 
@@ -58,3 +58,4 @@
 - Concise prose with evidence by default. Caveman and interview modes activate only on explicit request; `normal mode` disables response modes.
 - Ponytail plugin stays at `full` everywhere; never send `stop ponytail`, and `normal mode` does not turn it off. It never overrides house rules, validation, error handling, security, or accessibility.
 - Scheduled jobs: high-frequency polling (< 30m, watchdogs) MUST use a non-LLM script scheduler that is silent on empty output (zero LLM tokens); reserve LLM-driven scheduled runs for low-frequency synthesis (daily/weekly).
+- Headless/chain scripts calling `claude -p`: when output matches `hit your (session|weekly) limit · resets <time>`, never loop on a fixed short sleep; parse the reset time and sleep until reset + 2 min, or exit if an interactive T3 handoff owns the checkout. Use a pidfile lock so only one instance runs.

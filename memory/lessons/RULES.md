@@ -19,5 +19,8 @@ Format: `- [*] When <trigger>, <do/don't> — <why> (src; hits:N)`. Cap ~2 KB. N
 - [*] When deploying to UAT, check that repo's `deploy.sh`/`.gitlab-ci.yml` for traffic routing first — it differs per repo (oho-web-app deploys `--no-traffic`; oho-webhook and oho-api switch 100% on deploy) (src: pi retro 2026-10-26; hits:3)
 - [*] When work needs many tool calls, don't use `gemini-3.8-flash` — it stalls in tool loops (src: pi retro 2026-10-26 01a1766e, 01a17678; hits:2)
 - [*] When waiting for CI, don't block the chat with `sleep` loops; run the wait in the background and check back (src: pi retro 2026-10-26, ~30 min blocked; hits:4)
+- [*] When a brief allows deleting a doc section "if all about X", check each paragraph first and keep non-X operational notes — deleting the heading whole lost unrelated runbook notes (src: OHO-8915 r3 review 2026-10-27; hits:1)
+- [*] When computing session tokens/cost/hours from `.jsonl` transcripts, filter each event by its own `timestamp` (never file `mtime`, which changes on `cost-state`/`pr-link` writes) and dedupe entry ids across forked pi sessions (src: gemini retro 2026-10-27, 169M cache-read miscounted; hits:1)
+- [*] When moving a checkout from a background script to an interactive T3 thread, kill the script PID first and verify with `ps aux` — both alive collided at quota reset (src: react-p0 P02d 2026-10-27 23:06; hits:1)
 
 General preservation, authorization, migration, and validation rules are maintained in `config/workflow.md`, not repeated here.
