@@ -1,0 +1,46 @@
+{
+  "mcpServers": {
+    "context7": {
+      "url": "https://mcp.context7.com/mcp",
+      "exposure": "direct"
+    },
+    "open-design": {
+      "command": "/Users/tualek/.local/opt/Open Design.app/Contents/MacOS/Open Design",
+      "args": [
+        "/Users/tualek/.local/opt/Open Design.app/Contents/Resources/app/prebundled/daemon/daemon-cli.mjs",
+        "mcp",
+        "--daemon-url",
+        "http://127.0.0.1:7456"
+      ],
+      "env": {
+        "OD_DATA_DIR": "/Users/tualek/Library/Application Support/Open Design",
+        "ELECTRON_RUN_AS_NODE": "1"
+      },
+      "exposure": "deferred"
+    },
+    "graphify": {
+      "command": "/usr/bin/env",
+      "args": [
+        "-i",
+        "PATH=/usr/bin:/bin",
+        "HOME=/Users/tualek",
+        "LANG=en_US.UTF-8",
+        "GRAPHIFY_BACKEND=none",
+        "GRAPHIFY_NO_AUTO_REFRESH=1",
+        "GRAPHIFY_NO_BACKUP=1",
+        "GRAPHIFY_QUERY_LOG_DISABLE=1",
+        "GRAPHIFY_VIZ_NODE_LIMIT=0",
+        "/Users/tualek/ai-main/external/graphify-0.9.93/.venv/bin/python",
+        "-m",
+        "graphify.serve",
+        "/Users/tualek/ohochat/oho-api/graphify-out/graph.json"
+      ],
+      "exposure": "direct"
+    },
+    "clickup": {
+      "url": "https://mcp.clickup.com/mcp",
+      "exposure": "deferred",
+      "description": "ClickUp workspace (tasks, lists, comments, docs); OAuth sign-in required, writes need the user's confirm"
+    }
+  }
+}

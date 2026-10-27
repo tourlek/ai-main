@@ -18,13 +18,49 @@ Curated long-term memory lives in Obsidian at `~/Tualek/AI Memory/Home.md`. Read
 
 One-off typos and existing repo contracts do not need another memory. Task status stays in the user-named tracker.
 
-## Capture and review
+## Capture (standing permission: create-only in AI Inbox)
 
-1. If the user has not authorized memory writes, propose the lesson in chat. A correction alone does not authorize a vault write.
-2. With authorization, read `~/Tualek/AI Memory/Home.md` and follow `AI Memory/Workflow.md` for duplicate search, candidate capture, evidence, curation, and index updates.
-3. Tell the user the saved note's path and review status.
+The user granted a standing permission (2026-10-25): any agent may **create new notes** in `/Users/tualek/Tualek/AI Inbox/` without asking each time. Nothing else is covered.
 
-If the vault is inaccessible, return the candidate in chat with the missing path; do not create a second curated journal in ai-main or tool memory.
+- Allowed: create a new file `AI Inbox/<YYYY-MM-DD> - <Short Title>.md`. If that name exists, append ` (2)`, ` (3)`… — never overwrite.
+- Not allowed without explicit approval: editing or deleting any existing note (including `AI Inbox/Home.md` and other candidates), writing anywhere else in the vault, promoting to `AI Memory/`, editing `RULES.md` / `knowledge/*` / `config/*`, or committing.
+- One lesson per note. Before creating, search `AI Inbox/` and `AI Memory/Lessons.md` by keyword; if a match exists, still create a new note and put `related: [[<existing note>]]` in it (curation merges later; you do not edit the old one).
+- Never include credentials, tokens, customer PII, sensitive payloads or raw transcripts.
+
+Note template (fill every field; write `unknown` rather than inventing):
+
+```markdown
+---
+type: memory
+status: candidate
+scope: <global | workspace | repo:<name>>
+created: <YYYY-MM-DD HH:MM +07>
+agent: <hermes | claude-code | cursor-cli | codex | orca:<worker> | grok-bot>
+model: <provider/model id actually running>
+source: <session id / card CU-xxx / MR !nnn / file path>
+related: <[[existing note]] or none>
+---
+
+# <Short Title>
+
+## Claim
+<One self-contained lesson or preference.>
+
+## Evidence
+<User's words (quoted) or source path + heading; branch/HEAD/env if relevant.>
+
+## Proposed rule
+- [*] When <trigger>, <do/don't> — <why> (src: <source>, <date>; hits:1)
+
+## Applies When
+<Trigger, scope, exceptions.>
+```
+
+After creating it, tell the user the path and that it is a candidate awaiting review. Do not add it to `AI Inbox/Home.md`; curation links candidates. If the vault is not reachable, return the filled template in chat with the missing path; do not create a second journal in ai-main or tool memory.
+
+## Review and promotion (needs user approval)
+
+Read `~/Tualek/AI Memory/Home.md` and follow `AI Memory/Workflow.md` for verifying, merging, promoting and indexing. Promotion into `AI Memory/`, `RULES.md` or `knowledge/`, and any status change on an existing note, happen only after the user approves that specific change. Candidates are never deleted: they become `status: promoted | superseded | dropped` (or are moved to an archive folder with approval).
 
 ## Prompt rules (RULES.md and `## Rules earned`)
 

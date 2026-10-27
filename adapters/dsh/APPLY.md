@@ -142,6 +142,48 @@ Check: a new session shows preset `full-ask`; `subagent_claude_review_high_on_re
 
 Rollback: quit DSH, copy `$B/cordis.patch.yml` to `$P/` and `$B/AGENTS.md` to `~/.dsh/AGENTS.md`, then `open -a "DeepSeek Harness"`.
 
+## Chrome DevTools MCP (2026-10-22)
+
+Installed by hand while the profile was live; patch HMR picked it up without a quit.
+
+- `mcp-chrome-devtools` — row in `adapters/dsh/cordis.patch.yml`; needs the profile dependency `"chrome-devtools-mcp": "1.11.0"`. Headless + `--isolated` (never touches the user's Chrome profile), usage statistics and the CrUX URL lookup off, `toolCallTimeoutMs: 180000` because Lighthouse and traces outrun the 60s default. 32 tools: perf trace, Lighthouse, console, network, screenshots, snapshots.
+
+The `dsh-obsidian-panel` vault panel was installed next to it on the same day and removed by the user's request hours later (see the cost-meter section for why its bundle entry could not survive).
+
+`propose.sh` does not add that dependency (its jq only sets the four `@local` keys), so keep it in the live `package.json` and re-add it by hand if the profile is rebuilt.
+
+pnpm: install with Homebrew `pnpm` 10.32.0 to match `node_modules/.modules.yaml` (`packageManager: pnpm@10.32.0`). The DSH-shipped pnpm is 11.28.5 and aborts with `ERR_PNPM_ABORTED_REMOVE_MODULES_DIR_NO_TTY` — it wants to purge the 614 MB modules dir.
+
+Verify (exact configured argv, `env -i`, headless Chrome, no DSH restart needed):
+
+```bash
+node /tmp/mcp-nav.mjs   # initialize → new_page example.com → list_pages; expect "Example Domain" listed
+```
+
+Revert: quit DSH, restore `~/.dsh/backup-20261022-mcp-chrome-obsidian/{package.json,cordis.patch.yml,pnpm-lock.yaml}`, delete the `mcp-chrome-devtools` row from `adapters/dsh/cordis.patch.yml`, `pnpm install`, restart.
+
+## Cost meter (dsh-cost-meter, 2026-10-22)
+
+Hand-installed at the user's request, pinned to `1.9.26`. Plugin Hub was avoided: that version was published the same day, so the host pnpm 11.28.5 `minimumReleaseAge` (24h) refuses it, and pnpm 11 also wants to purge the pnpm-10 store.
+
+```bash
+P=~/.dsh/profiles/desktop; B=~/.dsh/backup-20261022-cost-meter   # backup taken before editing
+# package.json: dependencies "dsh-cost-meter": "1.9.26"; dsh.profile.bundles append "dsh-cost-meter"
+(cd $P && pnpm install)   # Homebrew pnpm 10.32.0
+```
+
+Its own bundle patch inserts the `cost-meter` row, so no row goes in `cordis.patch.yml`. A quit + relaunch is required (host rows, Typert manifest and client bundle are scanned at startup) — unlike the chrome MCP, this one does not HMR in. First launch replays existing session logs to backfill history.
+
+Settings worth touching once (Settings → Cost): sync prices from the official page (USD), keep peak/off-peak on, disable the 13 vendor quota cards that this setup does not use. API keys, if added for the balance card, are only ever sent to `api.deepseek.com`; the ledger lives at `$DSH_HOME/storages/cost-meter/ledger.json`.
+
+**The profile `package.json` is not stable under hand edits.** Any write to it wakes the host plugin manager, which runs its own pnpm 11 install; that install fails on this machine with `ERR_PNPM_UNEXPECTED_STORE` (`node_modules` is linked from `~/Library/pnpm/store/v10`, pnpm 11 wants `v11`, see `.plugin-manager/logs/operation-*/pnpm.log` at 16:48:13, 16:48:30, 16:49:01) and the reconciliation writes `package.json` back without the `link:`-installed `dsh-obsidian-panel` bundle entry. Registry packages (`dsh-cost-meter`) and `@local/*` links survive; the obsidian entry does not, so it is stripped again within seconds of being re-added while DSH runs. Consequence: Plugin Hub install/update is currently broken on this profile until the store mismatch is resolved (let pnpm 11 re-link `node_modules`, or point the host pnpm at the v10 store).
+
+The obsidian vault panel was the casualty: its bundle entry was re-added three times and stripped within 40 s each time, so the user had it removed on 2026-10-22 — dependency, bundle entry and the `node_modules` symlink are gone; the pinned clone still sits at `external/dsh-obsidian-panel` (456 KB, v1.2.1) if it is ever wanted back. Plugin Hub itself stays broken on this profile until the store mismatch is resolved, so plan no Hub installs or updates here without fixing it first.
+
+Settings worth touching once (Settings → Cost): sync prices from the official page (USD), keep peak/off-peak on, disable the 13 vendor quota cards that this setup does not use. API keys, if added for the balance card, are only ever sent to `api.deepseek.com`; the ledger lives at `$DSH_HOME/storages/cost-meter/ledger.json`.
+
+Revert: quit DSH, copy `~/.dsh/backup-20261022-cost-meter/{package.json,cordis.patch.yml,pnpm-lock.yaml}` back, `pnpm install`, restart.
+
 ## Rollback
 
 - DSH:

@@ -64,3 +64,17 @@ Checklist: scope / description vs code / SHA match / Node 20 tests / lint / secr
 - repeat: <RULES.md / Rules earned line> — <finding path:line> -> hits:N+1
 - new: - [*] When <trigger>, <do/don't> — <why> (src: <CARD> / !MR, YYYY-MM-DD; hits:1)   target: RULES.md | knowledge/<repo>.md
 ```
+
+# rounds.md
+
+```
+# <CARD> threads and rounds (2 main T3 threads per card; implement thread = pi + DeepSeek, one thread for all rounds)
+plan_thread: <threadId of the claude-team plan thread>
+impl_thread: <threadId of the pi implement thread>   worktree: ~/.t3/worktrees/<repo>/<slug>   branch: <branch>
+r1: <YYYY-MM-DD HH:MM +07> plan-only    (launch via t3_thread_launch, existing_worktree)
+r1 review: <time> delegate:<childThreadId> claude-opus-5-5 medium   (nested under impl_thread)
+r2: <time> implement    (t3_thread_send to impl_thread)
+r2 review: <time> delegate:<childThreadId> claude-opus-5-5 medium
+r3: <time> fix
+Fallback used (if any): <which fallback from SKILL.md step 3, why>
+```

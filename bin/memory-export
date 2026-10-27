@@ -1,0 +1,277 @@
+#!/usr/bin/env python3
+"""memory-export: copy agent-native memory into Obsidian AI Inbox as candidate notes.
+
+Read-only on every source. Creates NEW files only in AI Inbox (never overwrites, never edits),
+following the self-learning note template. A ledger of exported item hashes makes reruns
+idempotent and records every created file for bulk rollback.
+
+Sources: Hermes MEMORY.md / USER.md entries, Hermes pending memory writes, Hermes
+agent-created skills (~/.hermes/skills), Claude Code auto-memory (ai-main/memory/claude and
+~/.claude/projects/*/memory that are not symlinks into it).
+
+Usage: memory-export [--dry-run] | --list-created | --rollback <dest-dir>   (rollback = mv, never rm)
+"""
+import hashlib, json, os, re, sys, time, glob, shutil
+from pathlib import Path
+
+HOME = Path.home()
+INBOX = HOME / "Tualek" / "AI Inbox"
+HERMES = HOME / ".hermes"
+LEDGER = HERMES / "state" / "memory-export-ledger.json"
+CLAUDE_MEM = HOME / "ai-main" / "memory" / "claude"
+NOW = time.strftime("%Y-%m-%d %H:%M %z")
+NOW = NOW[:-2] if NOW.endswith("00") else NOW  # +0700 -> +07
+TODAY = time.strftime("%Y-%m-%d")
+SECRET = re.compile(r"(?i)\b(api[_-]?key|token|secret|password|passwd|bearer)\b(\s*[:=]\s*|\s+)([^\s,;'\"`]{8,})")
+SKKEY = re.compile(r"\b(sk-[A-Za-z0-9_-]{16,}|gh[pousr]_[A-Za-z0-9]{20,}|glpat-[A-Za-z0-9_-]{16,}|xox[abpr]-[A-Za-z0-9-]{10,})\b")
+
+
+def redact(s):
+    s = SKKEY.sub("[REDACTED]", s)
+    return SECRET.sub(lambda m: m.group(1) + m.group(2) + "[REDACTED]", s)
+
+
+def h(*parts):
+    return hashlib.sha256("\x1f".join(parts).encode()).hexdigest()[:16]
+
+
+def load_ledger():
+    if LEDGER.exists():
+        return json.loads(LEDGER.read_text())
+    return {"items": {}, "created": []}
+
+
+def entries(path):
+    if not path.exists():
+        return []
+    return [e.strip() for e in path.read_text(encoding="utf-8").split("\n§\n") if e.strip()]
+
+
+def frontmatter(text):
+    m = re.match(r"^---\n(.*?)\n---\n?(.*)$", text, re.S)
+    if not m:
+        return {}, text
+    fm = {}
+    for line in m.group(1).splitlines():
+        mm = re.match(r"^\s*([\w-]+):\s*(.*)$", line)
+        if mm:
+            fm.setdefault(mm.group(1), mm.group(2).strip().strip('"'))
+    return fm, m.group(2)
+
+
+def safe_title(s, n=60):
+    s = re.sub(r"[\\/:*?\"<>|#^\[\]`\n\r\t]+", " ", s)
+    s = re.sub(r"\s+", " ", s).strip()
+    return (s[:n].rstrip() or "untitled")
+
+
+def note(title, *, agent, source, scope, claim, evidence, rule, applies, related="none"):
+    return f"""---
+type: memory
+status: candidate
+scope: {scope}
+created: {NOW}
+agent: {agent}
+model: unknown (exported by memory-export; original writer model not recorded)
+source: {source}
+related: {related}
+---
+
+# {title}
+
+## Claim
+{claim}
+
+## Evidence
+{evidence}
+
+## Proposed rule
+{rule}
+
+## Applies When
+{applies}
+"""
+
+
+def collect():
+    """Yield groups: (group_key, title, builder(items)->note_text, [(item_key, item_hash, payload)])"""
+    groups = []
+    # 1. Hermes USER.md: one note per entry (profile facts, highest value)
+    for e in entries(HERMES / "memories" / "USER.md"):
+        k = "hermes-user:" + h(e)
+        groups.append(("single", f"Hermes USER - {safe_title(e)}", [(k, k, e)], "user"))
+    # 2. Hermes MEMORY.md: grouped (environment/project facts)
+    mem = [("hermes-memory:" + h(e), None, e) for e in entries(HERMES / "memories" / "MEMORY.md")]
+    groups.append(("group", "Hermes MEMORY.md entries", [(k, k, e) for k, _, e in mem], "memory"))
+    # 3. Pending memory writes still staged
+    pend = []
+    for f in sorted(glob.glob(str(HERMES / "pending" / "memory" / "*.json"))):
+        try:
+            r = json.load(open(f))
+        except Exception:
+            continue
+        k = "hermes-pending:" + r.get("id", Path(f).stem) + ":" + h(json.dumps(r.get("payload"), sort_keys=True))
+        pend.append((k, k, r))
+    groups.append(("group", "Hermes pending memory writes (held back)", pend, "pending"))
+    # 4. Hermes agent-created skills
+    usage = {}
+    try:
+        usage = json.loads((HERMES / "skills" / ".usage.json").read_text())
+    except Exception:
+        pass
+    bundled = set()
+    mf = HERMES / "skills" / ".bundled_manifest"
+    if mf.exists():
+        bundled = {l.split(":")[0].strip() for l in mf.read_text().splitlines() if l.strip()}
+    sk = []
+    for p in sorted((HERMES / "skills").glob("**/SKILL.md")):
+        rel = p.relative_to(HERMES / "skills")
+        if any(part.startswith(".") for part in rel.parts):
+            continue
+        name = p.parent.name
+        if name in bundled:
+            continue
+        txt = p.read_text(encoding="utf-8", errors="replace")
+        k = "hermes-skill:" + name + ":" + h(txt)
+        sk.append((k, k, {"name": name, "path": str(p), "text": txt, "usage": usage.get(name) or {}}))
+    groups.append(("group", "Hermes self-created skills", sk, "skills"))
+    # 5. Claude Code auto-memory, one note per project
+    dirs = {}
+    if CLAUDE_MEM.exists():
+        for d in sorted(CLAUDE_MEM.iterdir()):
+            if d.is_dir():
+                dirs[d.name] = d
+    for d in sorted((HOME / ".claude" / "projects").glob("*/memory")):
+        if not d.is_symlink() and d.is_dir() and any(d.glob("*.md")):
+            dirs.setdefault(d.parent.name, d)
+    for proj, d in dirs.items():
+        items = []
+        for f in sorted(d.glob("*.md")):
+            if f.name == "MEMORY.md":
+                continue
+            txt = f.read_text(encoding="utf-8", errors="replace")
+            k = "claude:" + proj + "/" + f.name + ":" + h(txt)
+            items.append((k, k, {"path": str(f), "text": txt}))
+        if items:
+            groups.append(("group", f"Claude auto-memory {proj.replace('-Users-tualek', '').strip('-') or 'home'}", items, "claude"))
+    return groups
+
+
+def render(kind, title, items, src):
+    if src == "user":
+        e = redact(items[0][2])
+        return note(title, agent="hermes (memory tool, USER.md)", source="~/.hermes/memories/USER.md entry " + items[0][0].split(":")[1],
+                    scope="global (user profile)", claim=e,
+                    evidence=f"Verbatim entry from `~/.hermes/memories/USER.md` (exported {NOW}).",
+                    rule="- [*] Promote to `AI Memory/Profile.md` if still true; otherwise mark dropped.",
+                    applies="Every agent, every model, when acting for Tualek.")
+    if src == "memory":
+        body = "\n".join(f"{i}. {redact(e)}" for i, (_, _, e) in enumerate(items, 1))
+        return note(title, agent="hermes (memory tool, MEMORY.md)", source="~/.hermes/memories/MEMORY.md",
+                    scope="global (environment / project state)", claim=f"{len(items)} Hermes memory entries not yet in the vault:\n\n{body}",
+                    evidence="Verbatim §-delimited entries; ledger keys in `~/.hermes/state/memory-export-ledger.json`.",
+                    rule="- [*] At curation, promote durable facts to `AI Memory/` topic notes; mark task-status entries dropped.",
+                    applies="Curation review; split into separate candidates if promoting.")
+    if src == "pending":
+        cur = set(entries(HERMES / "memories" / "MEMORY.md")) | set(entries(HERMES / "memories" / "USER.md"))
+        parts = []
+        for _, _, r in items:
+            p = r.get("payload") or {}
+            ops = p.get("operations") or [p]
+            created = time.strftime("%Y-%m-%d %H:%M", time.localtime(r.get("created_at") or 0))
+            parts.append(f"### {r.get('id')} · {created} ICT · {r.get('origin')} · target={p.get('target')}")
+            for op in ops:
+                a = op.get("action")
+                if a in ("replace", "remove"):
+                    me = op.get("matched_entry") or ""
+                    state = "target still present" if me in cur else "STALE: target entry changed since staged (Hermes refuses)"
+                    parts.append(f"- **{a}** ({state})\n  - old: {redact(me)}\n  - new: {redact(op.get('content') or '(remove)')}")
+                else:
+                    parts.append(f"- **{a}**: {redact(op.get('content') or '')}")
+        return note(title, agent="hermes (background_review / memory tool, staged by write_approval)", source="~/.hermes/pending/memory/*.json",
+                    scope="global", claim=f"{len(items)} staged Hermes memory writes not applied (stale, lossy or meaning-changing). Content preserved here so nothing is lost.\n\n" + "\n".join(parts),
+                    evidence="Pending records remain in `~/.hermes/pending/memory/` (approve/reject with `/memory approve|reject <id>` in Hermes).",
+                    rule="- [*] For each item: take the new facts into `AI Memory/` if true, then reject the stale pending record.",
+                    applies="Curation review.")
+    if src == "skills":
+        rows = []
+        for _, _, s in items:
+            fm, _ = frontmatter(s["text"])
+            u = s["usage"]
+            rows.append(f"| {s['name']} | {u.get('created_by') or 'foreground/unknown'} | {u.get('use_count', '')} | {(u.get('last_used_at') or '')[:10]} | {redact(fm.get('description', ''))[:160]} | `{s['path'].replace(str(HOME), '~')}` |")
+        return note(title, agent="hermes (skill_manage / self-improvement)", source="~/.hermes/skills/**/SKILL.md (+ .usage.json)",
+                    scope="global (Hermes-only today)",
+                    claim=f"{len(items)} non-bundled Hermes skills (new or changed since last export). Hermes learns procedures here; other agents can't see them yet.\n\n| skill | created_by | uses | last used | description | path |\n|---|---|---|---|---|---|\n" + "\n".join(rows),
+                    evidence="Skill files read-only; content hashes in the ledger, so a patched skill shows up again in a later export.",
+                    rule="- [*] Promote cross-agent procedures into ai-main `skills/` (with approval); keep Hermes-specific ones where they are.",
+                    applies="Curation review.")
+    # claude
+    parts = []
+    for _, _, f in items:
+        fm, body = frontmatter(f["text"])
+        b = redact(body.strip())
+        b = b if len(b) <= 1200 else b[:1200] + " …(truncated; see file)"
+        parts.append(f"### {fm.get('name') or Path(f['path']).stem} ({fm.get('type', '')})\n`{f['path'].replace(str(HOME), '~')}` — {redact(fm.get('description', ''))}\n\n{b}")
+    return note(title, agent="claude-code (auto memory)", source="~/ai-main/memory/claude/ (via ~/.claude/projects/*/memory)",
+                scope="workspace", claim=f"{len(items)} Claude Code memory files not yet in the vault:\n\n" + "\n\n".join(parts),
+                evidence="Files read-only; content hashes in the ledger.",
+                rule="- [*] Promote feedback_* items to `AI Memory/Lessons.md` / RULES candidates; project_* to topic notes.",
+                applies="Curation review; Claude-only today.")
+
+
+def create(title, text):
+    base = f"{TODAY} - {title}"
+    for i in range(1, 100):
+        p = INBOX / (base + (f" ({i}).md" if i > 1 else ".md"))
+        try:
+            with open(p, "x", encoding="utf-8") as fh:  # 'x' = never overwrite
+                fh.write(text)
+            return p
+        except FileExistsError:
+            continue
+    raise RuntimeError("no free filename for " + base)
+
+
+def main(argv):
+    led = load_ledger()
+    if "--list-created" in argv:
+        print("\n".join(c["path"] for c in led["created"]))
+        return 0
+    if "--rollback" in argv:
+        dest = Path(argv[argv.index("--rollback") + 1]).expanduser()
+        dest.mkdir(parents=True, exist_ok=True)
+        for c in led["created"]:
+            if Path(c["path"]).exists():
+                shutil.move(c["path"], str(dest / Path(c["path"]).name))
+                print("moved", c["path"])
+        LEDGER.rename(dest / ("memory-export-ledger." + time.strftime("%Y%m%d%H%M%S") + ".json"))
+        return 0
+    dry = "--dry-run" in argv
+    if not INBOX.is_dir():
+        print("AI Inbox not found:", INBOX, file=sys.stderr)
+        return 2
+    made = 0
+    for kind, title, items, src in collect():
+        new = [it for it in items if it[1] not in led["items"]]
+        if not new:
+            continue
+        if dry:
+            print(f"would create: {TODAY} - {title}.md ({len(new)} item(s))")
+            made += 1
+            continue
+        p = create(title, render(kind, title, new, src))
+        made += 1
+        for it in new:
+            led["items"][it[1]] = {"note": str(p), "at": NOW}
+        led["created"].append({"path": str(p), "at": NOW, "items": len(new)})
+        LEDGER.parent.mkdir(parents=True, exist_ok=True)
+        tmp = LEDGER.with_suffix(".tmp")
+        tmp.write_text(json.dumps(led, ensure_ascii=False, indent=1))
+        tmp.replace(LEDGER)
+        print("created", p.name, f"({len(new)} item(s))")
+    print(f"{'would create' if dry else 'created'} {made} note(s)")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

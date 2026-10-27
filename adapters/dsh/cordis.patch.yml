@@ -29,6 +29,11 @@
       name: '@deepseek-ai/dsh-mcp-client'
       config: { serverName: clickup, transport: stdio, command: /Users/tualek/.local/bin/bwsr, args: ['--', 'for v in $(env | sed -n "s/^\([A-Za-z_][A-Za-z0-9_]*\)=.*/\1/p"); do case "$v" in CLICKUP_API_KEY|HOME|TMPDIR|USER) ;; *) unset "$v" 2>/dev/null;; esac; done; export PATH=/opt/homebrew/bin:/usr/bin:/bin CLICKUP_TEAM_ID=90182460598 CLICKUP_MCP_MODE=write; exec /opt/homebrew/bin/node -e "process.stdin.on(''end'',()=>process.exit(0));require(''/Users/tualek/.dsh/profiles/desktop/node_modules/@hauptsache.net/clickup-mcp/dist/index.js'')"'], env: { PATH: '/Users/tualek/.local/bin:/opt/homebrew/bin:/usr/bin:/bin' }, toolCallTimeoutMs: 60000 }
 
+    # Chrome DevTools MCP, read-only browser inspection (Hub 2026-10-22, user approved). Headless + --isolated so it never touches the user's own Chrome profile; usage stats and the CrUX URL lookup off. 32 tools: perf trace, Lighthouse, console, network, screenshots, snapshots. /usr/bin/env -i clears the ambient env. Needs profile dependency "chrome-devtools-mcp": "1.11.0" (package entry below).
+    - id: mcp-chrome-devtools
+      name: '@deepseek-ai/dsh-mcp-client'
+      config: { serverName: chrome-devtools, transport: stdio, command: /usr/bin/env, args: ['-i', 'PATH=/opt/homebrew/bin:/usr/bin:/bin', 'HOME=/Users/tualek', 'LANG=en_US.UTF-8', 'CHROME_DEVTOOLS_MCP_NO_USAGE_STATISTICS=1', '/opt/homebrew/bin/node', '/Users/tualek/.dsh/profiles/desktop/node_modules/chrome-devtools-mcp/build/src/bin/chrome-devtools-mcp.js', '--headless', '--isolated', '--performanceCrux=false', '--usageStatistics=false'], toolCallTimeoutMs: 180000 }
+
     # graphify MCP, READ-ONLY (Hub 2026-10-21). graphifyy 0.9.93 pinned venv; /usr/bin/env -i clears the ambient env so no provider key or claude CLI lookup reaches the server. 7 read tools over the local graph.json; the 3 PR tools shell out to gh and are guard-gated. Wrapper for builds: ~/ai-main/bin/gfy. Revert: ~/.dsh/backup-20261021-graphify/desktop/cordis.patch.yml + ai-main .scratch/backup-20261021-graphify/.
     - id: mcp-graphify
       name: '@deepseek-ai/dsh-mcp-client'

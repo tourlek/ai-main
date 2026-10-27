@@ -10,7 +10,7 @@ OMP loads `build/omp-skills/`: names in `adapters/omp/skills.json` expose descri
 | `gitlab-mr-comment-reply` | Draft concise Thai/English replies to GitLab MR review comments, anchored to actual code, with reply category (accept / push-back / explain / defer). |
 | `git-commit-helper` | Inspect local diff, decide commit grouping, pick conventional prefix, write subject + body. Ported from Codex. |
 | `branch-perf-compare` | Standardize RAM/startup/bundle comparisons across git branches (e.g. `uat` vs `nuxt3` vs `perf/*`) and produce a paste-ready perf report. |
-| `clickup-card` | Per-card workflow from a DSH coordinator: breakdown via `cc-review`, ClickUp writes with preview+confirm, one DSH session per worktree, review per `config/review.md`, MR/Slack drafts, eod. |
+| `clickup-card` | Per-card workflow, two main T3 threads per card: plan thread (Claude Code Team orchestrator: breakdown/brief via opus Agent calls, ClickUp writes with preview+confirm, checks, MR/Slack drafts, eod) and ONE implement thread (pi + DeepSeek, bound to the `~/.t3/worktrees/<repo>/<branch-slug>` worktree so T3's git/MR UI works; every round via `t3_thread_send`). Review = nested `delegate_task` to Claude Opus under the implement thread, per `config/review.md`. Orca retired 2026-10-27. |
 | `self-learning` | Route authorized correction captures through the Obsidian memory workflow; manage RULES.md / `## Rules earned` lines from approved `lessons-proposed.md`; propose unrequested writes in chat. |
 | `worklog` | Append one-line work log entries to `logs/YYYY-MM.md`; read back when asked "what did I work on". |
 

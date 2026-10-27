@@ -1,0 +1,8 @@
+{
+  "defaultProvider": "deepseek",
+  "defaultModel": "deepseek-flash",
+  "enableInstallTelemetry": false,
+  "packages": [],
+  "extensions": [],
+  "skills": ["~/.hermes/skills-aimain", "~/.hermes/skills"]
+}

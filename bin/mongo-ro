@@ -1,0 +1,34 @@
+#!/bin/bash
+# mongo-ro : read-only MongoDB wrapper (ai-main). Lets agents read Mongo without a permission prompt.
+#   mongo-ro <staging|uat|prod> --eval '<js>'      # or --file <path.js>
+#   mongo-ro --check --eval '<js>'                  # validate only, no connection (used by tests)
+# The JS is scanned first and refused if it contains any write/admin/escape construct.
+# This is an accident guard (heuristic), not a security boundary: use a read-only DB user for that.
+# Secrets: the URI is injected by bwsr as env (MONGO_URI_<ENV>), never printed.
+set -u
+CHECK=0; ENVN=""; JS=""; FILE=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --check) CHECK=1; shift;;
+    --eval) JS="${2-}"; shift 2;;
+    --file) FILE="${2-}"; shift 2;;
+    staging|uat|prod) ENVN="$1"; shift;;
+    *) echo "mongo-ro: unknown arg '$1'" >&2; exit 64;;
+  esac
+done
+[ -n "$FILE" ] && { [ -f "$FILE" ] || { echo "mongo-ro: no such file $FILE" >&2; exit 64; }; JS="$(cat "$FILE")"; }
+[ -n "$JS" ] || { echo "usage: mongo-ro <staging|uat|prod> --eval '<js>' | --file f.js" >&2; exit 64; }
+deny() { echo "mongo-ro: REFUSED (not read-only): $1" >&2; exit 3; }
+S=$(tr '\n' ' ' <<<"$JS")
+grep -qE '\.[[:space:]]*(insert|insertOne|insertMany|update|updateOne|updateMany|replaceOne|delete|deleteOne|deleteMany|remove|drop|dropDatabase|dropIndex|dropIndexes|createIndex|createIndexes|createCollection|createView|bulkWrite|findOneAndUpdate|findOneAndReplace|findOneAndDelete|findAndModify|renameCollection|save|mapReduce|compact|reIndex|collMod|convertToCapped|createUser|updateUser|dropUser|grantRolesToUser|revokeRolesFromUser|createRole|dropRole|setProfilingLevel|fsyncLock|fsyncUnlock|shutdownServer|killOp|killCursors|setSecondaryOk|setWriteConcern|startSession|withTransaction|initiate|reconfig|stepDown|freeze|syncFrom)[[:space:]]*\(' <<<"$S" && deny "write/admin method"
+grep -qE '\$(out|merge)\b' <<<"$S" && deny '$out/$merge stage'
+grep -qE '(runCommand|adminCommand|eval|Function|require|load|process|spawn|exec|execSync|child_process|fs\.|connect|new[[:space:]]+Mongo|Mongo[[:space:]]*\(|passwd|sleep|quit|exit)[[:space:]]*[\(\.]' <<<"$S" && deny "command/escape construct"
+grep -qE '\[[[:space:]]*[a-zA-Z_`'"'"'"][^]]*\+[^]]*\]|\bconstructor\b|globalThis|\bthis\[' <<<"$S" && deny "dynamic property access"
+grep -qE '(^|[;[:space:]])(use|db\.auth|sh\.|rs\.|!)[[:space:]]' <<<"$S" && deny "shell helper (use/sh./rs./!)"
+grep -qE 'allowDiskUse[[:space:]]*:[[:space:]]*true' <<<"$S" && deny "allowDiskUse:true on prod reads"
+if [ $CHECK -eq 1 ]; then echo "mongo-ro: OK (read-only check passed)"; exit 0; fi
+case "$ENVN" in staging) V=MONGO_URI_STAGING;; uat) V=MONGO_URI_UAT;; prod) V=MONGO_URI_PROD;; *) echo "mongo-ro: need staging|uat|prod" >&2; exit 64;; esac
+PRE='db.getMongo().setReadPref("secondaryPreferred");'
+T=$(mktemp -t mongo-ro.XXXXXX.js); trap 'rm -f "$T"' EXIT
+printf '%s\n%s\n' "$PRE" "$JS" > "$T"
+exec bwsr -- "gtimeout ${MONGO_RO_TIMEOUT:-90} mongosh \"\$$V\" --quiet --norc --file '$T'"
