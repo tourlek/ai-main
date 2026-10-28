@@ -10,7 +10,9 @@
  *   everything else            -> not checked (guard.sh only decides Bash/ClickUp/graphify)
  * Transcript: last user message of the current branch is written as a one-line Claude-style JSONL
  * so guard.sh confirm words ('push', 'commit', 'confirm', ...) work. Hard denies ("never allowed")
- * always block; soft denies ask in the TUI when available, else block.
+ * always block; soft gates (permissionDecision "ask", or legacy soft deny) ask in the TUI when
+ * available, else block. Automation tags ([keepalive / [review-handoff / [auto:) are skipped so
+ * they cannot unlock magic words.
  * Env: AIMAIN_GUARD (override guard path), AIMAIN_GUARD_LOG (log file).
  */
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
@@ -22,6 +24,7 @@ import { dirname, join } from "node:path";
 const GUARD = process.env.AIMAIN_GUARD || join(homedir(), ".claude/hooks/guard.sh");
 const LOG = process.env.AIMAIN_GUARD_LOG || join(process.env.PI_CODING_AGENT_DIR || join(homedir(), ".pi/agent"), "logs/guard.log");
 const TIMEOUT_MS = 12_000;
+const AUTO_TAG = /^\[(keepalive|review-handoff|auto:)/i;
 
 function log(msg: string) {
 	try {
@@ -51,7 +54,10 @@ function lastUserText(ctx: any): { text: string; ts: string } | undefined {
 		if (!m || m.role !== "user") continue;
 		const text = typeof m.content === "string" ? m.content
 			: Array.isArray(m.content) ? m.content.filter((c: any) => c?.type === "text").map((c: any) => c.text).join("\n") : "";
-		if (text.trim()) return { text, ts: new Date(m.timestamp ?? e.timestamp ?? Date.now()).toISOString().replace(/\.\d+Z$/, "Z") };
+		const trimmed = text.trim();
+		if (!trimmed) continue;
+		if (AUTO_TAG.test(trimmed)) continue; // skip automation; keep looking for a real user message
+		return { text: trimmed, ts: new Date(m.timestamp ?? e.timestamp ?? Date.now()).toISOString().replace(/\.\d+Z$/, "Z") };
 	}
 	return undefined;
 }
@@ -71,6 +77,7 @@ function runGuard(payload: object, cwd: string): Promise<{ code: number | null; 
 }
 
 export default function (pi: ExtensionAPI) {
+	log("LOADED guard.ts ask-soft-path + local-auto-commit");
 	pi.on("tool_call", async (event: any, ctx: any) => {
 		const mapped = mapTool(String(event.toolName ?? ""), event.input);
 		if (!mapped) return undefined;
@@ -91,13 +98,20 @@ export default function (pi: ExtensionAPI) {
 			if (!out) return undefined;
 			let hso: any;
 			try { hso = JSON.parse(out)?.hookSpecificOutput ?? {}; } catch { return block(`ai-main guard failed closed: unparseable output ${out.slice(0, 200)}`); }
-			if (hso.permissionDecision !== "deny") return undefined;
+			const decision = String(hso.permissionDecision || "");
 			const reason = String(hso.permissionDecisionReason || "guard.sh: denied");
-			if (!reason.includes("never allowed") && ctx?.hasUI) {
-				const ok = await ctx.ui.confirm?.("ai-main guard", `${reason}\n\nAllow anyway?`);
-				if (ok === true) { log(`ALLOWED-BY-USER tool=${event.toolName} reason=${reason}`); return undefined; }
+			const hard = reason.includes("never allowed");
+			// Soft: permissionDecision "ask" (Claude Code Approve), or legacy soft deny without "never allowed"
+			const soft = decision === "ask" || (decision === "deny" && !hard);
+			if (soft) {
+				if (ctx?.hasUI) {
+					const ok = await ctx.ui.confirm?.("ai-main guard", `${reason}\n\nAllow anyway?`);
+					if (ok === true) { log(`ALLOWED-BY-USER tool=${event.toolName} reason=${reason}`); return undefined; }
+				}
+				return block(`BLOCKED by ${reason}`);
 			}
-			return block(`BLOCKED by ${reason}`);
+			if (decision === "deny") return block(`BLOCKED by ${reason}`);
+			return undefined;
 		} catch (e: any) {
 			return block(`ai-main guard failed closed: ${e?.message ?? e}`);
 		} finally {

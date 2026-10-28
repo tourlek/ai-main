@@ -20,3 +20,6 @@ Format: hits≥3 + checkable → core/checks/ + COVERAGE.md, then drop. Repo: kn
 - [*] **jsonl timestamp**: filter events by timestamp, not file mtime; dedupe forked session ids (hits:1)
 - [*] **background script handoff**: kill the script PID and check ps aux before interactive T3 use (hits:1)
 preservation/authorization/migration/validation: config/workflow.md.
+
+## React port — Smart Chat float (2026-10-28)
+Smart Chat UI keeps legacy content, layout, and placement (handler indicator, จบแชท/รับแชท, etc.); only the visual style becomes float. No AI-slop: float tokens/CSS vars for spacing/padding/margin/radius; no invented chrome. UI batches need before/after vs legacy placement. Source: GOAL.md §4.0 + user.

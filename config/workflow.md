@@ -34,7 +34,7 @@
 ## Validation and evidence
 
 - Report only what you actually ran; distinguish inspected code, hypotheses, measured results, and unverified claims. Keep credentials and sensitive payloads out of commands, logs, and reports.
-- Secrets: run commands that need them only as `bwsr -- '<cmd using $VAR>'`; `bwsr-keys` lists names. Never use `bw`, `bws secret`, or `security find-generic-password`; never echo, print, or write secret values. PROD needs `PROD ok` for the exact queries/collections previewed; a new query or collection needs a fresh ask.
+- Secrets: run commands that need them only as `bwsr -- '<cmd using $VAR>'`; `bwsr-keys` lists names. Never use `bw`, `bws secret`, or `security find-generic-password`; never echo, print, or write secret values. Prod **reads** via `~/ai-main/bin/mongo-ro prod …` (or DSH `mongo_read`) need **no** chat `PROD ok`. Never raw `mongosh`/`mongo` against prod. Prod **writes** stay forbidden (no write wrapper); any write path still needs explicit user approval.
 - Use the smallest existing checks exercising the changed behavior. Follow applicable repo/folder requirements; expand for shared contracts, build/config, permissions, or evidence of wider impact. Surface conflicting requirements instead of silently skipping them.
 - Before removing request parameters, inspect authorization consumers; if they are outside repo scope, request expansion first. Validate data-scoping, visibility, or permission changes with a restricted (non-admin) account; an admin run is insufficient and missing access leaves validation blocked.
 - Verify terminal state in the datastore or release track before claiming delivery; an HTTP 200 or successful build alone is not delivery evidence.
@@ -60,4 +60,8 @@ Orca/OMP (retired 2026-10): see archive/2026-10-orca-omp/config/workflow.md
 - Concise prose with evidence by default. Caveman and interview modes activate only on explicit request; `normal mode` disables response modes.
 - Ponytail plugin stays at `full` everywhere; never send `stop ponytail`, and `normal mode` does not turn it off. It never overrides house rules, validation, error handling, security, or accessibility.
 - Scheduled jobs: high-frequency polling (< 30m, watchdogs) MUST use a non-LLM script scheduler that is silent on empty output (zero LLM tokens); reserve LLM-driven scheduled runs for low-frequency synthesis (daily/weekly).
+
+- Soft git/ClickUp gates surface as an Allow/Approve control in T3 (guard `ask` / pi confirm). Prefer waiting for that control over asking the user to type magic words in chat. Hard denies (`never allowed`: force-push, push to master/main, reset --hard, raw prod mongosh) stay blocked with no Allow.
+- Unattended runs longer than ~1h: keep the Mac awake with `caffeinate -dimsu` (or holdmylid) for the run; keepalive logs `GAP` when ticks resume after a long sleep/offline gap.
+- Reviewer session/weekly limit: do not queue more review-requests; hold until the stated reset time + 2 minutes (handoff script encodes this). Implementer continues the next batch and marks review-pending.
 - Headless/chain scripts calling `claude -p`: when output matches `hit your (session|weekly) limit · resets <time>`, never loop on a fixed short sleep; parse the reset time and sleep until reset + 2 min, or exit if an interactive T3 handoff owns the checkout. Use a pidfile lock so only one instance runs.

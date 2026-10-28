@@ -1,7 +1,8 @@
 #!/bin/bash
 # core/hooks/guard.sh : the one ai-main guard (installed as ~/.claude/hooks/guard.sh).
 # Input: Claude Code PreToolUse JSON on stdin (tool_name, tool_input, transcript_path, cwd).
-# Deny: prints hookSpecificOutput.permissionDecision="deny" JSON, exit 0.
+# Soft gates: permissionDecision="ask" (T3/Claude Approve button; DSH maps ask; pi confirm).
+# Hard gates: permissionDecision="deny" ("never allowed").
 # Silent exit 0 = no decision (normal permission flow).
 # Callers: Claude Code PreToolUse, the DSH guard bridge (no transcript), core/checks/git-guard.sh (CLI).
 # Reason phrases are a contract with adapters/dsh/plugins/dsh-guard-bridge:
@@ -18,7 +19,13 @@ deny() {
   exit 0
 }
 
+ask() {
+  jq -nc --arg r "guard.sh: $1" '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"ask",permissionDecisionReason:$r}}'
+  exit 0
+}
+
 # Last real user message (text, newest first). Empty if older than TTL_MIN.
+# Skips automation tags: [keepalive / [review-handoff / [auto:
 last_user_msg() {
   [ -n "$tpath" ] && [ -f "$tpath" ] || return 0
   if command -v tac >/dev/null 2>&1; then rev=(tac); else rev=(tail -r); fi
@@ -33,11 +40,31 @@ last_user_msg() {
       | select(($c|type)=="string" or ([$c[]|select(.type=="tool_result")]|length)==0)
       | select($t|length>0)
       | select(($t|startswith("<task-notification") or startswith("<local-command"))|not)
+      | select(($t|test("^\\[(keepalive|review-handoff|auto:)"; "i"))|not)
       | {t: (if ($t|startswith("<command-")) then (try ($t|capture("<command-args>(?<a>[\\s\\S]*)</command-args>").a) catch "") else $t end),
          ts: (.timestamp // "")})
     | if .ts=="" then .t
       else ((.ts|sub("\\.[0-9]+Z$";"Z")|fromdateiso8601) as $s
             | if (now-$s) > ($ttl*60) then "" else .t end) end' 2>/dev/null
+}
+
+# Affirmative approval: word appears outside a negated clause.
+# Negation markers: do not / don't / dont / no / not / ห้าม / ไม่ (within the same sentence).
+msg_has_go() {
+  # $1 = ERE of approval words (e.g. 'commit|คอมมิ'); uses global $msg
+  # Affirmative only: word present AND not in a negated clause (do not / don't / no / not / ห้าม / ไม่ … word).
+  local word_re="$1"
+  [ -n "$msg" ] || return 1
+  grep -qiE '^\[(keepalive|review-handoff|auto:)' <<<"$msg" && return 1
+  # Negation before word (same sentence / ~60 chars)
+  if printf '%s\n' "$msg" | grep -qiE "(do[[:space:]]+not|don'\''t|dont|[^[:alnum:]]no[^[:alnum:]]|[^[:alnum:]]not[^[:alnum:]]|ห้าม|ไม่)[^.!?\n]{0,60}($word_re)"; then
+    return 1
+  fi
+  # Negation after word (e.g. "commit? no")
+  if printf '%s\n' "$msg" | grep -qiE "($word_re)[^.!?\n]{0,40}(do[[:space:]]+not|don'\''t|dont|[^[:alnum:]]no[^[:alnum:]]|[^[:alnum:]]not[^[:alnum:]]|ห้าม|ไม่)"; then
+    return 1
+  fi
+  grep -qiE "$word_re" <<<"$msg"
 }
 
 # ---- (a) ClickUp ----
@@ -54,8 +81,8 @@ if [[ "$tool" =~ clickup_ ]]; then
   fi
   [ $write -eq 1 ] || exit 0
   msg=$(last_user_msg)
-  if grep -qiE 'confirm|ใส่ได้เลย' <<<"$msg"; then exit 0; fi
-  deny "ClickUp write ($op) needs a preview, then the user's 'confirm' (or 'ใส่ได้เลย') within ${TTL_MIN} min. Show the preview and wait."
+  if msg_has_go 'confirm|ใส่ได้เลย'; then exit 0; fi
+  ask "ClickUp write ($op) needs a preview, then the user's 'confirm' (or 'ใส่ได้เลย') within ${TTL_MIN} min. Show the preview and wait."
 fi
 
 # ---- (d) graphify MCP: network-only PR tools ----
@@ -63,7 +90,7 @@ if [[ "$tool" =~ ^mcp__graphify__ ]]; then
   op=${tool##*mcp__graphify__}
   case "$op" in
     list_prs|get_pr_impact|triage_prs)
-      deny "graphify PR tool ($op) needs the user's explicit go: it calls the GitHub API via the gh CLI." ;;
+      ask "graphify PR tool ($op) needs the user's explicit go: it calls the GitHub API via the gh CLI." ;;
   esac
   exit 0
 fi
@@ -74,8 +101,19 @@ cmd=$(jq -r '.tool_input.command // ""' <<<"$input")
 # ---- (e) graphify CLI only via the pinned wrapper (no LLM, fixed env) ----
 if grep -qE '(^|[;&|])[[:space:]]*([^[:space:]]*/)?graphify([[:space:]]|$)' <<<"$cmd" \
    && ! grep -qE '(^|[;&|])[[:space:]]*([^[:space:]]*/)?bin/gfy([[:space:]]|$)' <<<"$cmd"; then
-  deny "graphify CLI must run through ~/ai-main/bin/gfy (pinned env, no LLM); needs the user's explicit override for anything else."
+  ask "graphify CLI must run through ~/ai-main/bin/gfy (pinned env, no LLM); needs the user's explicit override for anything else."
 fi
+
+# ---- mongo: raw prod mongosh never; mongo-ro is the read path ----
+if grep -qE '(^|[;&|`$()[:space:]])([^[:space:]]*/)?(mongosh|mongo)([[:space:]]|$)' <<<"$cmd" \
+   || grep -qE 'MONGO_URI_PROD' <<<"$cmd"; then
+  if ! grep -qE '(^|[;&|`$()[:space:]])([^[:space:]]*/)?mongo-ro([[:space:]]|$)' <<<"$cmd"; then
+    if grep -qiE 'MONGO_URI_PROD|mongodb(\+srv)?://[^[:space:]]*[Pp][Rr][Oo][Dd]' <<<"$cmd"; then
+      deny "raw mongosh/mongo against prod is never allowed; use ~/ai-main/bin/mongo-ro prod --eval|file (read-only wrapper)."
+    fi
+  fi
+fi
+
 # cheap pre-filter: nothing to check
 grep -qE 'git|glab' <<<"$cmd" || exit 0
 cwd=$(jq -r '.cwd // "."' <<<"$input")
@@ -90,6 +128,93 @@ segs=$(tr "\"'\`()" '     ' <<<"$cmd" | sed -E 's/(\&\&|\|\||;|\|)/\n/g')
 
 # --- TEMP run exception (react parity run 2026-10-18, user-approved 15:05). Remove flag file to disable.
 REACT_RUN_FLAG="${GUARD_REACT_RUN_FLAG:-$HOME/.claude/hooks/run-exceptions/react-parity-run}"
+# Scoped AUTO (flag .scratch/p0/AUTONOMOUS_GIT_LOCAL_OK): inside oho-web-app-react worktrees on
+# feat/react-*, auto-allow LOCAL git commit and a narrow git push to origin of the current branch.
+# Does NOT unlock glab mr / force / other remotes / other refs. Remove the flag file to disable.
+LOCAL_AUTO_FLAG="${GUARD_LOCAL_AUTO_FLAG:-.scratch/p0/AUTONOMOUS_GIT_LOCAL_OK}"
+LOCAL_AUTO_ROOT_SUBSTR="${GUARD_LOCAL_AUTO_ROOT_SUBSTR:-/orca/workspaces/oho-web-app-react/}"
+GUARD_LOG="${GUARD_LOG:-$HOME/.pi/agent/logs/guard.log}"
+log_line() {
+  mkdir -p "$(dirname "$GUARD_LOG")" 2>/dev/null || true
+  printf '%s %s\n' "$(date -u +%Y-%m-%dT%H:%M:%S.000Z)" "$*" >> "$GUARD_LOG" 2>/dev/null || true
+}
+local_auto_scope_ok() {
+  local root b
+  root=$(git -C "$cwd" rev-parse --show-toplevel 2>/dev/null) || return 1
+  { [ -f "$root/$LOCAL_AUTO_FLAG" ] || [ -f "$cwd/$LOCAL_AUTO_FLAG" ]; } || return 1
+  case "$root" in
+    *"$LOCAL_AUTO_ROOT_SUBSTR"*) ;;
+    *) return 1 ;;
+  esac
+  b=$(git -C "$cwd" rev-parse --abbrev-ref HEAD 2>/dev/null) || return 1
+  [[ "$b" == feat/react-* ]] || return 1
+  return 0
+}
+local_commit_auto_ok() { local_auto_scope_ok; }
+# $1 = text after `git push`. Only origin + current feat/react-* branch; no force/delete/tags/all/mirror.
+local_push_auto_ok() {
+  local_auto_scope_ok || return 1
+  local args="$1" br tok remote="" skip_next=0 positional="" up dest
+  br=$(git -C "$cwd" rev-parse --abbrev-ref HEAD 2>/dev/null) || return 1
+  [[ "$br" == feat/react-* ]] || return 1
+  grep -qE '(^|[[:space:]])(--force|--force-with-lease|-f|--delete|--mirror|--all|--tags)([[:space:]]|$)' <<<"$args" && return 1
+  grep -qE '(^|[[:space:]])\+[^=[:space:]]' <<<"$args" && return 1
+  for tok in $args; do
+    if [ "$skip_next" = 1 ]; then skip_next=0; continue; fi
+    case "$tok" in
+      -u|--set-upstream|-v|--verbose|-q|--quiet|-n|--dry-run|--no-verify|--progress|--porcelain|--atomic|--no-atomic|--signed|--no-signed)
+        continue ;;
+      --receive-pack=*|--exec=*|--push-option=*|--signed=*|-o)
+        continue ;;
+      --receive-pack|--exec|--push-option)
+        skip_next=1; continue ;;
+      -*)
+        return 1 ;;
+      *)
+        positional="$positional $tok" ;;
+    esac
+  done
+  positional=${positional# }
+  set -- $positional
+  if [ "$#" -ge 1 ]; then
+    case "$1" in
+      origin) remote=origin; shift ;;
+      *:*) remote="" ;;
+      *) return 1 ;;
+    esac
+  fi
+  if [ -z "$remote" ]; then
+    up=$(git -C "$cwd" rev-parse --abbrev-ref --symbolic-full-name '@{upstream}' 2>/dev/null || true)
+    case "$up" in
+      origin/*) ;;
+      "")
+        [ "$#" -eq 0 ] && return 1
+        # refspecs without remote still require origin upstream OR we reject
+        return 1
+        ;;
+      *) return 1 ;;
+    esac
+  fi
+  if [ "$#" -eq 0 ]; then
+    return 0
+  fi
+  for tok in "$@"; do
+    case "$tok" in
+      :*) return 1 ;;
+      *:*)
+        dest=${tok#*:}
+        dest=${dest#refs/heads/}
+        [ "$dest" = "$br" ] || return 1
+        ;;
+      HEAD) ;;
+      *)
+        dest=${tok#refs/heads/}
+        [ "$dest" = "$br" ] || return 1
+        ;;
+    esac
+  done
+  return 0
+}
 react_run_ok() { # $1 = segment
   [ -f "$REACT_RUN_FLAG" ] || return 1
   if grep -qE '(^|[[:space:]])glab[[:space:]]+mr' <<<"$1"; then
@@ -143,26 +268,34 @@ while IFS= read -r seg; do
       br=$(git -C "$cwd" rev-parse --abbrev-ref HEAD 2>/dev/null)
       [[ "$br" =~ ^(master|main)$ ]] && deny "current branch is $br; push to master/main is never allowed."
     fi
+    if local_push_auto_ok "$args"; then
+      log_line "LOCAL-AUTO-PUSH cwd=$cwd branch=$(git -C "$cwd" rev-parse --abbrev-ref HEAD 2>/dev/null) flag=$LOCAL_AUTO_FLAG input=$(printf '%s' "$seg" | tr '\n' ' ' | cut -c1-200)"
+      continue
+    fi
     react_run_ok "$seg" || { need_msg
-    grep -qiE 'push|พุช' <<<"$msg" || deny "git push needs the user's explicit 'push' in the last message."; }
+    msg_has_go 'push|พุช' || ask "git push needs the user's explicit 'push' in the last message."; }
   fi
   # commit (GUARD_ALLOW_COMMIT is set only by core/checks/git-guard.sh for AIMAIN_ALLOW_COMMIT=1)
   if grep -qE "${GIT}commit([[:space:]]|$)" <<<"$seg" && [ "${GUARD_ALLOW_COMMIT:-0}" != "1" ]; then
+    if local_commit_auto_ok; then
+      log_line "LOCAL-AUTO-COMMIT cwd=$cwd branch=$(git -C "$cwd" rev-parse --abbrev-ref HEAD 2>/dev/null) flag=$LOCAL_AUTO_FLAG input=$(printf '%s' "$seg" | tr '\n' ' ' | cut -c1-200)"
+      continue
+    fi
     react_run_ok "$seg" || { need_msg
-    grep -qiE 'commit|คอมมิ' <<<"$msg" || deny "git commit needs the user's explicit 'commit' in the last message."; }
+    msg_has_go 'commit|คอมมิ' || ask "git commit needs the user's explicit 'commit' in the last message."; }
   fi
   # glab mr create/update/merge (a --help/-h segment only prints usage, so it is a read)
   if grep -qE '(^|[[:space:]])glab[[:space:]]+mr[[:space:]]+(create|update|merge)([[:space:]]|$)' <<<"$seg" \
      && ! grep -qE '(^|[[:space:]])(--help|-h)([[:space:]]|$)' <<<"$seg"; then
     react_run_ok "$seg" || { need_msg
-    grep -qiE '(^|[^a-z])mr([^a-z]|$)|merge request|merge' <<<"$msg" || deny "glab mr create/update/merge needs the user's explicit MR instruction in the last message."; }
+    msg_has_go '(^|[^a-z])mr([^a-z]|$)|merge request|(^|[^a-z])merge([^a-z]|$)' || ask "glab mr create/update/merge needs the user's explicit MR instruction in the last message."; }
   fi
   # worktree base
   # Orca/OMP (retired 2026-10): see archive/2026-10-orca-omp/adapters/omp
   if grep -qE "${GIT}worktree[[:space:]]+add([[:space:]]|$)" <<<"$seg"; then
     if ! grep -q 'origin/master' <<<"$seg" && ! { [ -f "$REACT_RUN_FLAG" ] && grep -qE -- '--base-branch[[:space:]=]+feat/react-|[[:space:]]feat/react-[^[:space:]]+[[:space:]]*$' <<<"$seg"; }; then
       need_msg
-      grep -qi 'allow-worktree' <<<"$msg" || deny "new worktree must branch from origin/master (git worktree add ... origin/master). Ask the user if another base is intended (they can reply 'allow-worktree')."
+      msg_has_go 'allow-worktree' || ask "new worktree must branch from origin/master (git worktree add ... origin/master). Ask the user if another base is intended (they can reply 'allow-worktree')."
     fi
   fi
 done <<<"$segs"

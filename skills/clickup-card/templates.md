@@ -25,7 +25,7 @@ Out of scope: <list>
 Acceptance: <items, A1..An>
 Test: <cmd with full node/jest paths, Node 20; run once and passing/known baseline>
 Lint: <cmd>
-Rules: stay inside allowed files; no commit/push/revert/amend; do not proceed past the plan without approval.
+Rules: stay inside allowed files; commit/push/revert/amend are out of scope for this round; stop at the plan until the user approves.
 Ponytail: smallest complete change. Reuse code already in the repo (helpers, DS components) before writing new; no unrequested abstractions or new dependencies; never cut validation, error handling, security or accessibility; list what you skipped under Not done.
 Final step (always, even if blocked): write .scratch/<CARD>/done.md in the done.md format (acceptance -> file:line, grep proof), with `STATUS:` as its last line. Write it once, at the very end; nothing after it.
 Plan: <numbered items for user approval>
@@ -55,6 +55,7 @@ Findings:
 Contract (multi-repo): <field> producer path:line -> validator path:line -> consumer path:line (name, nesting, types)
 Deploy order (multi-repo): <order> — source: <code | MR Rollout section>; unknown = say unknown
 Checklist: scope / description vs code / SHA match / Node 20 tests / lint / secrets
+Before review: pwd (must be the card worktree) + git rev-parse HEAD (must match Head SHA)
 ```
 
 # lessons-proposed.md
@@ -72,9 +73,9 @@ Checklist: scope / description vs code / SHA match / Node 20 tests / lint / secr
 plan_thread: <threadId of the claude-team plan thread>
 impl_thread: <threadId of the pi implement thread>   worktree: ~/.t3/worktrees/<repo>/<slug>   branch: <branch>
 r1: <YYYY-MM-DD HH:MM +07> plan-only    (launch via t3_thread_launch, existing_worktree)
-r1 review: <time> delegate:<childThreadId> claude-opus-5-5 medium   (nested under impl_thread)
+r1 review: <time> plan_thread spawn (delegate_task or t3 thread) claude-opus-5-5 medium   (spawned by plan_thread, never by impl)
 r2: <time> implement    (t3_thread_send to impl_thread)
-r2 review: <time> delegate:<childThreadId> claude-opus-5-5 medium
+r2 review: <time> plan_thread spawn claude-opus-5-5 medium
 r3: <time> fix
 Fallback used (if any): <which fallback from SKILL.md step 3, why>
 ```
