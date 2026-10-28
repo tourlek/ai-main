@@ -1,8 +1,10 @@
 # Contact Profile and Smartchat pre-QA handoff
 
+Orca/OMP (retired 2026-10): see archive/2026-10-orca-omp/context/oho-web-app/handoffs/contact-profile-icons-sales-owner.md
+
 **Verdict: Blocked — not ready for QA.**
 
-- **Candidate:** `/Users/tualek/orca/workspaces/oho-web-app/Fix-issue-QA`
+- **Candidate:** worktree path archived.
 - **Branch / HEAD:** `Fix-issue-QA` / `52c4c98a617fadb4800a7782c2ff74248c032a3c`
 - **Issue/spec:** Not provided in this session.
 - **Changed flows:**

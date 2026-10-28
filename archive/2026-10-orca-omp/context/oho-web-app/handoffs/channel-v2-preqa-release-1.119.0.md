@@ -1,0 +1,16 @@
+# Channel V2 QA handoff — release/1.119.0
+
+**Verdict: Blocked for release sign-off; QA recheck package is ready.** Live UAT payload/route checks, channel-permission scope parity, CSS-marked V1/V2 captures, focused unit tests, and one restored V2 service PATCH passed. UI mutation tests and several runtime acceptance paths remain unverified.
+
+- **Web candidate:** `/Users/tualek/orca/workspaces/oho-web-app/release-1.119.0`, branch `release/1.119.0`, HEAD `743e354218e0250fcd4cfc77a5f33172afdcf85c`.
+- **API source reviewed:** `origin/release/2.29.0`, HEAD `5042fcbda306d8e84b809ec96c5ef77ce9bfe4e3`.
+- **Runtime API base:** `https://api2.oho.chat/uat/core/latest`; owner-authenticated V1/V2 channel requests returned 200. Direct API root returned 503, but the configured channel routes worked.
+- **Test identities:** owner session matched configured `TEST_BUSINESS_ID`; a second session had `member_channel_permission` enabled, `is_allowed_all=false`, and 36 allowed channels of 52. Its application role string is `owner`, so this is a restricted channel-permission scope, not a restricted non-owner role.
+- **ATF and report:** [standalone ATF HTML](file:///Users/tualek/orca/workspaces/oho-web-app/release-1.119.0/.scratch/channel-v2-preqa-release-1.119.0/artifacts/channel-v2.html), [ATF Markdown](file:///Users/tualek/orca/workspaces/oho-web-app/release-1.119.0/.scratch/channel-v2-preqa-release-1.119.0/artifacts/ATF.md), and [code-impact map](file:///Users/tualek/orca/workspaces/oho-web-app/release-1.119.0/.scratch/channel-v2-preqa-release-1.119.0.md). These local links point to the recorded candidate worktree, independent of which checkout opens shared `.ai`. The HTML embeds all 94 redacted PNGs and can be shared by itself; the Markdown report still needs the sibling `artifacts/refreshed/` folder.
+- **Visual evidence:** 9 normal surfaces captured under V1/V2 plus 2 permission-restricted surfaces; refreshed parity checks total 25 PASS / 0 FAIL / 0 SKIP. The 94 point, overview, and clean viewport PNGs are redacted; business ID and contact/member values are masked.
+- **Focused tests:** Jest passed 4 suites / 58 tests (`store/index`, `channel-api-service`, webhook, integration reorder).
+- **Write evidence:** V2 `display_name` service PATCH returned a single document, refetched correctly, and was restored; final GET matched the original. The UI rename/chatbot Playwright cases failed in their `page.request.patch` cleanup path (timeout/non-OK). Post-run state had no temporary rename suffix; no leftover chatbot change was observed.
+- **Read-only guard:** Screenshot and route probes blocked all non-GET requests. Webhook PATCH and chatbot UI mutation were not accepted as passing.
+- **Unresolved acceptance:** real Firebase targeting/business switch; working UI rename/chatbot E2E; non-empty Webhook header and updater fixtures; Smartchat composer state (the read-only capture showed the chat-load error after blocking Stream POSTs); disable-only API permission test. The API permission issue is present in both V1 and V2 source and is not a V2-only regression.
+
+QA can use the linked ATF to recheck the captured fields and finish the unresolved acceptance cases. Do not mark release sign-off complete from this read-only parity evidence.

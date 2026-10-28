@@ -2,7 +2,8 @@
 
 Adds one system-prompt section, `ai-main-rules`, to every DSH prompt assembly. The text is rebuilt on each assembly from files under `~/ai-main`. It makes no LLM or network calls.
 
-- The working directory comes from the session (`workingDirectory`) and is matched to the deepest workspace in `config/workspaces.json`. That picks `knowledge/<name>.md`, so a worktree under `oho-api/` gets `oho-api`. A linked worktree elsewhere (`~/orca/workspaces/oho-api/x`, `~/ohochat/oho-api-worktrees/x`) is first mapped to its main checkout through its `.git` file (`gitdir: …/.git/worktrees/<n>`).
+- The working directory comes from the session (`workingDirectory`) and is matched to the deepest workspace in `config/workspaces.json`. That picks `knowledge/<name>.md`, so a worktree under `oho-api/` gets `oho-api`. A linked worktree elsewhere (`~/ohochat/oho-api-worktrees/x`) is first mapped to its main checkout through its `.git` file (`gitdir: …/.git/worktrees/<n>`).
+Orca/OMP (retired 2026-10): see archive/2026-10-orca-omp/adapters/dsh/plugins/dsh-ai-main-rules/README.md
 - Rule lines (`- [*] ...`) are collected most specific first: the repo's `## Rules earned`, then the files it imports (`_ohochat-shared.md`), then `build/full/RULES.md` (falling back to `memory/lessons/RULES.md`).
 - The section is capped at `maxBytes` (2048), cut on whole lines so Thai UTF-8 never splits. Global rules are dropped first; they are also in `~/.agents/AGENTS.md`.
 - `interpolate: false`, so `{{...}}` in a rule stays literal.

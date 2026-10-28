@@ -106,8 +106,7 @@ check allow "glab mr view (read)"                     Bash "$(bash_ti 'glab mr v
 echo "== worktree base"
 check deny  "git worktree add ../w feature"           Bash "$(bash_ti 'git worktree add ../w feature')" "" "" "must branch from origin/master"
 check allow "git worktree add -b f ../w origin/master" Bash "$(bash_ti 'git worktree add -b f ../w origin/master')"
-check allow "orca worktree create --base-branch origin/master" Bash "$(bash_ti 'orca worktree create --base-branch origin/master x')"
-check deny  "orca worktree create --base-branch dev"  Bash "$(bash_ti 'orca worktree create --base-branch dev x')" "" "" "must branch from origin/master"
+# Orca/OMP (retired 2026-10): see archive/2026-10-orca-omp/adapters/omp
 check allow "git worktree add ../w dev + allow-worktree" Bash "$(bash_ti 'git worktree add ../w dev')" "" "$fresh_wt"
 
 echo "== destructive (ported from git-guard.sh)"

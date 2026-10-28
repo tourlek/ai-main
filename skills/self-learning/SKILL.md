@@ -29,13 +29,15 @@ The user granted a standing permission (2026-10-25): any agent may **create new 
 
 Note template (fill every field; write `unknown` rather than inventing):
 
+Orca/OMP (retired 2026-10): see archive/2026-10-orca-omp/skills/self-learning/SKILL.md
+
 ```markdown
 ---
 type: memory
 status: candidate
 scope: <global | workspace | repo:<name>>
 created: <YYYY-MM-DD HH:MM +07>
-agent: <hermes | claude-code | cursor-cli | codex | orca:<worker> | grok-bot>
+agent: <hermes | claude-code | cursor-cli | codex | grok-bot>
 model: <provider/model id actually running>
 source: <session id / card CU-xxx / MR !nnn / file path>
 related: <[[existing note]] or none>

@@ -10,7 +10,8 @@ const read = (f) => { try { return fs.readFileSync(f, 'utf8') } catch { return '
 const ruleLines = (text) => text.split('\n').filter((l) => l.startsWith('- [*] '))
 const section = (text, heading) => (text.split(`\n${heading}\n`)[1] ?? '').split(/\n## /)[0]
 
-// Linked worktree (any location, e.g. ~/orca/workspaces/…) → its main checkout, via `.git` file `gitdir: <main>/.git/worktrees/<n>`.
+// Orca/OMP (retired 2026-10): see archive/2026-10-orca-omp/adapters/dsh/plugins/dsh-ai-main-rules/index.js
+// Linked worktree (any location, e.g. ~/ohochat/oho-api-worktrees/…) → its main checkout, via `.git` file `gitdir: <main>/.git/worktrees/<n>`.
 export function mainRepoFor(cwd) {
   for (let d = cwd; d && d !== path.dirname(d); d = path.dirname(d)) {
     const g = path.join(d, '.git')

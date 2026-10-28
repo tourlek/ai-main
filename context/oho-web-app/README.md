@@ -7,7 +7,7 @@ Before handing any change to QA, follow [QA.md](QA.md) and record the actual smo
 
 Identify the issue, candidate repo/worktree, current branch and HEAD, approved scope, expected behavior, and acceptance checks. Recheck them when changing task or resuming work. Read the candidate's `CONTEXT.md`, the matching `docs/index.md` entry, and its `.scratch/<work-item>/` spec; use historical reports only for the recorded revision. Primary-workspace cross-repo references are indexed in `ohochat/CONTEXT-MAP.md`.
 
-ClickUp/Orca own task status. This shared directory is not a task queue; worktree-local plans and artifacts remain with their owning repo. A handoff links to their actual location and records the candidate revision, tested role/environment, observed checks, blockers, and next action. Retain revision-specific evidence when updating a task handoff; changed HEAD requires revalidation under [QA.md](QA.md).
+ClickUp owns task status. Orca/OMP (retired 2026-10): see archive/2026-10-orca-omp/context/oho-web-app/README.md This shared directory is not a task queue; worktree-local plans and artifacts remain with their owning repo. A handoff links to their actual location and records the candidate revision, tested role/environment, observed checks, blockers, and next action. Retain revision-specific evidence when updating a task handoff; changed HEAD requires revalidation under [QA.md](QA.md).
 
 ## Handoff index
 

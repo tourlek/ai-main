@@ -336,25 +336,10 @@ cmd_build() {
             ok "profile ${tier}: ~${tokens} tokens (ceiling ${budget})"
         fi
     done
-    # OMP composite: the shared profile plus the OMP runtime overlay.
-    mkdir -p "${BUILD_DIR}/omp"
-    : > "${BUILD_DIR}/omp/SYSTEM.md"
-    for rel in workflow.md style.md SHARED.md RULES.md; do
-        cat "${BUILD_DIR}/full/${rel}" >> "${BUILD_DIR}/omp/SYSTEM.md"
-        echo "" >> "${BUILD_DIR}/omp/SYSTEM.md"
-    done
-    expand_placeholders < "${AI_MAIN}/adapters/omp/runtime.md" >> "${BUILD_DIR}/omp/SYSTEM.md"
-    tokens="$(est_tokens "${BUILD_DIR}/omp/SYSTEM.md")"
-    budget="$(tier_budget omp)"
-    if [ "$tokens" -gt "$budget" ]; then
-        warn "profile omp: ~${tokens} tokens over the ${budget} ceiling"
-    else
-        ok "profile omp: ~${tokens} tokens (ceiling ${budget})"
-    fi
-    python3 "${AI_MAIN}/adapters/omp/build-skills.py"
+    # Orca/OMP (retired 2026-10): see archive/2026-10-orca-omp/adapters/omp
     bash "${AI_MAIN}/adapters/dsh/build.sh"
     # Content hashes identify dirty-source builds without pretending HEAD is the deployed content.
-    python3 - "$AI_MAIN" "${PROFILE_SOURCES[@]}" adapters/omp/runtime.md adapters/omp/entry.md.template <<'PY'
+    python3 - "$AI_MAIN" "${PROFILE_SOURCES[@]}" <<'PY'
 import hashlib, json, pathlib, sys
 root = pathlib.Path(sys.argv[1])
 def digest(path):
@@ -363,7 +348,7 @@ manifest = {
     "schemaVersion": 1,
     "sources": {name: digest(root / name) for name in sys.argv[2:]},
     "profiles": {tier: digest(root / "build" / tier / "SYSTEM.md")
-                 for tier in ("full", "omp")},
+                 for tier in ("full",)},
 }
 (root / "build/profile-manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
 PY
@@ -371,7 +356,7 @@ PY
 
 cmd_budget() { # machine-readable, used by scripts/verify.sh
     local tier
-    for tier in "${TIER_NAMES[@]}" omp; do
+    for tier in "${TIER_NAMES[@]}"; do
         if [ ! -f "${BUILD_DIR}/${tier}/SYSTEM.md" ]; then
             echo "${tier} - $(tier_budget "$tier")"; continue
         fi

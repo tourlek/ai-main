@@ -8,7 +8,7 @@ $EDITOR skills/<my-skill>/SKILL.md        # YAML frontmatter: name, description
 ./bin/aimain build   # then redeploy: ./install.sh --harness <ids>
 ```
 
-New skills are manual-only by default. Add a name to `adapters/omp/skills.json` only when OMP should expose its description automatically, then rebuild/deploy. Use `/skill:<name>` for the remaining catalog.
+New skills are picked up by `./bin/aimain build`. Orca/OMP (retired 2026-10): see archive/2026-10-orca-omp/docs/adding.md
 
 ## A new shared rule file
 
@@ -16,7 +16,7 @@ New skills are manual-only by default. Add a name to `adapters/omp/skills.json` 
 $EDITOR config/<my-rule>.md
 ```
 
-Edit the existing canonical safety/style sources for shared rules or `adapters/omp/runtime.md` for OMP runtime details. Extend the profile compiler only when a separate source has a real loading boundary.
+Edit the existing canonical safety/style sources for shared rules. Extend the profile compiler only when a separate source has a real loading boundary.
 
 ## A new slash command
 
@@ -25,7 +25,7 @@ $EDITOR commands/<my-command>.md
 ./install.sh --legacy
 ```
 
-This is legacy Claude/Cursor command deployment. For OMP, use a skill's `/skill:<name>` entry; format details for the historical command files are in `commands/README.md`.
+This is legacy Claude/Cursor command deployment. Format details for the historical command files are in `commands/README.md`.
 
 ## A new external skill pack
 
@@ -33,4 +33,4 @@ This is legacy Claude/Cursor command deployment. For OMP, use a skill's `/skill:
 git submodule add <repo-url> external/<pack-name>
 ```
 
-Add its pinned source root to `adapters/omp/build-skills.py` discovery; keep new names manual until explicitly added to the startup allowlist.
+Keep new names manual until a harness catalog lists them.

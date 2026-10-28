@@ -25,3 +25,11 @@ Backups: `.scratch/backup-20261028-retro/` (git-ignored).
 | 18 | E/C stats corrections (old sessions miscounted in `retro-20261027.md`) | skipped | Report only; lesson captured in item 11 |
 | 19 | Old Orca mentions in `docs/workspaces.md`, `docs/architecture.md`, `context/*`, `adapters/omp` | needs-decision | Historical docs/adapters; rewrite or archive is a separate cleanup |
 | 20 | `RULES.md` over its ~2 KB cap (now ~4.9 KB) | needs-decision | Compact or move hits≥3 rules into `core/checks/` |
+
+## Decisions applied 2026-10-28 (retro2, via cursor-agent; verified)
+- (1) Reviewer spawn reversed: plan thread (claude-team) spawns its own Opus reviewer (effort medium max), independent of implementer. Files: skills/clickup-card/SKILL.md, config/workflow.md.
+- (3) Orca/OMP archived to archive/2026-10-orca-omp/ (adapters/omp/ 17 files, state/omp-managed-skills/ 6 files; sections from ~25 docs/context/skills files with pointer lines). Code refs removed from bin/aimain, install.sh, scripts/verify.sh, core/hooks/guard.sh, eval. Remaining: memory/claude/.../feedback_worktree_base_master.md:11 (left as-is).
+- (4) RULES.md lossless: 4937 -> 2045 bytes, 18 -> 18 rules (+C0 pointer). Full: archive/rules/RULES-full-20261028.md; mapping .scratch/rules-mapping.md.
+- Checks: bin/aimain build exit 0 (warn: full profile ~4136 tok > 4000), test-guard 103/103, verify.sh/eval exit 0.
+- (2) Claude Code (T3) MCP/plugins, read-only, usage = tool calls in last 14d transcripts: plugins in both ~/.claude and ~/.claude-team: caveman, cloudflare, codex, context7, frontend-design, hyperframes, playwright (6 calls), session-report, ponytail, mattpocock-skills; ~/.claude.json mcpServers: codegraph, open-design. Used: ClickUp connector, playwright, dsh. No calls seen: cloudflare, codex, context7, hyperframes, session-report, codegraph, open-design -> candidates to disable. Nothing changed.
+- Backup: .scratch/backup-20261028-retro2/. Not committed.

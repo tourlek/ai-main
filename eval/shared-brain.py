@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Local policy/deployment regressions. No installer, real workspaces, or model calls."""
-import importlib.util
+# Orca/OMP (retired 2026-10): see archive/2026-10-orca-omp/adapters/omp
 import json
 import os
 from pathlib import Path
@@ -34,7 +34,6 @@ class PolicyTests(unittest.TestCase):
         self.assertNotIn('<!--min-->', text)
         self.assertNotIn('<!--lean-->', text)
 
-
     def test_antigravity_native_paths_and_gemini_labels_are_not_conflated(self):
         profile = (ROOT / 'config/profile.md').read_text()
         installer = (ROOT / 'install.sh').read_text()
@@ -46,19 +45,6 @@ class PolicyTests(unittest.TestCase):
         self.assertNotIn('plugin ${plugin_name} synced to Antigravity', installer)
         self.assertIn('Antigravity CLI plugin ai-main-shared', installer)
         self.assertIn('agy plugin install "$ANTIGRAVITY_PLUGIN"', installer)
-
-    def test_local_overrides_win_discovery(self):
-        spec = importlib.util.spec_from_file_location('skill_builder', ROOT / 'adapters/omp/build-skills.py')
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
-        # Only repository sources participate; do not inspect the real user's home.
-        with tempfile.TemporaryDirectory() as home:
-            module.HOME = Path(home)
-            skills, _, _ = module.discover()
-        for name in ('debug-mantra', 'diagnosing-bugs', 'code-review', 'scrutinize',
-                     'qwenchance', 'qwen-agent', 'tdd', 'post-mortem', 'management-talk'):
-            # Entries may be symlinks into pinned upstream packs; compare resolved files.
-            self.assertEqual(skills[name].resolve(), (ROOT / 'skills' / name / 'SKILL.md').resolve())
 
 
 class DeploymentTests(unittest.TestCase):

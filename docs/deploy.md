@@ -5,7 +5,7 @@
 ```bash
 git clone --recurse-submodules <your-fork-of-ai-main> ~/ai-main
 cd ~/ai-main
-./install.sh --harness omp,codex          # choose explicitly
+./install.sh --harness dsh,codex          # choose explicitly
 ```
 
 Initialize missing pinned packs with `git submodule update --init --recursive`; deployment never fetches or updates them.
@@ -13,12 +13,13 @@ Initialize missing pinned packs with `git submodule update --init --recursive`; 
 | Harness id | Script | Writes |
 | --- | --- | --- |
 | `dsh` | `adapters/dsh/deploy.sh` | `~/.dsh/AGENTS.md`, `~/.agents/AGENTS.md`, and the two `@local` plugin links plus bundle entries in `~/.dsh/profiles/desktop/package.json`, then `pnpm install`; backups go to `~/.dsh/backup-<ts>/`, and it refuses while DSH is running |
-| `omp` | `adapters/omp/deploy.sh` | OMP entry and config merge under `~/.omp/agent`, role launchers in `~/.local/bin` |
 | `codex` | `adapters/codex/deploy.sh` | `~/.codex/AGENTS.md` (managed entry) and owned-skill links in `~/.codex/skills` |
 | `extra` | `aimain adapters deploy` | Entries for JSON-described tools (`adapters/*.json`: opencode, qwen, zcode) |
 | `legacy` | the all-harness body of `install.sh` | Claude, Gemini and Cursor entries, skills, hooks, MCP base, memory links, launchd (one-time setup) |
 
-Aliases kept for older callers: `--codex` = `--harness omp,codex`, `--legacy` = `--harness legacy`. `--sync` selects the fast redeploy mode used by `scripts/sync.sh`.
+Aliases kept for older callers: `--codex` = `--harness codex`, `--legacy` = `--harness legacy`. `--sync` selects the fast redeploy mode used by `scripts/sync.sh`.
+
+Orca/OMP (retired 2026-10): see archive/2026-10-orca-omp/docs/deploy.md
 
 Shared helpers and the ownership model (managed markers, exact-recognition migration, preserve anything else) live in `adapters/lib/deploy-common.sh`. Deployment preserves unmanaged entries and unrelated runtime settings, and fails instead of overwriting anything it does not recognize.
 
@@ -31,7 +32,7 @@ Shared helpers and the ownership model (managed markers, exact-recognition migra
 Copy `config/harnesses.local.example` to `config/harnesses.local` (gitignored). `scripts/sync.sh` and `scripts/verify.sh` read it; without it `sync.sh` only rebuilds and `verify.sh` only runs repo-level checks.
 
 ```bash
-cp config/harnesses.local.example config/harnesses.local   # e.g. "omp codex"
+cp config/harnesses.local.example config/harnesses.local   # e.g. "codex"
 ./scripts/sync.sh
 ./scripts/verify.sh
 ```
@@ -57,13 +58,13 @@ cp config/harnesses.local.example config/harnesses.local   # e.g. "omp codex"
 | 12 | Link canonical memory (`~/.ai-memory → memory/`, `~/.codex/memories → memory/codex/` and Claude project memories) |
 | 13 | Deploy per-repo knowledge: compile `knowledge/<repo>.md` → `<workspace>/AGENTS.md` + `CLAUDE.md`/`GEMINI.md` symlinks (preserves tracked and unmanaged files, including foreign/dangling symlinks) |
 | 14 | Preserve user/global ignores; generated workspace files use local Git excludes |
-| 15 | Wire historical startup/scheduled hooks; `scripts/sync.sh` now performs OMP-only local deployment without committing or pushing |
+| 15 | Wire historical startup/scheduled hooks; `scripts/sync.sh` redeploys harnesses listed in `config/harnesses.local` without committing or pushing |
 | 16 | Verify every link resolves |
 
-`./install.sh --sync` uses the OMP-first path. `./install.sh --legacy --sync` explicitly uses the historical fast redeploy path without one-time setup steps.
+`./install.sh --sync` rebuilds and redeploys the selected harnesses. `./install.sh --legacy --sync` explicitly uses the historical fast redeploy path without one-time setup steps.
 
 `./install.sh --legacy --sync` is the historical fast redeploy path without the one-time setup steps.
 
 ## Rolling back
 
-Legacy installation keeps `~/.ai-backup-<timestamp>/` backups. Other adapters preserve unmanaged files; restore only the entry or config changes you own, then start a fresh session. Restoring OMP managed-skill snapshots is a separate explicit action (see `adapters/omp/README.md`), never an automatic sync.
+Legacy installation keeps `~/.ai-backup-<timestamp>/` backups. Other adapters preserve unmanaged files; restore only the entry or config changes you own, then start a fresh session. Restoring managed-skill snapshots is a separate explicit action, never an automatic sync.

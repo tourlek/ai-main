@@ -2,7 +2,9 @@
 
 หลักการของผู้ใช้: **คิดให้จบก่อนเริ่มเขียน และคุม scope ให้เฉียบคม** ไม่ใช่เร่งปริมาณโค้ดจาก AI
 
-เอกสารนี้ใช้เมื่อวางแผน ประเมินงาน ทำ Senior alignment หรือ retrospective; กฎการทำงานประจำอยู่ใน [config/workflow.md](../config/workflow.md) และถูกโหลดแบบ full ใน OMP เอกสารนี้ไม่เพิ่มสิทธิ์ในการแก้ scope, เขียน tracker, commit, push หรือ deploy
+เอกสารนี้ใช้เมื่อวางแผน ประเมินงาน ทำ Senior alignment หรือ retrospective; กฎการทำงานประจำอยู่ใน [config/workflow.md](../config/workflow.md). เอกสารนี้ไม่เพิ่มสิทธิ์ในการแก้ scope, เขียน tracker, commit, push หรือ deploy
+
+Orca/OMP (retired 2026-10): see archive/2026-10-orca-omp/docs/working-checklist-okr.md
 
 ## 1. Pre-implementation
 

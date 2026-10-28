@@ -370,25 +370,9 @@ fi
 
 fi # legacy
 
-# ----- 5d. OMP adapter -----
+# Orca/OMP (retired 2026-10): see archive/2026-10-orca-omp/adapters/omp
 if want omp; then
-    echo -e "\n${BLUE}${BOLD}5d) OMP adapter${NC}"
-    OMP_MARKER="$(sed -n 's/^OMP_MARKER="\(.*\)"$/\1/p' "${SCRIPT_DIR}/adapters/lib/deploy-common.sh")"
-    OMP_AGENT_DIR="${PI_CODING_AGENT_DIR:-${ACTUAL_HOME}/.omp/agent}"
-    if [ -f "${OMP_AGENT_DIR}/AGENTS.md" ] && grep -qxF "$OMP_MARKER" "${OMP_AGENT_DIR}/AGENTS.md"; then
-        ok "OMP entry is ai-main-managed: ${OMP_AGENT_DIR}/AGENTS.md"
-    else
-        bad "OMP entry missing or unmanaged: ${OMP_AGENT_DIR}/AGENTS.md"
-    fi
-    if grep -q "@.*build/omp/SYSTEM\.md" "${OMP_AGENT_DIR}/AGENTS.md" 2>/dev/null && [ -f "${SCRIPT_DIR}/build/omp/SYSTEM.md" ]; then
-        ok "OMP entry imports build/omp/SYSTEM.md"
-    else
-        bad "OMP entry does not import an existing build/omp/SYSTEM.md (run ./bin/aimain build)"
-    fi
-    [ -d "${SCRIPT_DIR}/build/omp-skills" ] && ok "OMP skill farm built" || bad "build/omp-skills missing (run ./bin/aimain build)"
-    for launcher in omp-review omp-verify omp-orca-role; do
-        check_symlink_into_repo "${ACTUAL_HOME}/.local/bin/${launcher}"
-    done
+    warn "selected harness omp is retired; installed-file checks skipped"
 fi
 
 # ----- 5e. Codex adapter -----

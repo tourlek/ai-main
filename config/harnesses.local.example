@@ -2,8 +2,8 @@
 # redeploys on this machine. Whitespace or comma separated; no default when absent.
 #
 #   dsh     DSH AGENTS.md files + @local plugins       (adapters/dsh; deploy refuses while DSH runs)
-#   omp     OMP entry, skill farm and role launchers   (adapters/omp)
 #   codex   Codex entry + owned skills                 (adapters/codex)
+# Orca/OMP (retired 2026-10): see archive/2026-10-orca-omp/config/harnesses.local.example
 #   extra   JSON-described tools: opencode, qwen, zcode (aimain adapters deploy)
 #   legacy  Claude/Gemini/Cursor all-harness installer  (install.sh --legacy)
-omp codex
+codex

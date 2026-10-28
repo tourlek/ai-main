@@ -1,6 +1,6 @@
 # Architecture
 
-`ai-main` is a harness-neutral source of truth. The **core** (policy, skills, knowledge, memory, checks) knows nothing about any one tool; each **harness** (OMP, Codex, Claude, Gemini, Cursor, plus JSON-described tools) is an adapter that turns the core into that tool's native entry files, skill catalog and launchers. No harness is the default: a machine opts in with `install.sh --harness` or `config/harnesses.local` (see [deploy.md](deploy.md)).
+`ai-main` is a harness-neutral source of truth. The **core** (policy, skills, knowledge, memory, checks) knows nothing about any one tool; each **harness** (Codex, Claude, Gemini, Cursor, plus JSON-described tools) is an adapter that turns the core into that tool's native entry files, skill catalog and launchers. No harness is the default: a machine opts in with `install.sh --harness` or `config/harnesses.local` (see [deploy.md](deploy.md)).
 
 ## Principles
 
@@ -16,7 +16,7 @@
 
 ```
 ai-main/
-├── install.sh                 # harness dispatcher: --harness dsh|omp|codex|extra|legacy (no default);
+├── install.sh                 # harness dispatcher: --harness dsh|codex|extra|legacy (no default);
 │                              #   its legacy body is the Claude/Gemini/Cursor all-harness installer
 ├── bin/aimain                 # CLI: link/unlink/list/deploy/doctor/build/adapters/context
 ├── config/                    # neutral policy sources
@@ -27,7 +27,6 @@ ai-main/
 │   ├── cursor-rules/ launchd/            # linked/installed by the legacy harness
 ├── adapters/                  # everything harness-specific (contract: adapters/README.md)
 │   ├── lib/deploy-common.sh   # shared deploy helpers, ownership markers
-│   ├── omp/                   # entry, runtime overlay, skill allowlist/builder, roles, launchers, deploy.sh
 │   ├── codex/                 # AGENTS.md.template, deploy.sh
 │   ├── claude/ gemini/        # entry templates, RTK/redirect skill templates
 │   └── opencode.json qwen.json zcode.json   # JSON-described tools (aimain adapters deploy)
@@ -35,7 +34,7 @@ ai-main/
 │   ├── checks/                # git hooks + PATH shims that replaced prompt rules
 │   └── hooks/                 # Claude Code hook wrappers (path referenced by live settings.json)
 ├── knowledge/                 # per-repo knowledge → deployed to each workspace root
-├── context/                   # shared .ai context per repo (linked into Orca worktrees)
+├── context/                   # shared .ai context per repo (linked into worktrees)
 ├── repo-agents/               # per-repo agent definitions
 ├── memory/                    # version-controlled context; commits remain explicit
 │   ├── SHARED.md lessons/     # distilled cross-tool facts and rules
@@ -46,8 +45,10 @@ ai-main/
 ├── scripts/                   # sync.sh, verify.sh, link-worktree-agents.sh, canary-prompts.md
 ├── eval/                      # run.sh, shared-brain.py, harness-dispatch.py, models/
 ├── docs/                      # this documentation; history/ and plans/ keep older evidence
-├── logs/ state/ archive/      # worklog, OMP skill snapshots, retired material
-└── build/                     # GENERATED profiles and OMP skill farm — gitignored, never edit
+├── logs/ state/ archive/      # worklog and retired material
+└── build/                     # GENERATED profiles and skill farms — gitignored, never edit
 ```
+
+Orca/OMP (retired 2026-10): see archive/2026-10-orca-omp/docs/architecture.md
 
 Paths that live installs or tool settings reference by absolute path (`core/hooks/`, `config/cursor-rules/`, the `memory/` link targets) are deliberately stable.

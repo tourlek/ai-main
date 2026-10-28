@@ -77,7 +77,7 @@ if grep -qE '(^|[;&|])[[:space:]]*([^[:space:]]*/)?graphify([[:space:]]|$)' <<<"
   deny "graphify CLI must run through ~/ai-main/bin/gfy (pinned env, no LLM); needs the user's explicit override for anything else."
 fi
 # cheap pre-filter: nothing to check
-grep -qE 'git|glab|orca' <<<"$cmd" || exit 0
+grep -qE 'git|glab' <<<"$cmd" || exit 0
 cwd=$(jq -r '.cwd // "."' <<<"$input")
 
 GIT='(^|[[:space:]])(rtk[[:space:]]+)?git([[:space:]]+(-[Cc][[:space:]]+[^[:space:]]+|--[^[:space:]]+))*[[:space:]]+'
@@ -158,10 +158,11 @@ while IFS= read -r seg; do
     grep -qiE '(^|[^a-z])mr([^a-z]|$)|merge request|merge' <<<"$msg" || deny "glab mr create/update/merge needs the user's explicit MR instruction in the last message."; }
   fi
   # worktree base
-  if grep -qE "${GIT}worktree[[:space:]]+add([[:space:]]|$)|(^|[[:space:]])orca[[:space:]]+worktree[[:space:]]+create([[:space:]]|$)" <<<"$seg"; then
+  # Orca/OMP (retired 2026-10): see archive/2026-10-orca-omp/adapters/omp
+  if grep -qE "${GIT}worktree[[:space:]]+add([[:space:]]|$)" <<<"$seg"; then
     if ! grep -q 'origin/master' <<<"$seg" && ! { [ -f "$REACT_RUN_FLAG" ] && grep -qE -- '--base-branch[[:space:]=]+feat/react-|[[:space:]]feat/react-[^[:space:]]+[[:space:]]*$' <<<"$seg"; }; then
       need_msg
-      grep -qi 'allow-worktree' <<<"$msg" || deny "new worktree must branch from origin/master (git worktree add ... origin/master, or orca worktree create --base-branch origin/master). Ask the user if another base is intended (they can reply 'allow-worktree')."
+      grep -qi 'allow-worktree' <<<"$msg" || deny "new worktree must branch from origin/master (git worktree add ... origin/master). Ask the user if another base is intended (they can reply 'allow-worktree')."
     fi
   fi
 done <<<"$segs"

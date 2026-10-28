@@ -27,7 +27,9 @@ Use repository documentation as the canonical source for code-adjacent behavior,
 
 ### Issue tracker
 
-Issue specs and branch-local plans live under the owning repo's `.scratch/<feature-slug>/`. Named ClickUp/Orca trackers own task status; shared `.ai` holds decisions and handoff evidence pointers, not another task queue. Historical reports follow the locations indexed in `CONTEXT-MAP.md`.
+Issue specs and branch-local plans live under the owning repo's `.scratch/<feature-slug>/`. Named ClickUp trackers own task status; shared `.ai` holds decisions and handoff evidence pointers, not another task queue. Historical reports follow the locations indexed in `CONTEXT-MAP.md`.
+
+Orca/OMP (retired 2026-10): see archive/2026-10-orca-omp/knowledge/ohochat.md
 
 ### Triage labels
 

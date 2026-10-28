@@ -1,8 +1,10 @@
 # OHO-1165 Multi-Tannat QA handoff
 
+Orca/OMP (retired 2026-10): see archive/2026-10-orca-omp/context/oho-web-app/handoffs/oho-1165-multi-tannat.md
+
 **Verdict: Blocked for QA handoff.** The source-to-surface map and test focus are ready, but the candidate has not passed focused tests or a real app/API smoke. Do not mark Ready for QA from code inspection or mocked tests alone.
 
-- **Web candidate:** `/Users/tualek/orca/workspaces/oho-web-app/Multi-tannat`, branch `Multi-tannat`, HEAD `743e354218e0250fcd4cfc77a5f33172afdcf85c`; worktree clean when inspected.
+- **Web candidate:** branch `Multi-tannat`, HEAD `743e354218e0250fcd4cfc77a5f33172afdcf85c`; worktree clean when inspected.
 - **Work item:** OHO-1165, Stream Chat credential lifecycle (`846fe8df1`); current candidate includes the later recovery fix `be05a2a37`.
 - **Changed contract:** Oho member login still chooses a `business_id` from the route/current-business cookie and calls `authentication-member/login` (`store/index.js:259-303, 498-503`). The change moves Stream SDK authentication from the old `streamToken` read in `Conversation.vue` to a `POST chat-credential` bundle (`api/endpoint.js:20`, `store/modules/smartchat.js:579-643`). This is a Stream Chat credential-flow change, not evidence that the Oho login page/API changed. The backend's business-to-Stream-account mapping is outside this repo and remains unverified.
 

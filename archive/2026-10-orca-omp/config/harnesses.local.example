@@ -1,0 +1,9 @@
+# Copy to config/harnesses.local (gitignored) to choose which harnesses scripts/sync.sh
+# redeploys on this machine. Whitespace or comma separated; no default when absent.
+#
+#   dsh     DSH AGENTS.md files + @local plugins       (adapters/dsh; deploy refuses while DSH runs)
+#   omp     OMP entry, skill farm and role launchers   (adapters/omp)
+#   codex   Codex entry + owned skills                 (adapters/codex)
+#   extra   JSON-described tools: opencode, qwen, zcode (aimain adapters deploy)
+#   legacy  Claude/Gemini/Cursor all-harness installer  (install.sh --legacy)
+omp codex

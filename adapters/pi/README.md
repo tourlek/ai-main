@@ -11,7 +11,8 @@ No launcher, no alias, no `PI_CODING_AGENT_DIR`. Replaces the pi-trial setup (la
 | Shared brain | `extensions/ai-main-brain.ts` → `adapters/pi/extensions/ai-main-brain.ts`. On every `before_agent_start` it reads `agent/APPEND_SYSTEM.md` (adapter note), `~/.hermes/state/ORACLE.md`, `~/ai-main/build/full/SYSTEM.md` fresh and sets them as prompt sections `ai_main_note` / `ai_main_oracle` / `ai_main_system` (live, no copies; `oracle-recap --install` unchanged). `AIMAIN_BRAIN=0` disables. `~/.pi/agent/APPEND_SYSTEM.md` (RTK rules etc.) still loads as before. |
 | Guard | `extensions/guard.ts` → `adapters/pi/extensions/guard.ts`: `tool_call` → `~/.claude/hooks/guard.sh`, fail-closed (bash / codemode / `*clickup_*` / `mcp__graphify__*`). Log: `$PI_CODING_AGENT_DIR/logs/guard.log`, default `~/.pi/agent/logs/guard.log`. Env `AIMAIN_GUARD`, `AIMAIN_GUARD_LOG`. |
 | MCP | `mcp.json` (copy of `agent/mcp.json`): context7 (direct), open-design (deferred), graphify (direct), clickup (deferred, OAuth). `mcp-auth.json` (600) holds the ClickUp OAuth token, carried over from the trial dir. |
-| Other | Existing `extensions/` (gemini-antigravity.ts, orca-*, herdr, holdmylid, usage-footer), `sessions/`, anthropic login in `auth.json` kept. `provider-keys.json` now 600. |
+| Other | Existing `extensions/` (gemini-antigravity.ts, herdr, holdmylid, usage-footer), `sessions/`, anthropic login in `auth.json` kept. `provider-keys.json` now 600. |
+Orca/OMP (retired 2026-10): see archive/2026-10-orca-omp/adapters/pi/README.md
 
 ## Layout here
 | Path | What |

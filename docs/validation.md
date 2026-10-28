@@ -16,10 +16,12 @@ Two layers: run both whenever you suspect a tool is not picking up the global co
 bash eval/run.sh
 bash -n install.sh scripts/sync.sh bin/aimain adapters/*/deploy.sh adapters/lib/deploy-common.sh
 scripts/verify.sh            # installed-file audit for the harnesses in config/harnesses.local
-scripts/verify.sh --harness omp,codex
+scripts/verify.sh --harness codex
 ```
 
-`eval/run.sh` builds the profiles, exercises ownership and deployment behavior in isolated fixtures and checks that `install.sh` has no default harness. `scripts/verify.sh` audits installed files for the selected harnesses only (`omp`, `codex`, `legacy`); with no selection it runs repo-level checks. Neither proves that a new machine needs every legacy home.
+`eval/run.sh` builds the profiles, exercises ownership and deployment behavior in isolated fixtures and checks that `install.sh` has no default harness. `scripts/verify.sh` audits installed files for the selected harnesses only (`dsh`, `codex`, `legacy`); with no selection it runs repo-level checks. Neither proves that a new machine needs every legacy home.
+
+Orca/OMP (retired 2026-10): see archive/2026-10-orca-omp/docs/validation.md
 
 Exit code 0 = clean, non-zero = something broke. Re-run after deploying if you changed anything.
 

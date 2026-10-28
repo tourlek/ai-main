@@ -39,6 +39,7 @@ assert_allowed() {
     if "${CHECKS}/git-guard.sh" "$1" >/dev/null 2>&1; then pass "guard allows: $1"; else fail "guard denied: $1 ($2)"; fi
 }
 
+# Orca/OMP (retired 2026-10): see archive/2026-10-orca-omp/adapters/omp
 echo -e "${BLUE}${BOLD}1) Profiles build and stay under their ceiling${NC}"
 if ! "${AI_MAIN}/bin/aimain" build >/dev/null 2>&1; then
     fail "profile/skill build failed"
@@ -51,7 +52,7 @@ while read -r tier tokens budget; do
 done < <("${AI_MAIN}/bin/aimain" budget)
 
 echo -e "\n${BLUE}${BOLD}2) Every profile preserves equivalent safety and scope gates${NC}"
-for tier in full omp; do
+for tier in full; do
     assert_in "$tier" "Never commit without explicit authorization" "commit authorization"
     assert_in "$tier" "stay inside that repo" "scope discipline"
     assert_in "$tier" "Only revert when the user asks" "no unasked reverts"
@@ -65,7 +66,7 @@ for tier in full omp; do
 done
 
 echo -e "\n${BLUE}${BOLD}2b) Every profile points curated memory to Obsidian${NC}"
-for tier in full omp; do
+for tier in full; do
     assert_in "$tier" "Project rules and corrections live in native auto memory" "native auto memory is the rules source"
     assert_in "$tier" "for prior-work recall" "Obsidian prior-work recall pointer"
     assert_in "$tier" "AI Memory/Home.md" "indexed prior-work recall"
@@ -87,7 +88,7 @@ assert_allowed "git diff v1.112.0 v1.113.0"         "release tag diff"
 assert_allowed "rg unread_by src/"                  "not a git command"
 
 echo -e "\n${BLUE}${BOLD}5) Every profile is free of tier markers${NC}"
-for tier in full omp; do
+for tier in full; do
     if grep -q '<!--\(min\|lean\)-->' "${BUILD}/${tier}/SYSTEM.md" 2>/dev/null; then
         fail "profile ${tier} still contains tier markers"
     else

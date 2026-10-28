@@ -48,7 +48,9 @@
 - Use `code-review`, `gitlab-mr-description`, and `gitlab-mr-comment-reply` for their respective tasks. Missing specs limit compliance claims, not correctness checks.
 - Use `self-learning` for deduplicated durable corrections and `worklog` for requested/enabled logging; respect write restrictions.
 - Handle focused work directly; delegate substantial independent slices with scope/evidence. One writer per checkout. Reviews name MR/commit ranges; release proof stays separate.
-- Route substantial card/code work through T3 Code: a dedicated worktree under `~/.t3/worktrees/<repo>/<branch-slug>` bound to one implement thread (`workspaceStrategy: {type: "existing_worktree"}`), one writer per checkout (Orca retired 2026-10-27). Before interactive work in a checkout, check `ps aux` that no background chain/script still drives it; kill that script first on handoff.
+- Route substantial card/code work through T3 Code: a dedicated worktree under `~/.t3/worktrees/<repo>/<branch-slug>` bound to one implement thread (`workspaceStrategy: {type: "existing_worktree"}`), one writer per checkout. The plan thread (Claude Code on claude-team) spawns its own Opus reviewer directly (effort medium max). The reviewer is independent of the implementer (never spawned by or reporting via the implementer). Before interactive work in a checkout, check `ps aux` that no background chain/script still drives it; kill that script first on handoff.
+
+Orca/OMP (retired 2026-10): see archive/2026-10-orca-omp/config/workflow.md
 
 ## Tools and style
 

@@ -28,12 +28,12 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 #   ./install.sh --harness <id>[,<id>...] [--sync] [--quiet]
 #
 #   dsh     adapters/dsh/deploy.sh     DSH: ~/.dsh/AGENTS.md, ~/.agents/AGENTS.md, @local plugins (quit DSH first)
-#   omp     adapters/omp/deploy.sh     OMP entry, skill farm and role launchers
+#   omp     retired 2026-10; prints a pointer and deploys nothing
 #   codex   adapters/codex/deploy.sh   Codex entry + owned skills
 #   extra   aimain adapters deploy     JSON-described tools (opencode, qwen, zcode)
 #   legacy  the all-harness installer below: Claude/Gemini/Cursor entries, hooks, launchd (one-time setup)
 #
-# Aliases kept for older callers: --codex = --harness omp,codex ; --legacy = --harness legacy.
+# Aliases kept for older callers: --codex = --harness codex ; --legacy = --harness legacy.
 _HARNESS_IDS="dsh omp codex extra legacy"
 _usage() {
     sed -n '/^# Harness selection/,/^# Aliases kept/p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
@@ -50,7 +50,7 @@ while [ "$_i" -lt "${#_args[@]}" ]; do
             [ "$_i" -lt "${#_args[@]}" ] || { echo "install.sh: --harness needs a value" >&2; exit 2; }
             IFS=, read -ra _ids <<< "${_args[$_i]}"; _SELECTED+=("${_ids[@]}") ;;
         --harness=*) IFS=, read -ra _ids <<< "${_a#--harness=}"; _SELECTED+=("${_ids[@]}") ;;
-        --codex)  _SELECTED+=(omp codex) ;;
+        --codex)  _SELECTED+=(codex) ;;
         --legacy) _SELECTED+=(legacy) ;;
         --sync|--quiet) _PASS+=("$_a") ;;
         --help|-h) _usage; exit 0 ;;
@@ -73,10 +73,9 @@ if ! { _want legacy && [ "${#_SELECTED[@]}" -eq 1 ]; }; then
     "${SCRIPT_DIR}/bin/aimain" build
 fi
 if _want omp; then
-    _omp_args=(${_PASS[@]+"${_PASS[@]}"})
-    ! _want codex || _omp_args+=(--codex)
-    "${SCRIPT_DIR}/adapters/omp/deploy.sh" ${_omp_args[@]+"${_omp_args[@]}"}
-elif _want codex; then
+    echo "Orca/OMP (retired 2026-10): see archive/2026-10-orca-omp/adapters/omp"
+fi
+if _want codex; then
     "${SCRIPT_DIR}/adapters/codex/deploy.sh" ${_PASS[@]+"${_PASS[@]}"}
 fi
 if _want extra; then
