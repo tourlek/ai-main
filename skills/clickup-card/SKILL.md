@@ -20,7 +20,7 @@ One plan thread plus one implement thread per card. State lives in `.scratch/<CA
 - Read ClickUp through the connected MCP (workspace_id `90182460598`), never curl + token. For many objects use `clickup_get_operators` / `clickup_execute_operator`, not one call per subtask.
 - Read back after every write; `success:true` is not proof.
 - No commit, push, MR, merge, reviewer, Draft removal, traffic switch unless the user says so for that action. `git revert`, `amend` and `cherry-pick` are commits.
-- Approval gate: show the preview plus the exact word to type, then end the turn. guard.sh checks the user's last message (within 30 min): commit = `commit`/`คอมมิ`; push = `push`/`พุช`; `glab mr create/update/merge` = `MR` or `merge request`; ClickUp write = `confirm`/`ใส่ได้เลย`; worktree not from `origin/master` = `allow-worktree`. PROD query = `PROD ok` (skill rule, not guard-enforced; covers only the queries in the preview). Loose phrases ("แบบที่ 2 น่าจะดีกว่า", "ได้เลย" to another question) are not approval. Each word covers only its action: "commit push" does not open an MR. Never call the tool to see if guard.sh lets it through.
+- Approval gate: show the preview plus the exact word to type, then end the turn. guard.sh checks the user's last message (within 30 min): commit = `commit`/`คอมมิ`; push = `push`/`พุช`; `glab mr create/update/merge` = `MR` or `merge request`; ClickUp write = `confirm`/`ใส่ได้เลย`; worktree not from `origin/master` = `allow-worktree`. Prod **reads** via `~/ai-main/bin/mongo-ro prod …` need **no** chat phrase (2026-10-28). Raw prod `mongosh` stays denied. Prod **writes** stay forbidden. Loose phrases ("แบบที่ 2 น่าจะดีกว่า", "ได้เลย" to another question) are not approval. Each word covers only its action: "commit push" does not open an MR. Never call the tool to see if guard.sh lets it through.
 - Files for the user to open (`mr.md`, `cs-review.md`, drafts): copy to `/Users/tualek/ohochat/.scratch/<CARD>/` first, then share that copy. Worktree paths are outside the session root and fail.
 - Card links: always `https://app.clickup.com/t/90182460598/<CARD-ID>` (e.g. `OHO-8671`), never `/t/<internal id>`. ClickUp `assignees` are strings: `["113526352"]`.
 - Implementation goes to the card's single implement thread (step 3): pi + DeepSeek, top-level, bound to the card worktree; later rounds are `t3_thread_send` to the same thread. Fallbacks are listed in step 3. If asked to edit code here, dispatch instead. Never Codex: the user has no Codex subscription.
@@ -28,7 +28,7 @@ One plan thread plus one implement thread per card. State lives in `.scratch/<CA
 - Reviewer is always Claude Opus (never Gemini). Default: the plan thread (Claude Code on claude-team) spawns the reviewer directly (opus, effort medium max, role review, edits only `review.md`), fresh context each round; the reviewer is independent of the implementer (never spawned by or reporting via the implementer); fallback only if Claude quota is out or the plan thread's reviewer spawn errors: agy with `claude-opus-5-5-medium`. Judge against REVIEW.md + brief acceptance, not the plan's reasoning. No automatic extra high pass; run opus high only when the user asks.
 - Do not add Claude/AI footers to MR text.
 - Write findings to `breakdown.md` (Investigation) as soon as they are found; chat is lost on compaction.
-- Investigate mode: reads are free (files, rg/git log/diff/blame, gcloud logs, ClickUp/MCP reads, staging/UAT DB reads via bwsr, scout/reviewer agents); go to root cause and report in one turn. Ask only before writes (repo edits, ClickUp, commit/push/MR, worktree) and PROD queries.
+- Investigate mode: reads are free (files, rg/git log/diff/blame, gcloud logs, ClickUp/MCP reads, staging/UAT DB reads via bwsr, scout/reviewer agents); go to root cause and report in one turn. Ask only before writes (repo edits, ClickUp, commit/push/MR, worktree). Prod reads via mongo-ro need no chat phrase; raw prod mongosh stays denied; prod writes stay forbidden.
 - Code search goes through `Agent(subagent_type="scout")`. Do not run more than 2 rg/grep or 3 Read/cat/sed calls yourself in a row; delegate and keep only its file:line list.
 - Never write `Verdict: ready`, never say an MR is ready ("พร้อม MR"), never draft the Slack review request without a `reviewer` result at the current head SHA recorded in `.scratch/<CARD>/review.md`.
 - If the user approves a small post-review fix, dispatch it to `impl_thread` and run a delta re-review on `<prev>..<head>`, or record `Verdict: ready-with-unreviewed-user-fix` and ask the user before committing. The orchestrator never calls `Edit`/`Write` on repo source or docs files.
@@ -124,3 +124,14 @@ Inputs: `git worktree list` + `git log --since=midnight` per worktree, T3 thread
 Output: table per subtask: progress (1-2 lines), proposed hours, blocker; then the proposed lessons for approval. Write nothing.
 Hours come only from `~/ai-main/core/checks/session-hours.py <orchestrator session id>` (gap 15 min, includes child subagent sessions). Show the real block intervals next to every number; never write an interval the script output lacks; split blocks across subtasks without overlap. Before `clickup_add_time_entry`, write the planned entries to a JSON file and run the script with `--entries <file>`; exit 1 = fix before the preview.
 After the user fixes the numbers and says confirm: `clickup_add_time_entry` + `clickup_create_task_comment` per subtask, then read back. Put MR links in comments as plain text, not markdown links. Approved lessons go through `self-learning`.
+
+
+## T3 sprint convention
+
+For multi-card sprint coordination on T3 (title prefix + registry; T3 has no custom sprint sidebar groups):
+
+1. Open card threads only via `sprint-spawn.sh <no> card <CARD-ID>` (optional flags: `--project`, `--worktree`, `--branch`, `--title-extra`).
+2. Get card status only via `sprint-status.sh <no>` (optional `--thread` / `--json`). Never read card chats for status; use `.scratch/<CARD-ID>/status.json` and `~/.claude/sprints/S<no>/threads.json`.
+3. Adhoc or personal work stays outside the sprint unless registered with `sprint-spawn.sh <no> adopt <threadId> <CARD-ID>`.
+
+Coordinator default prompt (from `sprint-spawn.sh <no> coordinator`) embeds the same rules. See `~/.claude/sprints/README.md`.
