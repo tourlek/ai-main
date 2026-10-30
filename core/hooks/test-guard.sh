@@ -65,7 +65,7 @@ check ask   "clickup_create_task + stale confirm"     clickup_create_task '{"nam
 check allow "mcp__x__clickup_get_task (read)"         mcp__x__clickup_get_task '{"task_id":"1"}'
 check allow "execute_operator get_many (read)"        mcp__x__clickup_execute_operator '{"operator":"get_many"}'
 check ask   "execute_operator create_many (write)"    mcp__x__clickup_execute_operator '{"operator":"create_many"}' "" "" "needs a preview"
-# @hauptsache.net/clickup-mcp names as DSH exposes them
+# @hauptsache.net/clickup-mcp tool names
 for t in addComment editComment updateTask createTask updateListInfo createTimeEntry updateDocumentPage createDocumentOrPage; do
   check ask   "mcp__clickup__$t, no transcript"       "mcp__clickup__$t" '{}' "" "" "needs a preview"
   check allow "mcp__clickup__$t + fresh confirm"      "mcp__clickup__$t" '{}' "" "$fresh_confirm"
@@ -110,7 +110,6 @@ check allow "glab mr view (read)"                     Bash "$(bash_ti 'glab mr v
 echo "== worktree base"
 check ask   "git worktree add ../w feature"           Bash "$(bash_ti 'git worktree add ../w feature')" "" "" "must branch from origin/master"
 check allow "git worktree add -b f ../w origin/master" Bash "$(bash_ti 'git worktree add -b f ../w origin/master')"
-# Orca/OMP (retired 2026-10): see archive/2026-10-orca-omp/adapters/omp
 check allow "git worktree add ../w dev + allow-worktree" Bash "$(bash_ti 'git worktree add ../w dev')" "" "$fresh_wt"
 
 echo "== destructive (ported from git-guard.sh)"
@@ -139,8 +138,10 @@ check allow "flag: worktree base feat/react-y"        Bash "$(bash_ti 'git workt
 rm -f "$GUARD_REACT_RUN_FLAG"
 
 echo "== local-auto commit+push (AUTONOMOUS_GIT_LOCAL_OK)"
-# Nested path matching the React port worktree substr; flag unlocks LOCAL commit + narrow origin push.
-LOCAL_WT="$T/orca/workspaces/oho-web-app-react/react-p0"
+# Path under the default LOCAL_AUTO_ROOT_SUBSTR ($HOME/.t3/worktrees/oho-web-app/); HOME is a temp dir so nothing touches the real one.
+export HOME="$T/home"
+# Flag unlocks LOCAL commit + narrow origin push.
+LOCAL_WT="$HOME/.t3/worktrees/oho-web-app/react-p0"
 mkdir -p "$(dirname "$LOCAL_WT")"
 mkrepo "$LOCAL_WT" feat/react-p0-ux
 # bare origin so `git push` / upstream checks can resolve
@@ -175,11 +176,11 @@ check deny  "local-auto flag: push --mirror still deny"   Bash "$(bash_ti 'git p
 check ask   "local-auto flag: glab mr still ask"         Bash "$(bash_ti 'glab mr create --fill')" "$LOCAL_WT" "" "$ASK"
 check deny  "local-auto flag: push master still deny"    Bash "$(bash_ti 'git push origin master')" "$LOCAL_WT" "" "$NEVER"
 # Wrong branch under react path: still ask
-mkrepo "$T/orca/workspaces/oho-web-app-react/other" feat/x
-mkdir -p "$T/orca/workspaces/oho-web-app-react/other/.scratch/p0"
-touch "$T/orca/workspaces/oho-web-app-react/other/.scratch/p0/AUTONOMOUS_GIT_LOCAL_OK"
-check ask   "local-auto flag but branch not feat/react-*" Bash "$(bash_ti 'git commit -m x')" "$T/orca/workspaces/oho-web-app-react/other" "" "$ASK"
-check ask   "local-auto flag wrong branch: push ask"      Bash "$(bash_ti 'git push origin feat/x')" "$T/orca/workspaces/oho-web-app-react/other" "" "$ASK"
+mkrepo "$HOME/.t3/worktrees/oho-web-app/other" feat/x
+mkdir -p "$HOME/.t3/worktrees/oho-web-app/other/.scratch/p0"
+touch "$HOME/.t3/worktrees/oho-web-app/other/.scratch/p0/AUTONOMOUS_GIT_LOCAL_OK"
+check ask   "local-auto flag but branch not feat/react-*" Bash "$(bash_ti 'git commit -m x')" "$HOME/.t3/worktrees/oho-web-app/other" "" "$ASK"
+check ask   "local-auto flag wrong branch: push ask"      Bash "$(bash_ti 'git push origin feat/x')" "$HOME/.t3/worktrees/oho-web-app/other" "" "$ASK"
 # Flag in non-react path: still ask even on feat/react-*
 mkdir -p "$T/react/.scratch/p0"
 touch "$T/react/.scratch/p0/AUTONOMOUS_GIT_LOCAL_OK"
@@ -218,7 +219,7 @@ check ask   "[review-handoff] with commit word -> ask" Bash "$(bash_ti 'git comm
 echo "== mongo prod"
 check allow "mongo-ro prod read"                     Bash "$(bash_ti 'mongo-ro prod --eval '\''db.x.find().limit(1)'\'')"
 check allow "fullpath mongo-ro prod"                 Bash "$(bash_ti '~/ai-main/bin/mongo-ro prod --eval '\''db.y.findOne()'\''')"
-check allow "mongo-ro prod --file (no PROD ok needed)" Bash "$(bash_ti 'mongo-ro prod --file /tmp/q.js')"
+check allow "mongo-ro prod --file (no typed phrase needed)" Bash "$(bash_ti 'mongo-ro prod --file /tmp/q.js')"
 check allow "bwsr + mongo-ro prod aggregate"         Bash "$(bash_ti 'bwsr -- ~/ai-main/bin/mongo-ro prod --eval '\''db.x.aggregate([])'\''')"
 check deny  "raw mongosh prod deleteMany (write)"    Bash "$(bash_ti 'bwsr -- '\''mongosh \"$MONGO_URI_PROD\" --eval \"db.x.deleteMany({})\"'\''')" "" "" "$NEVER"
 check deny  "raw mongosh prod updateMany (write)"    Bash "$(bash_ti 'mongosh mongodb+srv://u@prod.example/db --eval '\''db.x.updateMany({}, {})'\''')" "" "" "$NEVER"

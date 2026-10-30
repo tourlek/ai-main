@@ -16,7 +16,7 @@
 
 ```
 ai-main/
-├── install.sh                 # harness dispatcher: --harness dsh|codex|extra|legacy (no default);
+├── install.sh                 # harness dispatcher: --harness codex|extra|legacy (dsh, omp retired) (no default);
 │                              #   its legacy body is the Claude/Gemini/Cursor all-harness installer
 ├── bin/aimain                 # CLI: link/unlink/list/deploy/doctor/build/adapters/context
 ├── config/                    # neutral policy sources

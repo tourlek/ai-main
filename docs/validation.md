@@ -19,7 +19,7 @@ scripts/verify.sh            # installed-file audit for the harnesses in config/
 scripts/verify.sh --harness codex
 ```
 
-`eval/run.sh` builds the profiles, exercises ownership and deployment behavior in isolated fixtures and checks that `install.sh` has no default harness. `scripts/verify.sh` audits installed files for the selected harnesses only (`dsh`, `codex`, `legacy`); with no selection it runs repo-level checks. Neither proves that a new machine needs every legacy home.
+`eval/run.sh` builds the profiles, exercises ownership and deployment behavior in isolated fixtures and checks that `install.sh` has no default harness. `scripts/verify.sh` audits installed files for the selected harnesses only (`codex`, `legacy`); with no selection it runs repo-level checks. Neither proves that a new machine needs every legacy home.
 
 Orca/OMP (retired 2026-10): see archive/2026-10-orca-omp/docs/validation.md
 

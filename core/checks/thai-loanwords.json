@@ -1,5 +1,5 @@
 {
-  "_comment": "Rules for replies: technical terms stay in English (no Thai transliterations), and no CJK script at all. Shared by core/checks/thai-loanwords.py and adapters/dsh/plugins/dsh-loanword-watch. 'allow' entries are stripped before matching so real Thai words are not flagged. 'map' is the English replacement used by the plugin when it rewrites an assistant message before it is committed.",
+  "_comment": "Rules for replies: technical terms stay in English (no Thai transliterations), and no CJK script at all. Shared by core/checks/thai-loanwords.py (the old DSH plugin that also used it is archived). 'allow' entries are stripped before matching so real Thai words are not flagged. 'map' is the English replacement used by the plugin when it rewrites an assistant message before it is committed.",
   "words": [
     "รัน",
     "เทสต์",

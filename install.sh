@@ -27,7 +27,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 #
 #   ./install.sh --harness <id>[,<id>...] [--sync] [--quiet]
 #
-#   dsh     adapters/dsh/deploy.sh     DSH: ~/.dsh/AGENTS.md, ~/.agents/AGENTS.md, @local plugins (quit DSH first)
+#   dsh     retired 2026-10-30; prints a pointer and deploys nothing (archive/2026-10-dsh)
 #   omp     retired 2026-10; prints a pointer and deploys nothing
 #   codex   adapters/codex/deploy.sh   Codex entry + owned skills
 #   extra   aimain adapters deploy     JSON-described tools (opencode, qwen, zcode)
@@ -82,7 +82,7 @@ if _want extra; then
     "${SCRIPT_DIR}/bin/aimain" adapters deploy
 fi
 if _want dsh; then
-    "${SCRIPT_DIR}/adapters/dsh/deploy.sh"
+    echo "DSH (retired 2026-10-30): see archive/2026-10-dsh"
 fi
 _want legacy || exit 0
 

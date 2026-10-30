@@ -5,7 +5,7 @@
 #     exit 0  → allowed
 #     exit 2  → denied, reason on stderr
 #
-# The rules live in core/hooks/guard.sh (Claude PreToolUse + DSH guard bridge). This wrapper
+# The rules live in core/hooks/guard.sh (Claude PreToolUse in T3 / claude-team). This wrapper
 # feeds it a Bash payload with no transcript, so commit/push/glab mr always need
 # authorization here. Escape hatches: AIMAIN_BYPASS=1 (skip everything),
 # AIMAIN_ALLOW_COMMIT=1 (skip the commit-authorization rule only).

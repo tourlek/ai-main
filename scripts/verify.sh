@@ -2,7 +2,7 @@
 
 # Deep verification that the selected harnesses will actually load the ai-main configs.
 # Usage: verify.sh [--harness <id>[,<id>...]]   (default: config/harnesses.local; ids:
-#        dsh, omp, codex, extra, legacy). With no selection only repo-level checks run.
+#        codex, extra, legacy; dsh and omp are retired). With no selection only repo-level checks run.
 # - Resolves all @-imports inside each entry file
 # - Checks each import target exists and (when symlinked) points back into ai-main
 # - Diffs shared files against the canonical source in ai-main/config/

@@ -9,7 +9,7 @@ Orca/OMP (retired 2026-10): see archive/2026-10-orca-omp/docs/faq.md
 ```bash
 cd ~/ai-main
 git submodule update --remote --recursive        # updates 9arm-skills + agent-skills
-./install.sh --harness dsh                        # rebuild and redeploy (use the harness ids you run)
+./install.sh --harness extra                      # rebuild and redeploy (use the harness ids you run)
 ```
 
 **Why not use `npx skills add ...` instead of submodules?**

@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Active wall-clock time of a DSH session (plus its child subagent sessions).
+"""Active wall-clock time of a session (plus its child subagent sessions).
+
+Still parses the DSH log format under ~/.dsh/sessions (retired harness, archived sessions only).
+Claude Code / T3 jsonl transcripts are not read yet: port the parser before using it on them.
 
 Usage: session-hours.py <session-id-or-path> [--gap-min 15] [--entries entries.json]
 

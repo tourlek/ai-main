@@ -22,7 +22,7 @@ Examples:
 
 ```markdown
 - 2026-07-04 14:30 [oho-web-app] claude: fixed Smartchat unread badge race in filtered list refetch (MR !482)
-- 2026-07-04 16:10 [oho-api] codex: added contact_links index migration, not deployed yet
+- 2026-07-04 16:10 [oho-api] claude-code: added contact_links index migration, not deployed yet
 ```
 
 3. Keep it one line — outcome, not narration. Unfinished work states what remains (`not deployed yet`, `blocked on review`).

@@ -4,7 +4,7 @@ terms, and any CJK (Chinese/Japanese) run.
 
 Usage: thai-loanwords.py <session-id-or-path>... [--max N]
 
-Reads assistant/message text blocks from DSH session logs (not reasoning, not tool calls),
+Reads assistant/message text blocks from archived DSH-format session logs (retired harness; not reasoning, not tool calls),
 drops code fences and `inline code`, and reports each hit with its seq and kind. Word list:
 core/checks/thai-loanwords.json. Exit 1 if there are more than --max hits (default 0).
 """

@@ -69,9 +69,9 @@ Before review: pwd (must be the card worktree) + git rev-parse HEAD (must match 
 # rounds.md
 
 ```
-# <CARD> threads and rounds (2 main T3 threads per card; implement thread = pi + DeepSeek, one thread for all rounds)
+# <CARD> threads and rounds (2 main T3 threads per card; implement thread = Claude Sonnet on claude-team, one thread for all rounds)
 plan_thread: <threadId of the claude-team plan thread>
-impl_thread: <threadId of the pi implement thread>   worktree: ~/.t3/worktrees/<repo>/<slug>   branch: <branch>
+impl_thread: <threadId of the claude-team implement thread>   worktree: ~/.t3/worktrees/<repo>/<slug>   branch: <branch>
 r1: <YYYY-MM-DD HH:MM +07> plan-only    (launch via t3_thread_launch, existing_worktree)
 r1 review: <time> plan_thread spawn (delegate_task or t3 thread) claude-opus-5-5 medium   (spawned by plan_thread, never by impl)
 r2: <time> implement    (t3_thread_send to impl_thread)

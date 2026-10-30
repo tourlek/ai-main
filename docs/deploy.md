@@ -5,14 +5,14 @@
 ```bash
 git clone --recurse-submodules <your-fork-of-ai-main> ~/ai-main
 cd ~/ai-main
-./install.sh --harness dsh,codex          # choose explicitly
+./install.sh --harness extra,codex          # choose explicitly
 ```
 
 Initialize missing pinned packs with `git submodule update --init --recursive`; deployment never fetches or updates them.
 
 | Harness id | Script | Writes |
 | --- | --- | --- |
-| `dsh` | `adapters/dsh/deploy.sh` | `~/.dsh/AGENTS.md`, `~/.agents/AGENTS.md`, and the two `@local` plugin links plus bundle entries in `~/.dsh/profiles/desktop/package.json`, then `pnpm install`; backups go to `~/.dsh/backup-<ts>/`, and it refuses while DSH is running |
+| `dsh` | retired 2026-10-30 (prints a pointer) | nothing |
 | `codex` | `adapters/codex/deploy.sh` | `~/.codex/AGENTS.md` (managed entry) and owned-skill links in `~/.codex/skills` |
 | `extra` | `aimain adapters deploy` | Entries for JSON-described tools (`adapters/*.json`: opencode, qwen, zcode) |
 | `legacy` | the all-harness body of `install.sh` | Claude, Gemini and Cursor entries, skills, hooks, MCP base, memory links, launchd (one-time setup) |
@@ -23,9 +23,9 @@ Orca/OMP (retired 2026-10): see archive/2026-10-orca-omp/docs/deploy.md
 
 Shared helpers and the ownership model (managed markers, exact-recognition migration, preserve anything else) live in `adapters/lib/deploy-common.sh`. Deployment preserves unmanaged entries and unrelated runtime settings, and fails instead of overwriting anything it does not recognize.
 
-## DSH (main harness)
+## DSH (retired 2026-10-30)
 
-`aimain build` writes `build/dsh/AGENTS.md` (from `adapters/dsh/AGENTS.md`) and `build/dsh/agents-AGENTS.md` (RTK manual plus `build/full/SYSTEM.md`). `adapters/dsh/propose.sh` renders the files DSH would get into `~/.dsh/backup-20261021-consolidate/*.proposed` and changes nothing live: `package.json` (both `@local` plugin links to ai-main), `cordis.patch.yml` (live plus any missing row from `adapters/dsh/cordis.patch.yml`: `cc-review`, `cc-review-high`, `cc-explore`, `guard-bridge`), `AGENTS.md`, `agents-AGENTS.md`. `adapters/dsh/APPLY.md` has the manual apply, check and rollback steps. DSH is normally open, so leave `dsh` out of `config/harnesses.local` until you mean to quit DSH for a sync.
+`adapters/dsh/` moved to `archive/2026-10-dsh/`; `install.sh --harness dsh` only prints a pointer and `aimain build` no longer writes `build/dsh/`.
 
 ## Choosing harnesses per machine
 

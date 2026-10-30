@@ -336,8 +336,6 @@ cmd_build() {
             ok "profile ${tier}: ~${tokens} tokens (ceiling ${budget})"
         fi
     done
-    # Orca/OMP (retired 2026-10): see archive/2026-10-orca-omp/adapters/omp
-    bash "${AI_MAIN}/adapters/dsh/build.sh"
     # Content hashes identify dirty-source builds without pretending HEAD is the deployed content.
     python3 - "$AI_MAIN" "${PROFILE_SOURCES[@]}" <<'PY'
 import hashlib, json, pathlib, sys

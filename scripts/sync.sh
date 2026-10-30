@@ -103,6 +103,10 @@ if git remote get-url origin >/dev/null 2>&1; then
     if [ "$BRANCH" != "main" ]; then
         note "on branch '$BRANCH', not main -- skipping auto-commit/pull/push"
         SKIP_PUSH=1
+    elif ! stale_out="$("${SCRIPT_DIR}/check-stale-rules.sh" 2>&1)"; then
+        note "!!! STALE RULES CHECK FAILED -- auto-commit, pull and push SKIPPED (fix the lines below) !!!"
+        echo "$stale_out" | sed 's/^/    /'
+        SKIP_PUSH=1
     else
         # 1. commit local changes
         if ! repo_is_clean; then

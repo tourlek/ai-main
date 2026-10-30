@@ -1,13 +1,12 @@
 #!/bin/bash
 # core/hooks/guard.sh : the one ai-main guard (installed as ~/.claude/hooks/guard.sh).
 # Input: Claude Code PreToolUse JSON on stdin (tool_name, tool_input, transcript_path, cwd).
-# Soft gates: permissionDecision="ask" (T3/Claude Approve button; DSH maps ask; pi confirm).
+# Soft gates: permissionDecision="ask" (T3/Claude Approve button; the user opens the gate there, typed words only as fallback outside T3).
 # Hard gates: permissionDecision="deny" ("never allowed").
 # Silent exit 0 = no decision (normal permission flow).
-# Callers: Claude Code PreToolUse, the DSH guard bridge (no transcript), core/checks/git-guard.sh (CLI).
-# Reason phrases are a contract with adapters/dsh/plugins/dsh-guard-bridge:
-#   "never allowed" -> deny; "needs the user's explicit" / "needs a preview" / "must branch from origin/master" -> ask
-#   (no transcript under DSH, so 'allow-worktree' is never seen; Claude Code still allows on that word).
+# Callers: Claude Code PreToolUse (T3 / claude-team), core/checks/git-guard.sh (CLI, no transcript).
+# Reason phrases: "never allowed" -> deny; "needs the user's explicit" / "needs a preview" / "must branch from origin/master" -> ask.
+#   With no transcript (CLI) typed words like 'allow-worktree' are never seen; in T3 the Allow control opens the gate.
 set -u
 input=$(cat)
 tool=$(jq -r '.tool_name // ""' <<<"$input")
@@ -70,7 +69,7 @@ msg_has_go() {
 # ---- (a) ClickUp ----
 if [[ "$tool" =~ clickup_ ]]; then
   op=${tool##*clickup_}
-  # mcp__clickup__addComment (hauptsache clickup-mcp via DSH) leaves "_addComment"
+  # mcp__clickup__addComment (hauptsache clickup-mcp) leaves "_addComment"
   while [[ "$op" == _* ]]; do op=${op#_}; done
   lc=$(tr '[:upper:]' '[:lower:]' <<<"$op")
   write=0
@@ -127,11 +126,11 @@ segs=$(tr "\"'\`()" '     ' <<<"$cmd" | sed -E 's/(\&\&|\|\||;|\|)/\n/g')
 
 # --- TEMP run exception (react parity run 2026-10-18, user-approved 15:05). Remove flag file to disable.
 REACT_RUN_FLAG="${GUARD_REACT_RUN_FLAG:-$HOME/.claude/hooks/run-exceptions/react-parity-run}"
-# Scoped AUTO (flag .scratch/p0/AUTONOMOUS_GIT_LOCAL_OK): inside oho-web-app-react worktrees on
+# Scoped AUTO (flag .scratch/p0/AUTONOMOUS_GIT_LOCAL_OK): inside oho-web-app T3 worktrees on
 # feat/react-*, auto-allow LOCAL git commit and a narrow git push to origin of the current branch.
 # Does NOT unlock glab mr / force / other remotes / other refs. Remove the flag file to disable.
 LOCAL_AUTO_FLAG="${GUARD_LOCAL_AUTO_FLAG:-.scratch/p0/AUTONOMOUS_GIT_LOCAL_OK}"
-LOCAL_AUTO_ROOT_SUBSTR="${GUARD_LOCAL_AUTO_ROOT_SUBSTR:-/orca/workspaces/oho-web-app-react/}"
+LOCAL_AUTO_ROOT_SUBSTR="${GUARD_LOCAL_AUTO_ROOT_SUBSTR:-$HOME/.t3/worktrees/oho-web-app/}"
 GUARD_LOG="${GUARD_LOG:-$HOME/.pi/agent/logs/guard.log}"
 log_line() {
   mkdir -p "$(dirname "$GUARD_LOG")" 2>/dev/null || true
@@ -290,7 +289,6 @@ while IFS= read -r seg; do
     msg_has_go '(^|[^a-z])mr([^a-z]|$)|merge request|(^|[^a-z])merge([^a-z]|$)' || ask "glab mr create/update/merge needs the user's explicit MR instruction in the last message."; }
   fi
   # worktree base
-  # Orca/OMP (retired 2026-10): see archive/2026-10-orca-omp/adapters/omp
   if grep -qE "${GIT}worktree[[:space:]]+add([[:space:]]|$)" <<<"$seg"; then
     if ! grep -q 'origin/master' <<<"$seg" && ! { [ -f "$REACT_RUN_FLAG" ] && grep -qE -- '--base-branch[[:space:]=]+feat/react-|[[:space:]]feat/react-[^[:space:]]+[[:space:]]*$' <<<"$seg"; }; then
       need_msg

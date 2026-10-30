@@ -37,7 +37,7 @@ type: memory
 status: candidate
 scope: <global | workspace | repo:<name>>
 created: <YYYY-MM-DD HH:MM +07>
-agent: <hermes | claude-code | cursor-cli | codex | grok-bot>
+agent: <claude-code | cursor-cli | grok-bot>
 model: <provider/model id actually running>
 source: <session id / card CU-xxx / MR !nnn / file path>
 related: <[[existing note]] or none>
