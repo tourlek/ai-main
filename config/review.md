@@ -2,7 +2,7 @@
 
 Shared by every reviewer: the Claude `reviewer` agent (`adapters/claude/agents/reviewer.md`), the DSH `cc-review` subagent, and step 7 of `skills/clickup-card`. A repo's own `REVIEW.md` overrides these defaults.
 
-- Reviewer model is Claude Opus only, never Gemini. One reviewer per round; do not stack reviewers.
+- Reviewer model is Claude only, never Gemini: Sonnet each round in a fresh context, plus one Opus pass before the change request is opened. The reviewer receives only the diff + plan.md, never the implementer's reasoning. One reviewer per round; do not stack reviewers.
 - Review is read-only: no edits, commits, pushes or git state changes.
 - Judge against the repo's `REVIEW.md` and the acceptance list, not the plan's reasoning. Evidence is a file:line you opened, never a guess from a name.
 - Tag every finding `[Important|Nit|Pre-existing]`:
