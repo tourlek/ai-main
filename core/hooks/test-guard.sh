@@ -218,6 +218,10 @@ check ask   "[review-handoff] with commit word -> ask" Bash "$(bash_ti 'git comm
 echo "== mongo prod"
 check allow "mongo-ro prod read"                     Bash "$(bash_ti 'mongo-ro prod --eval '\''db.x.find().limit(1)'\'')"
 check allow "fullpath mongo-ro prod"                 Bash "$(bash_ti '~/ai-main/bin/mongo-ro prod --eval '\''db.y.findOne()'\''')"
+check allow "mongo-ro prod --file (no PROD ok needed)" Bash "$(bash_ti 'mongo-ro prod --file /tmp/q.js')"
+check allow "bwsr + mongo-ro prod aggregate"         Bash "$(bash_ti 'bwsr -- ~/ai-main/bin/mongo-ro prod --eval '\''db.x.aggregate([])'\''')"
+check deny  "raw mongosh prod deleteMany (write)"    Bash "$(bash_ti 'bwsr -- '\''mongosh \"$MONGO_URI_PROD\" --eval \"db.x.deleteMany({})\"'\''')" "" "" "$NEVER"
+check deny  "raw mongosh prod updateMany (write)"    Bash "$(bash_ti 'mongosh mongodb+srv://u@prod.example/db --eval '\''db.x.updateMany({}, {})'\''')" "" "" "$NEVER"
 check deny  "raw mongosh MONGO_URI_PROD"             Bash "$(bash_ti 'bwsr -- '\''mongosh \"$MONGO_URI_PROD\" --eval \"db.x.find()\"'\''')" "" "" "$NEVER"
 check deny  "mongosh prod literal"                   Bash "$(bash_ti 'mongosh mongodb://prod.example/db --eval '\''db.x.find()'\''')" "" "" "$NEVER"
 
