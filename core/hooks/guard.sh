@@ -107,10 +107,9 @@ fi
 # ---- mongo: raw prod mongosh never; mongo-ro is the read path ----
 if grep -qE '(^|[;&|`$()[:space:]])([^[:space:]]*/)?(mongosh|mongo)([[:space:]]|$)' <<<"$cmd" \
    || grep -qE 'MONGO_URI_PROD' <<<"$cmd"; then
-  if ! grep -qE '(^|[;&|`$()[:space:]])([^[:space:]]*/)?mongo-ro([[:space:]]|$)' <<<"$cmd"; then
-    if grep -qiE 'MONGO_URI_PROD|mongodb(\+srv)?://[^[:space:]]*[Pp][Rr][Oo][Dd]' <<<"$cmd"; then
-      deny "raw mongosh/mongo against prod is never allowed; use ~/ai-main/bin/mongo-ro prod --eval|file (read-only wrapper)."
-    fi
+  # no mongo-ro exemption: a mongo-ro token elsewhere in a chain must not excuse a raw call
+  if grep -qiE 'MONGO_URI_PROD|mongodb(\+srv)?://[^[:space:]]*[Pp][Rr][Oo][Dd]' <<<"$cmd"; then
+    deny "raw mongosh/mongo against prod is never allowed; use ~/ai-main/bin/mongo-ro prod --eval|file (read-only wrapper)."
   fi
 fi
 

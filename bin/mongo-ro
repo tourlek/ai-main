@@ -24,6 +24,8 @@ grep -qE '\.[[:space:]]*(insert|insertOne|insertMany|update|updateOne|updateMany
 grep -qE '\$(out|merge)\b' <<<"$S" && deny '$out/$merge stage'
 grep -qE '(runCommand|adminCommand|eval|Function|require|load|process|spawn|exec|execSync|child_process|fs\.|connect|new[[:space:]]+Mongo|Mongo[[:space:]]*\(|passwd|sleep|quit|exit)[[:space:]]*[\(\.]' <<<"$S" && deny "command/escape construct"
 grep -qE '\[[[:space:]]*[a-zA-Z_`'"'"'"][^]]*\+[^]]*\]|\bconstructor\b|globalThis|\bthis\[' <<<"$S" && deny "dynamic property access"
+# computed member access (db.x["m"](), db["x"], obj[var]) and string-builders hide method names from the scan above; array literals follow ( : , [ = and stay allowed
+grep -qE '[]A-Za-z0-9_$)][[:space:]]*\[|fromCharCode|atob|Reflect|Proxy' <<<"$S" && deny "computed/bracket member access or string-built name"
 grep -qE '(^|[;[:space:]])(use|db\.auth|sh\.|rs\.|!)[[:space:]]' <<<"$S" && deny "shell helper (use/sh./rs./!)"
 grep -qE 'allowDiskUse[[:space:]]*:[[:space:]]*true' <<<"$S" && deny "allowDiskUse:true on prod reads"
 if [ $CHECK -eq 1 ]; then echo "mongo-ro: OK (read-only check passed)"; exit 0; fi

@@ -225,6 +225,28 @@ check deny  "raw mongosh prod updateMany (write)"    Bash "$(bash_ti 'mongosh mo
 check deny  "raw mongosh MONGO_URI_PROD"             Bash "$(bash_ti 'bwsr -- '\''mongosh \"$MONGO_URI_PROD\" --eval \"db.x.find()\"'\''')" "" "" "$NEVER"
 check deny  "mongosh prod literal"                   Bash "$(bash_ti 'mongosh mongodb://prod.example/db --eval '\''db.x.find()'\''')" "" "" "$NEVER"
 
+check deny  "mongo-ro then raw mongosh prod (chained)" Bash "$(bash_ti 'mongo-ro prod --file /tmp/q.js; mongosh "$MONGO_URI_PROD" --eval "db.x.find()"')" "" "" "$NEVER"
+check deny  "mongo-ro in path arg + raw mongosh prod"  Bash "$(bash_ti 'bwsr -- '\''mongosh "$MONGO_URI_PROD" --file ~/ai-main/bin/mongo-ro.js'\''')" "" "" "$NEVER"
+
+echo "== mongo-ro --check (static scan, no connection)"
+MRO="$HERE/../../bin/mongo-ro"
+mro() { # <want exit> <label> <js>
+  local want="$1" label="$2" js="$3" rc
+  bash "$MRO" --check --eval "$js" >/dev/null 2>&1; rc=$?
+  if [ "$rc" = "$want" ]; then pass=$((pass + 1)); echo "PASS mongo-ro $label -> $rc"; else fail=$((fail + 1)); echo "FAIL mongo-ro $label -> $rc (want $want)"; fi
+}
+mro 3 "dot deleteMany"                 'db.x.deleteMany({})'
+mro 3 "bracket deleteMany"              'db.x["deleteMany"]({})'
+mro 3 "db[\"x\"][\"drop\"]"             'db["x"]["drop"]()'
+mro 3 "method name in a variable"       'const m="deleteMany"; db.x[m]({})'
+mro 3 "string-built method name"        'db.x["delete"+"Many"]({})'
+mro 3 "getCollection()[\"drop\"]"        'db.getCollection("x")["drop"]()'
+mro 3 "\$merge stage"                  'db.x.aggregate([{$merge:"y"}])'
+mro 0 "find with \$in array"           'db.x.find({a:{$in:[1,2]}}).limit(1)'
+mro 0 "aggregate pipeline"             'db.x.aggregate([{$match:{a:{$in:["a","b"]}}},{$group:{_id:"$a",n:{$sum:1}}},{$project:{v:{$arrayElemAt:["$arr",0]}}}])'
+mro 0 "getCollection find \$and"       'db.getCollection("x").find({$and:[{a:1},{b:2}]})'
+mro 0 "plain findOne"                  'db.y.findOne()'
+
 echo "== CLI wrapper core/checks/git-guard.sh"
 cli() { # <want exit> <label> <cmd> [env...]
   local want="$1" label="$2" c="$3"; shift 3
